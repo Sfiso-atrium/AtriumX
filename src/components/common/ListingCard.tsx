@@ -1,10 +1,10 @@
-// src/components/common/ListingCard.tsx
-import { MockListing } from '../../data/mockListings'
+import { Listing, Profile } from '../../services/dataService'
+import { useNavigate } from 'react-router-dom'
 
 interface ListingCardProps {
-  listing: MockListing
+  listing: Listing | any
+  seller?: Profile | any
 }
-
 function Avatar({ initials, color, size = 24 }: { initials: string; color: string; size?: number }) {
   return (
     <div
