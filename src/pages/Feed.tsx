@@ -2,18 +2,28 @@
 import { useState, useMemo } from 'react'
 import { Search, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { MOCK_LISTINGS } from '../data/mockListings'
+import { Listing, getListings } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
-
+import { useState, useMemo, useEffect } from 'react'
 export default function Feed() {
   const { activeCategory, searchQuery, setSearchQuery } = useApp()
   const [localSearch, setLocalSearch] = useState('')
+  const [listings, setListings] = useState<Listing[]>([])
+  const [dbLoading, setDbLoading] = useState(true)
+
+  useEffect(() => {
+    getListings().then(data => {
+      setListings(data)
+      setDbLoading(false)
+    })
+  }, [])
 
   const filtered = useMemo(() => {
-    return MOCK_LISTINGS.filter(listing => {
+    const source = listings
+    return source.filter(listing => {
       const matchCat = activeCategory === 'all' || listing.category === activeCategory
       const q = localSearch.toLowerCase()
       const matchSearch = !q ||
@@ -56,11 +66,11 @@ export default function Feed() {
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState
-            message="Nothing here yet. Be the first to post."
-            actionLabel="Post a Listing"
-            onAction={() => {}}
-          />
+<EmptyState
+  message={dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
+  actionLabel={dbLoading ? undefined : 'Post a Listing'}
+  onAction={() => navigate('/plan-select')}
+/>
         ) : (
           <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(listing => (
