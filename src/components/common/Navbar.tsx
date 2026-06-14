@@ -10,13 +10,15 @@ export default function Navbar() {
     { label: 'Retailer', path: '/retailer' },
   ]
 
+  const isActive = (path: string) => location.pathname === path
+
   return (
     <nav className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
       <button
         onClick={() => navigate('/')}
         className="text-xl font-bold"
       >
-        <span className="text-cream">Atrium</span>
+        <span className="text-cream font-serif">Atrium</span>
       </button>
 
       <div className="flex items-center gap-4">
@@ -25,8 +27,8 @@ export default function Navbar() {
             key={link.path}
             onClick={() => navigate(link.path)}
             className={`text-sm font-medium transition-colors hidden md:block ${
-              location.hash === `#${link.path}`
-                ? 'text-ember'
+              isActive(link.path)
+                ? 'text-ember border-b-2 border-ember pb-0.5'
                 : 'text-cream-muted hover:text-cream'
             }`}
           >
