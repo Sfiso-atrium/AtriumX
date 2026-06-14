@@ -6,14 +6,7 @@ export default function Entrance() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 relative">
-
-      <button
-        onClick={() => navigate('/student')}
-        className="absolute top-4 right-4 text-sm font-medium text-cream-muted hover:text-cream border border-slate-border hover:border-teal-primary px-4 py-2 rounded-xl transition-colors"
-      >
-        Sign In
-      </button>
+    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6">
 
       <div className="mb-10 text-center">
         <h1 className="font-serif text-5xl text-cream mb-2">
