@@ -30,11 +30,16 @@ function timeLeft(expiresAt: string) {
   return { label: `${hours}h left`, color: 'text-yellow-400' }
 }
 
-export default function ListingCard({ listing }: ListingCardProps) {
+export default function ListingCard({ listing, seller }: ListingCardProps) {
+  const navigate = useNavigate()
+  const sellerData = seller || listing.seller
   const expiry = timeLeft(listing.expiresAt)
 
   return (
-    <div className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-primary transition-colors cursor-pointer">
+<div
+  onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
+  className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-primary transition-colors cursor-pointer"
+>
       {listing.imageUrl ? (
         <img
           src={listing.imageUrl}
@@ -68,10 +73,20 @@ export default function ListingCard({ listing }: ListingCardProps) {
           {formatPrice(listing.price)}
         </p>
 
-        <div className="flex items-center gap-2">
-          <Avatar initials={listing.sellerInitials} color={listing.sellerColor} size={22} />
-          <span className="text-cream-muted text-xs">{listing.sellerName}</span>
-        </div>
+      <div className="flex items-center gap-2">
+  {sellerData && (
+    <>
+      <Avatar
+        initials={sellerData.avatar_initials || sellerData.sellerInitials || '?'}
+        color={sellerData.avatar_color || sellerData.sellerColor || '#1A5F7A'}
+        size={22}
+      />
+      <span className="text-cream-muted text-xs">
+        {sellerData.full_name || sellerData.sellerName || ''}
+      </span>
+    </>
+  )}
+</div>
 
         <div className="flex items-center justify-between pt-1 border-t border-slate-border">
           <span className="text-cream-muted text-xs">{listing.contactCount} interested</span>
