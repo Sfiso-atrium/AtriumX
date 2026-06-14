@@ -8,12 +8,13 @@ import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
 import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 export default function Feed() {
   const { activeCategory, searchQuery, setSearchQuery } = useApp()
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
-
+const navigate = useNavigate()
   useEffect(() => {
     getListings().then(data => {
       setListings(data)
