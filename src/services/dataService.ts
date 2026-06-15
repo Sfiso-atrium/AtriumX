@@ -347,8 +347,9 @@ export async function reportListing(
   const { error } = await supabase
     .from('reports')
     .insert({ listing_id: listingId, reporter_id: reporterId, reason })
-  if (!error) {
-    await supabase.rpc('increment_report_count', { listing_id: listingId }).catch(() => {})
+ if (!error) {
+    const { error: rpcError } = await supabase.rpc('increment_report_count', { listing_id: listingId })
+    if (rpcError) console.error('Report count increment failed:', rpcError.message)
   }
   return { error: error ? error.message : null }
 }
