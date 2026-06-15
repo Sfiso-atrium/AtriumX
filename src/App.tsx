@@ -29,7 +29,7 @@ function ModalLayer() {
 export default function App() {
   return (
     <AppProvider>
-      <HashRouter>
+   <HashRouter>
         <ToastLayer />
         <ModalLayer />
         <Routes>
@@ -42,7 +42,7 @@ export default function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
         </Routes>
-      </HashRouter>
+<HashRouter>
     </AppProvider>
   )
 }
