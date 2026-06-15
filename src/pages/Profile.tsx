@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { Profile as ProfileType, Listing, getUserById, getUserListings } from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
-
+import BottomNav from '../components/common/BottomNav'
 export default function Profile() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
@@ -113,6 +113,7 @@ export default function Profile() {
           </>
         )}
       </div>
-    </div>
+   </div>
+    <BottomNav />
   )
 }
