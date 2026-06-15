@@ -29,7 +29,7 @@ function ModalLayer() {
 export default function App() {
   return (
     <AppProvider>
-   <HashRouter>
+   <HashRouter />
         <ToastLayer />
         <ModalLayer />
         <Routes>
