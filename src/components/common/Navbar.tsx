@@ -1,16 +1,3 @@
-// src/components/common/Navbar.tsx
-import { useNavigate, useLocation } from 'react-router-dom'
-
-export default function Navbar() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  const navLinks = [
-    { label: 'Feed', path: '/feed' },
-    { label: 'Retailer', path: '/retailer' },
-  ]
-
-  const isActive = (path: string) => location.pathname === path
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 
@@ -74,8 +61,5 @@ export default function Navbar() {
         )}
       </div>
     </nav>
-  )
-}
- 
   )
 }
