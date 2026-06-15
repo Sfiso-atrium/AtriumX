@@ -108,13 +108,4 @@ export const MOCK_LISTINGS: MockListing[] = [
   },
 ]
 
-export const CATEGORIES = [
-  { id: 'all', label: 'All' },
-  { id: 'textbooks', label: 'Textbooks' },
-  { id: 'electronics', label: 'Electronics' },
-  { id: 'clothing', label: 'Clothing' },
-  { id: 'food', label: 'Food' },
-  { id: 'services', label: 'Services' },
-  { id: 'furniture', label: 'Furniture' },
-  { id: 'other', label: 'Other' },
-]
+
