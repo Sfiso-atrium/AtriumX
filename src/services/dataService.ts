@@ -122,11 +122,14 @@ export async function registerWithEmail(
   })
 
   if (error) return { user: null, error: error.message }
-  if (!data.user) return { user: null, error: 'Registration failed.' }
+if (!data.user) return { user: null, error: 'Registration failed.' }
 
-  await new Promise(r => setTimeout(r, 1500))
-
-  const profile = await getUserById(data.user.id)
+  let profile = null
+  for (let i = 0; i < 5; i++) {
+    await new Promise(r => setTimeout(r, 600))
+    profile = await getUserById(data.user.id)
+    if (profile) break
+  }
   if (!profile) {
     const { error: insertError } = await supabase.from('profiles').insert({
       id: data.user.id,
