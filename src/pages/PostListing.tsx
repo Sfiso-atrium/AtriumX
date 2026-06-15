@@ -4,7 +4,7 @@ import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   createListing, uploadListingImage,
-  PLAN_TIERS, PlanKey, CATEGORIES
+  PLAN_TIERS, PlanKey
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
