@@ -50,21 +50,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  useEffect(() => {
+useEffect(() => {
+    let mounted = true
+
     restoreSession().then(profile => {
-      setCurrentUser(profile)
-      setIsLoadingAuth(false)
+      if (mounted) {
+        setCurrentUser(profile)
+        setIsLoadingAuth(false)
+      }
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event, _session) => {
+        if (!mounted) return
         if (event === 'SIGNED_OUT') {
           setCurrentUser(null)
         }
       }
     )
 
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
   }, [setCurrentUser])
 
   const showToast = useCallback((message: string, type: Toast['type']) => {
