@@ -7,7 +7,7 @@ import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
-
+import BottomNav from '../components/common/BottomNav'
 export default function Feed() {
   const { activeCategory } = useApp()
   const navigate = useNavigate()
@@ -92,6 +92,7 @@ const [fetchError, setFetchError] = useState(false)
           </div>
         )}
       </div>
-    </div>
+  </div>
+    <BottomNav />
   )
 }
