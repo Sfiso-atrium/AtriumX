@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Flag, Users, RefreshCw, CheckCircle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import BottomNav from '../components/common/BottomNav'
 import {
   Listing, Profile, getListingById,
   startConversation, markListingAsSold,
@@ -241,6 +242,7 @@ export default function ListingDetail() {
           </button>
         )}
       </div>
-    </div>
+   </div>
+    <BottomNav />
   )
 }
