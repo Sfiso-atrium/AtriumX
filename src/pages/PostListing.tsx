@@ -7,7 +7,7 @@ import {
   PLAN_TIERS, PlanKey, CATEGORIES
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
-
+import BottomNav from '../components/common/BottomNav'
 const CATEGORIES_LIST = [
   { id: 'textbooks', label: 'Textbooks' },
   { id: 'electronics', label: 'Electronics' },
@@ -351,6 +351,7 @@ export default function PostListing() {
           </button>
         </div>
       </div>
-    </div>
+   </div>
+    <BottomNav />
   )
 }
