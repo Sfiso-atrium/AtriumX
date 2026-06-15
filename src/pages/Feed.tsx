@@ -1,19 +1,20 @@
-// src/pages/Feed.tsx
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Listing, getListings } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
-import { useNavigate } from 'react-router-dom'
+
 export default function Feed() {
-  const { activeCategory, searchQuery, setSearchQuery } = useApp()
+  const { activeCategory } = useApp()
+  const navigate = useNavigate()
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
-const navigate = useNavigate()
+
   useEffect(() => {
     getListings().then(data => {
       setListings(data)
@@ -22,8 +23,7 @@ const navigate = useNavigate()
   }, [])
 
   const filtered = useMemo(() => {
-    const source = listings
-    return source.filter(listing => {
+    return listings.filter(listing => {
       const matchCat = activeCategory === 'all' || listing.category === activeCategory
       const q = localSearch.toLowerCase()
       const matchSearch = !q ||
@@ -31,7 +31,7 @@ const navigate = useNavigate()
         listing.description.toLowerCase().includes(q)
       return matchCat && matchSearch
     })
-  }, [activeCategory, localSearch])
+  }, [listings, activeCategory, localSearch])
 
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -61,16 +61,16 @@ const navigate = useNavigate()
 
         <div className="px-4 pb-2">
           <p className="text-cream-muted text-xs">
-            {filtered.length} listing{filtered.length !== 1 ? 's' : ''} found
+            {dbLoading ? 'Loading...' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}
           </p>
         </div>
 
         {filtered.length === 0 ? (
-<EmptyState
-  message={dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
-  actionLabel={dbLoading ? undefined : 'Post a Listing'}
-  onAction={() => navigate('/plan-select')}
-/>
+          <EmptyState
+            message={dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
+            actionLabel={dbLoading ? undefined : 'Post a Listing'}
+            onAction={() => navigate('/plan-select')}
+          />
         ) : (
           <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(listing => (
