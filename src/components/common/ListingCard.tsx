@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Listing, Profile } from '../../services/dataService'
-
 interface ListingCardProps {
   listing: Listing | any
   seller?: Profile | any
@@ -31,9 +31,9 @@ function timeLeft(expiresAt: string | undefined) {
   if (days === 1) return { label: `${hours + 24}h left`, color: 'text-yellow-400' }
   return { label: `${hours}h left`, color: 'text-yellow-400' }
 }
-
 export default function ListingCard({ listing, seller }: ListingCardProps) {
   const navigate = useNavigate()
+  const [imgError, setImgError] = useState(false)
   const sellerData = seller || listing.seller
   const expiry = timeLeft(listing.expires_at)
 
@@ -54,14 +54,12 @@ export default function ListingCard({ listing, seller }: ListingCardProps) {
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
       className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-primary transition-colors cursor-pointer"
     >
-      {imageUrl ? (
+  {imageUrl && !imgError ? (
         <img
           src={imageUrl}
           alt={listing.title}
           className="w-full aspect-video object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none'
-          }}
+          onError={() => setImgError(true)}
         />
       ) : (
         <div className="w-full aspect-video bg-teal-faint flex items-center justify-center">
