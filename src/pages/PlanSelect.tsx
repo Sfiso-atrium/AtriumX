@@ -4,7 +4,7 @@ import { Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { PLAN_TIERS, PlanKey } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
-
+import BottomNav from '../components/common/BottomNav'
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
   ghost: [
     'Text-only listing',
@@ -136,6 +136,7 @@ export default function PlanSelect() {
           {selected ? `Continue with ${PLAN_TIERS[selected].label}` : 'Select a plan'}
         </button>
       </div>
-    </div>
+  </div>
+    <BottomNav />
   )
 }
