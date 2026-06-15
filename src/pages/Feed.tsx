@@ -15,11 +15,18 @@ export default function Feed() {
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
 
+const [fetchError, setFetchError] = useState(false)
+
   useEffect(() => {
-    getListings().then(data => {
-      setListings(data)
-      setDbLoading(false)
-    })
+    getListings()
+      .then(data => {
+        setListings(data)
+        setDbLoading(false)
+      })
+      .catch(() => {
+        setDbLoading(false)
+        setFetchError(true)
+      })
   }, [])
 
   const filtered = useMemo(() => {
@@ -66,9 +73,15 @@ export default function Feed() {
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState
-            message={dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
-            actionLabel={dbLoading ? undefined : 'Post a Listing'}
+       <EmptyState
+            message={
+              fetchError
+                ? 'Could not load listings. Check your connection and try again.'
+                : dbLoading
+                ? 'Loading listings...'
+                : 'Nothing here yet. Be the first to post.'
+            }
+            actionLabel={dbLoading || fetchError ? undefined : 'Post a Listing'}
             onAction={() => navigate('/plan-select')}
           />
         ) : (
