@@ -9,6 +9,7 @@ import PlanSelect from './pages/PlanSelect'
 import PostListing from './pages/PostListing'
 import ListingDetail from './pages/ListingDetail'
 import Profile from './pages/Profile'
+import AdminPanel from './pages/AdminPanel'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/post" element={<PostListing />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
 
       </HashRouter>
