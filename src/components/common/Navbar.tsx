@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -44,13 +45,16 @@ export default function Navbar() {
         ))}
 
         {currentUser ? (
-          <button
-            onClick={() => navigate(`/profile/${currentUser.id}`)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-            style={{ backgroundColor: currentUser.avatar_color }}
-          >
-            {currentUser.avatar_initials}
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button
+              onClick={() => navigate(`/profile/${currentUser.id}`)}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              style={{ backgroundColor: currentUser.avatar_color }}
+            >
+              {currentUser.avatar_initials}
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => navigate('/student')}

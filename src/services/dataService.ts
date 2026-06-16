@@ -231,9 +231,19 @@ export async function getResidences(): Promise<string[]> {
 
 // ── LISTINGS ───────────────────────────────────────────────────────────────
 
+// Plan-based residence visibility rules
+const PLAN_RESIDENCE_SCOPE: Record<string, 'own' | 'watched' | 'all'> = {
+  ghost:       'own',
+  flash:       'own',
+  visible:     'watched',
+  loud:        'watched',
+  unmissable:  'all',
+}
+
 export async function getListings(filters: {
   category?: string
   search?: string
+  currentUser?: Profile | null
 } = {}): Promise<Listing[]> {
   let query = supabase
     .from('listings')
@@ -251,7 +261,23 @@ export async function getListings(filters: {
 
   const { data, error } = await query
   if (error || !data) return []
-  return data as Listing[]
+  const listings = data as Listing[]
+
+  // Apply cross-residence visibility filter if a user is logged in
+  if (filters.currentUser) {
+    const user = filters.currentUser
+    const scope = PLAN_RESIDENCE_SCOPE[user.plan] || 'own'
+    if (scope === 'own') {
+      return listings.filter(l => l.residence === user.residence)
+    }
+    if (scope === 'watched') {
+      const watched = user.watched_residences || []
+      return listings.filter(l => watched.includes(l.residence) || l.residence === user.residence)
+    }
+    // 'all' — no filter
+  }
+
+  return listings
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
@@ -593,6 +619,38 @@ export async function clearReports(listingId: string): Promise<{ error: string |
       .update({ report_count: 0 })
       .eq('id', listingId)
   }
+  return { error: error ? error.message : null }
+}
+
+// ── PUSH PREFERENCES ───────────────────────────────────────────────────────
+
+export async function savePushPreference(
+  userId: string,
+  enabled: boolean
+): Promise<void> {
+  await supabase
+    .from('push_preferences')
+    .upsert({ user_id: userId, push_enabled: enabled, updated_at: new Date().toISOString() })
+}
+
+export async function getPushPreference(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('push_preferences')
+    .select('push_enabled')
+    .eq('user_id', userId)
+    .single()
+  return data?.push_enabled ?? false
+}
+
+// ── RESOLVE SALE ───────────────────────────────────────────────────────────
+
+export async function resolveConversation(
+  convId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('conversations')
+    .update({ is_resolved: true })
+    .eq('id', convId)
   return { error: error ? error.message : null }
 }
 

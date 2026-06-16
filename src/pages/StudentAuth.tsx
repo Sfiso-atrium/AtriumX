@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { loginWithEmail, registerWithEmail } from '../services/dataService'
+import { loginWithEmail, registerWithEmail, savePushPreference } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 
 export default function StudentAuth() {
@@ -37,6 +37,12 @@ export default function StudentAuth() {
       if (err) return setError(err)
       if (user) {
         setCurrentUser(user)
+        // Ask for push notification permission after registration
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            savePushPreference(user.id, permission === 'granted')
+          })
+        }
         const dest = redirectAfterLogin || '/feed'
         setRedirectAfterLogin(null)
         navigate(dest)

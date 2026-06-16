@@ -9,7 +9,7 @@ import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
 import BottomNav from '../components/common/BottomNav'
 export default function Feed() {
-  const { activeCategory } = useApp()
+  const { activeCategory, currentUser } = useApp()
   const navigate = useNavigate()
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
@@ -18,7 +18,7 @@ export default function Feed() {
 const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
-    getListings()
+    getListings({ currentUser })
       .then(data => {
         setListings(data)
         setDbLoading(false)
@@ -27,7 +27,7 @@ const [fetchError, setFetchError] = useState(false)
         setDbLoading(false)
         setFetchError(true)
       })
-  }, [])
+  }, [currentUser])
 
   const filtered = useMemo(() => {
     return listings.filter(listing => {

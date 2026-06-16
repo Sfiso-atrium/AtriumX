@@ -1,6 +1,5 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
-import { useEffect } from 'react'
 import Entrance from './pages/Entrance'
 import Feed from './pages/Feed'
 import RetailerLanding from './pages/RetailerLanding'
@@ -10,6 +9,7 @@ import PostListing from './pages/PostListing'
 import ListingDetail from './pages/ListingDetail'
 import Profile from './pages/Profile'
 import AdminPanel from './pages/AdminPanel'
+import ChatPage from './pages/ChatPage'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -43,6 +43,8 @@ export default function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/:convId" element={<ChatPage />} />
         </Routes>
 
       </HashRouter>
