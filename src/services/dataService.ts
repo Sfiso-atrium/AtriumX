@@ -234,15 +234,6 @@ export async function getResidences(): Promise<string[]> {
 
 // ── LISTINGS ───────────────────────────────────────────────────────────────
 
-// Plan-based residence visibility rules
-const PLAN_RESIDENCE_SCOPE: Record<string, 'own' | 'watched' | 'all'> = {
-  ghost:       'own',
-  flash:       'own',
-  visible:     'watched',
-  loud:        'watched',
-  unmissable:  'all',
-}
-
 export async function getListings(filters: {
   category?: string
   search?: string
@@ -264,23 +255,7 @@ export async function getListings(filters: {
 
   const { data, error } = await query
   if (error || !data) return []
-  const listings = data as Listing[]
-
-  // Apply cross-residence visibility filter if a user is logged in
-  if (filters.currentUser) {
-    const user = filters.currentUser
-    const scope = PLAN_RESIDENCE_SCOPE[user.plan] || 'own'
-    if (scope === 'own') {
-      return listings.filter(l => l.residence === user.residence)
-    }
-    if (scope === 'watched') {
-      const watched = user.watched_residences || []
-      return listings.filter(l => watched.includes(l.residence) || l.residence === user.residence)
-    }
-    // 'all' — no filter
-  }
-
-  return listings
+  return data as Listing[]
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
