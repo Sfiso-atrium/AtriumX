@@ -35,8 +35,9 @@ export default function Profile() {
     </div>
   )
 
-  const activeListings = listings.filter(l => l.status === 'active')
+const activeListings = listings.filter(l => l.status === 'active')
   const soldListings = listings.filter(l => l.status === 'sold')
+  const pendingListings = listings.filter(l => l.status === 'pending')
   const isOwn = currentUser?.id === userId
 
   return (
@@ -71,7 +72,11 @@ export default function Profile() {
               </p>
             </div>
           </div>
-
+{isOwn && pendingListings.length > 0 && (
+            <p className="text-amber-400 text-sm mb-4">
+              {pendingListings.length} listing{pendingListings.length !== 1 ? 's' : ''} awaiting admin approval
+            </p>
+          )}
           {isOwn && (
             <button
               onClick={() => navigate('/profile/edit')}
