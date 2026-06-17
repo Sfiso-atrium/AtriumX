@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Listing, Profile } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 interface ListingCardProps {
-interface ListingCardProps {
+
   listing: Listing | any
   seller?: Profile | any
 }
