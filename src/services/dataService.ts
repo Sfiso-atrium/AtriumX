@@ -105,10 +105,10 @@ export async function registerWithEmail(
     .toUpperCase()
     .slice(0, 2)
 
-  const colors = ['#1A5F7A', '#E74C3C', '#2ECC71', '#9B59B6', '#F39C12', '#3498DB']
+ const colors = ['#0F6E56', '#185FA5', '#993C1D', '#993556', '#534AB7', '#3B6D11']
   const avatarColor = colors[Math.floor(Math.random() * colors.length)]
 
-  const { data, error } = await supabase.auth.signUp({
+const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -117,6 +117,7 @@ export async function registerWithEmail(
         residence,
         avatar_initials: initials,
         avatar_color: avatarColor,
+        email,
       },
     },
   })
@@ -194,7 +195,7 @@ export async function getUserById(id: string): Promise<Profile | null> {
 export async function updateProfile(
   id: string,
   fields: Partial<Pick<Profile, 'full_name' | 'residence' | 'avatar_color' | 'watched_residences'>>
-): Promise<{ error: string | null }> {
+): Promise<{ user: Profile | null; error: string | null }> {
   const updates: Record<string, unknown> = { ...fields }
   if (fields.full_name) {
     updates.avatar_initials = fields.full_name
@@ -205,7 +206,9 @@ export async function updateProfile(
       .slice(0, 2)
   }
   const { error } = await supabase.from('profiles').update(updates).eq('id', id)
-  return { error: error ? error.message : null }
+  if (error) return { user: null, error: error.message }
+  const updated = await getUserById(id)
+  return { user: updated, error: null }
 }
 
 export async function getUserListings(userId: string): Promise<Listing[]> {
