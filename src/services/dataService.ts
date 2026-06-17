@@ -188,8 +188,8 @@ export async function getUserById(id: string): Promise<Profile | null> {
     .select('*')
     .eq('id', id)
     .single()
-  if (error || !data) return null
-  return data as Profile
+if (error || !data) return null
+  return { ...data, watched_residences: data.watched_residences ?? [] } as Profile
 }
 
 export async function updateProfile(
