@@ -361,11 +361,17 @@ export async function renewListing(
 ): Promise<{ error: string | null }> {
   const days = PLAN_TIERS[planTier].days
   const expiresAt = new Date(Date.now() + days * 86400000).toISOString()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('listings')
     .update({ status: 'active', expires_at: expiresAt })
     .eq('id', listingId)
-  return { error: error ? error.message : null }
+    .neq('status', 'suspended')
+    .select('id')
+  if (error) return { error: error.message }
+  if (!data || data.length === 0) {
+    return { error: 'This listing was suspended by a moderator and cannot be renewed.' }
+  }
+  return { error: null }
 }
 
 export async function reportListing(
