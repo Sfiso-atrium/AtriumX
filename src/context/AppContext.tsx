@@ -60,11 +60,12 @@ useEffect(() => {
       }
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
+  const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, _session) => {
         if (!mounted) return
         if (event === 'SIGNED_OUT') {
           setCurrentUser(null)
+          setIsLoadingAuth(false)
         }
       }
     )
