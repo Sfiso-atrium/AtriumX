@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -39,8 +39,12 @@ export default function PostListing() {
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  if (!plan) { navigate('/plan-select'); return null }
-  if (!currentUser) { navigate('/student'); return null }
+  useEffect(() => {
+    if (!plan) navigate('/plan-select')
+    else if (!currentUser) navigate('/student')
+  }, [plan, currentUser, navigate])
+
+  if (!plan || !currentUser) return null
 
   const tierConfig = PLAN_TIERS[plan]
   const canUploadPhoto = tierConfig.maxPhotos > 0
@@ -52,8 +56,9 @@ export default function PostListing() {
     if (!file) return
     if (imageUrls.length >= maxPhotos) return
     setUploading(true)
-    const { url, error: uploadError } = await uploadListingImage(file, currentUser.id)
+   const { url, error: uploadError } = await uploadListingImage(file, currentUser.id)
     setUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
     if (uploadError) { showToast(uploadError, 'error'); return }
     if (url) setImageUrls(prev => [...prev, url])
   }
