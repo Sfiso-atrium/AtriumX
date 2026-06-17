@@ -12,13 +12,16 @@ import {
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 
-type Tab = 'pending' | 'reports'
+type Tab = 'pending' | 'all' | 'reports'
+type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
   const navigate = useNavigate()
   const { currentUser, showToast } = useApp()
   const [tab, setTab] = useState<Tab>('pending')
   const [pendingListings, setPendingListings] = useState<Listing[]>([])
+  const [allListings, setAllListings] = useState<Listing[]>([])
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
@@ -27,8 +30,9 @@ export default function AdminPanel() {
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-    Promise.all([getPendingListings(), getAllListingsAdmin()]).then(([pending, all]) => {
+   Promise.all([getPendingListings(), getAllListingsAdmin()]).then(([pending, all]) => {
       setPendingListings(pending)
+      setAllListings(all)
       setReportedListings(all.filter(l => l.report_count > 0))
       setLoading(false)
     })
@@ -61,22 +65,24 @@ export default function AdminPanel() {
     showToast('Reports cleared.', 'success')
   }
 
-  const handleSuspend = async (id: string) => {
+const handleSuspend = async (id: string) => {
     setActionId(id)
     const { error } = await rejectListingById(id)
     setActionId(null)
     if (error) { showToast(error, 'error'); return }
-    setReportedListings(prev => prev.filter(l => l.id !== id))
+    setAllListings(prev => prev.map(l => l.id === id ? { ...l, status: 'suspended' as const } : l))
     showToast('Listing suspended.', 'success')
   }
-
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
     </div>
   )
 
-  const activeList = tab === 'pending' ? pendingListings : reportedListings
+const activeList =
+    tab === 'pending' ? pendingListings :
+    tab === 'reports' ? reportedListings :
+    statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
 
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -97,6 +103,16 @@ export default function AdminPanel() {
             Pending ({pendingListings.length})
           </button>
           <button
+            onClick={() => setTab('all')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              tab === 'all'
+                ? 'bg-teal-primary border-teal-light text-cream'
+                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+            }`}
+          >
+            All Listings ({allListings.length})
+          </button>
+          <button
             onClick={() => setTab('reports')}
             className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
               tab === 'reports'
@@ -108,10 +124,27 @@ export default function AdminPanel() {
           </button>
         </div>
 
+        {tab === 'all' && (
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {(['all', 'pending', 'active', 'sold', 'expired', 'suspended'] as StatusFilter[]).map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize ${
+                  statusFilter === s
+                    ? 'bg-gold text-slate-deep border-gold'
+                    : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         {activeList.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
-              {tab === 'pending' ? 'No pending listings.' : 'No reported listings.'}
+             {tab === 'pending' ? 'No pending listings.' : tab === 'all' ? 'No listings match this filter.' : 'No reported listings.'}
             </p>
           </div>
         ) : (
@@ -173,25 +206,25 @@ export default function AdminPanel() {
                         </button>
                       </>
                     )}
-                    {tab === 'reports' && (
-                      <>
-                        <button
-                          onClick={() => handleClearReports(listing.id)}
-                          disabled={busy}
-                          className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                        >
-                          <Flag size={13} />
-                          Clear Reports
-                        </button>
-                        <button
-                          onClick={() => handleSuspend(listing.id)}
-                          disabled={busy}
-                          className="flex items-center gap-1.5 border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                        >
-                          <ShieldOff size={13} />
-                          Suspend
-                        </button>
-                      </>
+{tab === 'reports' && (
+                      <button
+                        onClick={() => handleClearReports(listing.id)}
+                        disabled={busy}
+                        className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                      >
+                        <Flag size={13} />
+                        Clear Reports
+                      </button>
+                    )}
+                    {tab === 'all' && listing.status !== 'suspended' && (
+                      <button
+                        onClick={() => handleSuspend(listing.id)}
+                        disabled={busy}
+                        className="flex items-center gap-1.5 border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                      >
+                        <ShieldOff size={13} />
+                        Suspend
+                      </button>
                     )}
                   </div>
                 </div>
