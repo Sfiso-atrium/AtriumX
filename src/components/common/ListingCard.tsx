@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Listing, Profile } from '../../services/dataService'
+import ListingCountdown from './ListingCountdown'
+interface ListingCardProps {
 interface ListingCardProps {
   listing: Listing | any
   seller?: Profile | any
@@ -20,21 +22,12 @@ function Avatar({ initials, color, size = 24 }: { initials: string; color: strin
 function formatPrice(price: number) {
   return `R ${price.toLocaleString('en-ZA')}`
 }
-function timeLeft(expiresAt: string | undefined) {
-  if (!expiresAt) return { label: '', color: 'text-cream-muted' }
-  const diff = new Date(expiresAt).getTime() - Date.now()
-  if (diff <= 0) return { label: 'Expired', color: 'text-red-400' }
-  const days = Math.floor(diff / 86400000)
-  const totalHours = Math.floor(diff / 3600000)
-  if (days >= 2) return { label: `${days}d left`, color: 'text-cream-muted' }
-  return { label: `${totalHours}h left`, color: 'text-yellow-400' }
-}
 
 export default function ListingCard({ listing, seller }: ListingCardProps) {
   const navigate = useNavigate()
   const [imgError, setImgError] = useState(false)
   const sellerData = seller || listing.seller
-  const expiry = timeLeft(listing.expires_at)
+
 
   const contactCount = listing.contact_count ?? listing.contactCount ?? 0
 
@@ -104,9 +97,9 @@ export default function ListingCard({ listing, seller }: ListingCardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-slate-border">
+     <div className="flex items-center justify-between pt-1 border-t border-slate-border">
           <span className="text-cream-muted text-xs">{contactCount} interested</span>
-          <span className={`text-xs ${expiry.color}`}>{expiry.label}</span>
+          {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
         </div>
       </div>
     </div>
