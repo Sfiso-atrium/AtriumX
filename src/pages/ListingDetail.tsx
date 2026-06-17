@@ -26,13 +26,17 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [reported, setReported] = useState(false)
-
-  useEffect(() => {
+useEffect(() => {
     if (!id) return
-    getListingById(id).then(data => {
-      setListing(data)
-      setLoading(false)
-    })
+    getListingById(id)
+      .then(data => {
+        setListing(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setListing(null)
+        setLoading(false)
+      })
   }, [id])
 
   if (loading) return (
