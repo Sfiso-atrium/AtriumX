@@ -7,7 +7,8 @@ import Navbar from '../components/common/Navbar'
 export default function StudentAuth() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { setCurrentUser, redirectAfterLogin, setRedirectAfterLogin } = useApp()
+const { setCurrentUser, setRedirectAfterLogin } = useApp()
+  const redirectAfterLogin = useApp().redirectAfterLogin
 
   const [mode, setMode] = useState<'login' | 'register'>(
     searchParams.get('mode') === 'register' ? 'register' : 'login'
@@ -25,7 +26,8 @@ export default function StudentAuth() {
 
     if (mode === 'register') {
       if (!fullName.trim()) return setError('Full name is required.')
-      if (!email.includes('@') || !email.includes('.')) return setError('Enter a valid email address.')
+const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      if (!emailValid) return setError('Enter a valid email address.')
       if (password.length < 8) return setError('Password must be at least 8 characters.')
       if (password !== confirmPassword) return setError('Passwords do not match.')
       if (!residence.trim()) return setError('Residence is required.')
