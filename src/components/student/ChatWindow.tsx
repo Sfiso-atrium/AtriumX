@@ -128,8 +128,9 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
         {messages.length === 0 && (
           <p className="text-cream-muted text-xs text-center mt-8">No messages yet. Say hello!</p>
         )}
-        {messages.map(msg => {
+{messages.map(msg => {
           const isOwn = msg.sender_id === currentUser?.id
+          const masked = msg.content.replace(/\d{7,}/g, '[number hidden]')
           return (
             <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -139,7 +140,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
                     : 'bg-slate-card border border-slate-border text-cream rounded-bl-sm'
                 }`}
               >
-                {msg.content}
+                {masked}
               </div>
             </div>
           )
