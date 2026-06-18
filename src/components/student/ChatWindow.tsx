@@ -3,8 +3,8 @@ import { Send, CircleCheck as CheckCircle } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import {
   Message, Conversation, Profile,
-  getConversationMessages, sendMessage,
-  getMessageCount, resolveConversation,
+getConversationMessages, sendMessage,
+  getMessageCount, markConversationResolved,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
@@ -77,7 +77,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const handleResolve = async () => {
     if (!isSeller) return
     setResolving(true)
-    const { error } = await resolveConversation(conversation.id)
+const { error } = await markConversationResolved(conversation.id)
     setResolving(false)
     if (error) { showToast(error, 'error'); return }
     showToast('Conversation resolved. Buyer will be prompted to rate.', 'success')
