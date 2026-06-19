@@ -38,18 +38,15 @@ export default function BottomNav() {
       onClick: () => handleProtected('/chat'),
       badge: unreadMessageCount > 0 ? unreadMessageCount : null,
     },
-    {
-      label: 'Profile',
+{
+      label: 'Plans',
       icon: User,
-      path: currentUser ? `/profile/${currentUser.id}` : '/profile',
-      onClick: () => currentUser
-        ? navigate(`/profile/${currentUser.id}`)
-        : handleProtected('/profile'),
+      path: '/plan-select',
+      onClick: () => handleProtected('/plan-select'),
     },
-  ]
-
+]
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep border-t border-slate-border md:hidden">
+   <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep border-t border-slate-border">
       <div className="max-w-lg mx-auto flex items-center justify-around h-16">
         {tabs.map(tab => {
           const Icon = tab.icon
