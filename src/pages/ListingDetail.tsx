@@ -119,7 +119,8 @@ const handleReportClick = () => {
               <Flag size={14} />
               Report
             </button>
-          )}
+        )}
+        </div>
         <div className="max-w-lg mx-auto pb-32">
           {listing.image_urls?.length > 0 ? (
             <img src={listing.image_urls[0]} alt={listing.title} className="w-full aspect-video object-cover" />
