@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { Star, X } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-import { submitRating } from '../../services/dataService'
+import { submitRating, createNotification } from '../../services/dataService'
 
 interface Props {
   sellerId: string
+  buyerId: string
   listingId: string
   listingTitle: string
   onClose: () => void
   onSubmitted: () => void
 }
 
-export default function RatingModal({ sellerId, listingId, listingTitle, onClose, onSubmitted }: Props) {
+export default function RatingModal({ sellerId, buyerId, listingId, listingTitle, onClose, onSubmitted }: Props) {
   const { currentUser, showToast } = useApp()
   const [stars, setStars] = useState(0)
   const [hovered, setHovered] = useState(0)
@@ -24,7 +25,8 @@ export default function RatingModal({ sellerId, listingId, listingTitle, onClose
     setLoading(true)
     const { error } = await submitRating(sellerId, currentUser.id, listingId, stars, comment.trim() || undefined)
     setLoading(false)
-    if (error) { showToast(error, 'error'); return }
+if (error) { showToast(error, 'error'); return }
+    await createNotification({ userId: buyerId, type: 'rating_request', message: 'You have been rated. Thank you for using Atrium.', listingId })
     showToast('Rating submitted. Thank you!', 'success')
     onSubmitted()
   }
