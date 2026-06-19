@@ -4,7 +4,7 @@ import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   createListing, uploadListingImage,
-  PLAN_TIERS, PlanKey
+  getUserListings, PLAN_TIERS, PlanKey
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
@@ -35,17 +35,40 @@ export default function PostListing() {
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [variants, setVariants] = useState<{ name: string; price: string }[]>([])
-  const [loading, setLoading] = useState(false)
+const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [atLimit, setAtLimit] = useState(false)
+  const [posterMode, setPosterMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
+useEffect(() => {
     if (!plan) navigate('/plan-select')
     else if (!currentUser) navigate('/student')
+    else {
+      getUserListings(currentUser.id).then(listings => {
+        const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+        const max = PLAN_TIERS[plan].maxListings
+        if (active >= max) setAtLimit(true)
+      })
+    }
   }, [plan, currentUser, navigate])
 
-  if (!plan || !currentUser) return null
+if (!plan || !currentUser) return null
 
+  if (atLimit) return (
+    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
+      <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
+      <p className="text-cream-muted text-sm mb-6">
+        Your {PLAN_TIERS[plan].label} plan allows {PLAN_TIERS[plan].maxListings} active listing{PLAN_TIERS[plan].maxListings !== 1 ? 's' : ''}.
+        Wait for a listing to expire or upgrade your plan.
+      </p>
+      <button
+        onClick={() => navigate('/plan-select')}
+        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+      >
+        Upgrade Plan
+      </button>
+    </div>
+  )
   const tierConfig = PLAN_TIERS[plan]
   const canUploadPhoto = tierConfig.maxPhotos > 0
   const maxPhotos = tierConfig.maxPhotos
@@ -82,20 +105,24 @@ export default function PostListing() {
 
   const handleSubmit = async () => {
     setError('')
-    if (!title.trim()) return setError('Title is required.')
-    if (!category) return setError('Category is required.')
-    if (category === 'other' && !customCategory.trim()) return setError('Please specify the category.')
-    if (!price || Number(price) < 0) return setError('Enter a valid price.')
-    if (description.length < 20) return setError('Description must be at least 20 characters.')
-    if (!residence.trim()) return setError('Residence is required.')
-
+if (posterMode) {
+      if (imageUrls.length === 0) return setError('Upload a poster image first.')
+      if (!residence.trim()) return setError('Residence is required.')
+    } else {
+      if (!title.trim()) return setError('Title is required.')
+      if (!category) return setError('Category is required.')
+      if (category === 'other' && !customCategory.trim()) return setError('Please specify the category.')
+      if (!price || Number(price) < 0) return setError('Enter a valid price.')
+      if (description.length < 20) return setError('Description must be at least 20 characters.')
+      if (!residence.trim()) return setError('Residence is required.')
+    }
     setLoading(true)
-    const { id, error: createError } = await createListing({
+const { id, error: createError } = await createListing({
       sellerId: currentUser.id,
-      title: title.trim(),
-      description: description.trim(),
-      price: Number(price),
-      category,
+      title: posterMode ? 'Poster listing' : title.trim(),
+      description: posterMode ? '' : description.trim(),
+      price: posterMode ? 0 : Number(price),
+      category: posterMode ? 'other' : category,
       customCategory: category === 'other' ? customCategory.trim() : undefined,
       imageUrls,
       residence: residence.trim(),
@@ -129,7 +156,29 @@ export default function PostListing() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-5">
+<div className="flex flex-col gap-5">
+
+            {/* POST MODE TOGGLE */}
+            {tierConfig.maxPhotos > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPosterMode(false)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    !posterMode ? 'bg-teal-primary border-teal-light text-cream' : 'bg-slate-card border-slate-border text-cream-muted'
+                  }`}
+                >
+                  Fill in manually
+                </button>
+                <button
+                  onClick={() => setPosterMode(true)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    posterMode ? 'bg-teal-primary border-teal-light text-cream' : 'bg-slate-card border-slate-border text-cream-muted'
+                  }`}
+                >
+                  Upload a poster
+                </button>
+              </div>
+            )}
 
             {/* PHOTO UPLOAD */}
             {canUploadPhoto ? (
@@ -174,8 +223,14 @@ export default function PostListing() {
               </div>
             )}
 
+{posterMode && imageUrls.length > 0 && (
+              <p className="text-teal-light text-xs text-center">
+                Poster uploaded. Hit Post Listing — title and description will be set automatically.
+              </p>
+            )}
+
             {/* TITLE */}
-            <div>
+            {!posterMode && <div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Title <span className="text-red-400">*</span>
               </label>
@@ -187,8 +242,8 @@ export default function PostListing() {
                 onChange={e => setTitle(e.target.value)}
                 className={inputClass}
               />
-              <p className="text-cream-muted text-xs text-right mt-1">{title.length}/80</p>
-            </div>
+<p className="text-cream-muted text-xs text-right mt-1">{title.length}/80</p>
+            </div>}
 
             {/* CATEGORY */}
             <div>
@@ -325,8 +380,8 @@ export default function PostListing() {
               />
             </div>
 
-            {/* DESCRIPTION */}
-            <div>
+          {/* DESCRIPTION */}
+            {!posterMode && <div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Description <span className="text-red-400">*</span>
               </label>
@@ -343,14 +398,15 @@ export default function PostListing() {
                   <p className="text-red-400 text-xs">Minimum 20 characters</p>
                 )}
                 <p className="text-cream-muted text-xs text-right ml-auto">{description.length}/500</p>
-              </div>
-            </div>
+</div>
+            </div>}
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
             <button
               onClick={handleSubmit}
-              disabled={loading || uploading || !title || !category || !price || description.length < 20 || !residence}
+            disabled={loading || uploading || (!posterMode && (!title || !category || !price || description.length < 20)) || !residence}
+              
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
               {loading ? 'Submitting...' : 'Post Listing'}
