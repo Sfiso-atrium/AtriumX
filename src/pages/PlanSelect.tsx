@@ -77,13 +77,21 @@ export default function PlanSelect() {
           <p className="text-cream-muted text-sm mb-8">
             Select a plan for this listing. You can change plans anytime.
           </p>
-
-          {currentPlan && (
-            <div className="bg-teal-faint border border-teal-primary rounded-xl px-4 py-3 mb-6 text-cream-muted text-sm">
-              You are currently on the{' '}
-              <span className="text-cream font-bold">{PLAN_TIERS[currentPlan].label}</span> plan.
+{currentPlan && currentPlan !== 'ghost' && currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date() && (
+            <div className="bg-teal-faint border border-teal-primary rounded-xl px-4 py-4 mb-6">
+              <p className="text-cream font-bold text-sm mb-1">Active Plan: {PLAN_TIERS[currentPlan].label}</p>
+              <p className="text-cream-muted text-xs">
+                Expires {new Date(currentUser.plan_expires_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <button
+                onClick={() => navigate('/post', { state: { plan: currentPlan } })}
+                className="w-full mt-3 bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Continue Posting on {PLAN_TIERS[currentPlan].label}
+              </button>
             </div>
           )}
+   
 
           <div className="flex flex-col gap-4">
             {plans.map(([key, tier]) => {
