@@ -1,22 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { Notification, getUnreadNotifications, markNotificationRead } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import RatingModal from '../student/RatingModal'
 
+
 export default function NotificationBell() {
   const { currentUser } = useApp()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [ratingTarget, setRatingTarget] = useState<Notification | null>(null)
+const [ratingTarget, setRatingTarget] = useState<Notification | null>(null)
+  const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!currentUser) return
-    getUnreadNotifications(currentUser.id).then(setNotifications)
-  }, [currentUser])
-
   useEffect(() => {
     if (!currentUser) return
 
@@ -52,13 +50,24 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+
   const handleMarkRead = async (notif: Notification) => {
     await markNotificationRead(notif.id)
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
-    if (notif.type === 'rating_request' && notif.listing_id) {
-      setRatingTarget(notif)
-    }
     setOpen(false)
+    if (notif.type === 'rating_request' && notif.conversation_id) {
+      const { data } = await supabase
+        .from('conversations')
+        .select('seller_id')
+        .eq('id', notif.conversation_id)
+        .single()
+      if (data?.seller_id) {
+        setRatingSellerId(data.seller_id)
+        setRatingTarget(notif)
+      }
+    } else if (notif.type === 'listing_approved' || notif.type === 'listing_rejected') {
+      if (notif.listing_id) navigate(`/listing/${notif.listing_id}`)
+    }
   }
 
   if (!currentUser) return null
@@ -104,13 +113,13 @@ export default function NotificationBell() {
         </div>
       )}
 
-      {ratingTarget && ratingTarget.listing_id && (
+{ratingTarget && ratingTarget.listing_id && ratingSellerId && (
         <RatingModal
-          sellerId={''}
+          sellerId={ratingSellerId}
           listingId={ratingTarget.listing_id}
           listingTitle={ratingTarget.message}
-          onClose={() => setRatingTarget(null)}
-          onSubmitted={() => setRatingTarget(null)}
+          onClose={() => { setRatingTarget(null); setRatingSellerId(null) }}
+          onSubmitted={() => { setRatingTarget(null); setRatingSellerId(null) }}
         />
       )}
     </div>
