@@ -77,19 +77,21 @@ const activeListings = listings.filter(l => l.status === 'active')
               {pendingListings.length} listing{pendingListings.length !== 1 ? 's' : ''} awaiting admin approval
             </p>
           )}
-          {isOwn && (
-<button
-            onClick={() => navigate('/profile/edit')}
-            className="w-full border border-slate-border hover:border-teal-primary text-cream text-sm font-medium py-2.5 rounded-xl transition-colors mb-4"
-          >
-            Edit Profile
-          </button>
-          <button
-            onClick={async () => { await logout(); setCurrentUser(null); navigate('/') }}
-            className="w-full border border-red-900 hover:border-red-500 text-red-400 text-sm font-medium py-2.5 rounded-xl transition-colors mb-6"
-          >
-            Log Out
-          </button>
+        {isOwn && (
+            <div className="flex flex-col gap-2 mb-6">
+              <button
+                onClick={() => navigate('/profile/edit')}
+                className="w-full border border-slate-border hover:border-teal-primary text-cream text-sm font-medium py-2.5 rounded-xl transition-colors"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={async () => { await logout(); setCurrentUser(null); navigate('/') }}
+                className="w-full border border-red-900 hover:border-red-500 text-red-400 text-sm font-medium py-2.5 rounded-xl transition-colors"
+              >
+                Log Out
+              </button>
+            </div>
           )}
 
           <h2 className="text-cream font-bold text-base mb-3">
