@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
+import ReportModal from '../components/student/ReportModal'
 import {
-  Listing, Profile, getListingById,
+Listing, Profile, getListingById,
   startConversation, markListingAsSold,
-  renewListing, reportListing, PLAN_TIERS, PlanKey
+  renewListing, PLAN_TIERS, PlanKey
 } from '../services/dataService'
 
 function timeLeft(expiresAt: string) {
@@ -24,8 +25,9 @@ export default function ListingDetail() {
   const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, showToast } = useApp()
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
+
   const [actionLoading, setActionLoading] = useState(false)
-  const [reported, setReported] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 useEffect(() => {
     if (!id) return
     getListingById(id)
@@ -97,14 +99,9 @@ useEffect(() => {
     navigate('/feed')
   }
 
-  const handleReport = async () => {
+const handleReportClick = () => {
     if (!currentUser) { setAuthPromptOpen(true); return }
-    if (reported) return
-    const { error } = await reportListing(listing.id, currentUser.id)
-    if (!error) {
-      setReported(true)
-      showToast('Report submitted. Thank you.', 'success')
-    }
+    setShowReportModal(true)
   }
 
   return (
@@ -114,18 +111,15 @@ useEffect(() => {
           <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream">
             <ArrowLeft size={20} />
           </button>
-          {!isSeller && currentUser && (
+ {!isSeller && currentUser && (
             <button
-              onClick={handleReport}
-              disabled={reported}
-              className="flex items-center gap-1.5 text-cream-muted hover:text-red-400 text-sm disabled:opacity-40 transition-colors"
+              onClick={handleReportClick}
+              className="flex items-center gap-1.5 text-cream-muted hover:text-red-400 text-sm transition-colors"
             >
               <Flag size={14} />
-              {reported ? 'Reported' : 'Report'}
+              Report
             </button>
           )}
-        </div>
-
         <div className="max-w-lg mx-auto pb-32">
           {listing.image_urls?.length > 0 ? (
             <img src={listing.image_urls[0]} alt={listing.title} className="w-full aspect-video object-cover" />
@@ -247,7 +241,10 @@ useEffect(() => {
             </button>
           )}
         </div>
-     </div>
+  </div>
+      {showReportModal && (
+        <ReportModal listingId={listing.id} onClose={() => setShowReportModal(false)} />
+      )}
       <BottomNav />
     </>
   )
