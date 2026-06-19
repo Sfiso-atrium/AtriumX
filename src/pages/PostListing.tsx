@@ -54,6 +54,25 @@ useEffect(() => {
 
 if (!plan || !currentUser) return null
 
+  const isGhostLocked =
+    currentUser.plan === 'ghost' &&
+    (!currentUser.plan_expires_at || new Date(currentUser.plan_expires_at) <= new Date())
+
+  if (isGhostLocked) return (
+    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
+      <p className="text-cream font-bold text-xl mb-2">Choose a Plan to Post</p>
+      <p className="text-cream-muted text-sm mb-6">
+        Select a listing plan to get started on Atrium.
+      </p>
+      <button
+        onClick={() => navigate('/plan-select')}
+        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+      >
+        View Plans
+      </button>
+    </div>
+  )
+
   if (atLimit) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
