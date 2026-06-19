@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { Profile as ProfileType, Listing, getUserById, getUserListings } from '../services/dataService'
+import { Profile as ProfileType, Listing, getUserById, getUserListings, logout } from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 export default function Profile() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, setCurrentUser } = useApp()
   const [profile, setProfile] = useState<ProfileType | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,12 +78,18 @@ const activeListings = listings.filter(l => l.status === 'active')
             </p>
           )}
           {isOwn && (
-            <button
-              onClick={() => navigate('/profile/edit')}
-              className="w-full border border-slate-border hover:border-teal-primary text-cream text-sm font-medium py-2.5 rounded-xl transition-colors mb-6"
-            >
-              Edit Profile
-            </button>
+<button
+            onClick={() => navigate('/profile/edit')}
+            className="w-full border border-slate-border hover:border-teal-primary text-cream text-sm font-medium py-2.5 rounded-xl transition-colors mb-4"
+          >
+            Edit Profile
+          </button>
+          <button
+            onClick={async () => { await logout(); setCurrentUser(null); navigate('/') }}
+            className="w-full border border-red-900 hover:border-red-500 text-red-400 text-sm font-medium py-2.5 rounded-xl transition-colors mb-6"
+          >
+            Log Out
+          </button>
           )}
 
           <h2 className="text-cream font-bold text-base mb-3">
