@@ -423,8 +423,8 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
-      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color),
-      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color)
+buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan),
+      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order('created_at', { ascending: false })
