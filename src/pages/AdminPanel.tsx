@@ -17,7 +17,7 @@ type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspend
 
 export default function AdminPanel() {
   const navigate = useNavigate()
-  const { currentUser, showToast } = useApp()
+const { currentUser, showToast, isLoadingAuth } = useApp()
   const [tab, setTab] = useState<Tab>('pending')
   const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [allListings, setAllListings] = useState<Listing[]>([])
@@ -26,11 +26,12 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
 
-  useEffect(() => {
+useEffect(() => {
+    if (isLoadingAuth) return
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-   Promise.all([getPendingListings(), getAllListingsAdmin()]).then(([pending, all]) => {
+    Promise.all([getPendingListings(), getAllListingsAdmin()]).then(([pending, all]) => {
       setPendingListings(pending)
       setAllListings(all)
       setReportedListings(all.filter(l => l.report_count > 0))
