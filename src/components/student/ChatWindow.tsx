@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Send, CircleCheck as CheckCircle } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import RatingModal from './RatingModal'
 import {
-  Message, Conversation, Profile,
-getConversationMessages, sendMessage,
-  getMessageCount, markConversationResolved,
+Message, Conversation, Profile,
+  getConversationMessages, sendMessage,
+  getMessageCount, markConversationResolved, getUnreadMessageCount,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
@@ -19,14 +20,14 @@ interface Props {
 }
 
 export default function ChatWindow({ conversation, onResolved }: Props) {
-  const { currentUser, showToast } = useApp()
+const { currentUser, showToast, setUnreadMessageCount } = useApp()
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [msgCount, setMsgCount] = useState(0)
-  const [resolving, setResolving] = useState(false)
+const [resolving, setResolving] = useState(false)
+  const [showRating, setShowRating] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-
   const isSeller = currentUser?.id === conversation.seller_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
@@ -48,11 +49,12 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversation.id}` },
-        payload => {
+payload => {
           setMessages(prev => {
             if (prev.find(m => m.id === (payload.new as Message).id)) return prev
             return [...prev, payload.new as Message]
           })
+          if (currentUser) getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
         }
       )
       .subscribe()
@@ -62,8 +64,8 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
 
   const handleSend = async () => {
     if (!text.trim() || !currentUser) return
-    if (!isSeller && msgCount >= maxMsgs) {
-      showToast(`Message limit reached on the seller's plan (${maxMsgs} messages).`, 'info')
+if (isSeller && msgCount >= maxMsgs) {
+      showToast(`Message limit reached on your plan (${maxMsgs} messages).`, 'info')
       return
     }
     setSending(true)
@@ -79,9 +81,9 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
     setResolving(true)
 const { error } = await markConversationResolved(conversation.id)
     setResolving(false)
-    if (error) { showToast(error, 'error'); return }
+if (error) { showToast(error, 'error'); return }
     showToast('Conversation resolved. Buyer will be prompted to rate.', 'success')
-    onResolved()
+    setShowRating(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -172,6 +174,16 @@ const { error } = await markConversationResolved(conversation.id)
         <p className="text-center text-cream-muted text-xs px-4 py-3 border-t border-slate-border">
           This conversation is resolved.
         </p>
+      )}
+{showRating && (
+        <RatingModal
+          sellerId={conversation.seller_id}
+          buyerId={conversation.buyer_id}
+          listingId={conversation.listing?.id ?? ''}
+          listingTitle={conversation.listing?.title ?? ''}
+          onClose={() => { setShowRating(false); onResolved() }}
+          onSubmitted={() => { setShowRating(false); onResolved() }}
+        />
       )}
     </div>
   )
