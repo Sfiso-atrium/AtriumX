@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, PlusCircle, MessageCircle, User } from 'lucide-react'
+import { Home, PlusCircle, MessageCircle, LayoutList } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
 export default function BottomNav() {
@@ -18,7 +18,7 @@ export default function BottomNav() {
     navigate(path)
   }
 
-  const tabs = [
+const tabs = [
     {
       label: 'Feed',
       icon: Home,
@@ -31,20 +31,22 @@ export default function BottomNav() {
       path: '/plan-select',
       onClick: () => handleProtected('/plan-select'),
     },
-    {
-      label: 'Messages',
-      icon: MessageCircle,
-      path: '/chat',
-      onClick: () => handleProtected('/chat'),
-      badge: unreadMessageCount > 0 ? unreadMessageCount : null,
-    },
-{
-      label: 'Plans',
-      icon: User,
-      path: '/plan-select',
-      onClick: () => handleProtected('/plan-select'),
-    },
-]
+    ...(currentUser ? [
+      {
+        label: 'Messages',
+        icon: MessageCircle,
+        path: '/chat',
+        onClick: () => navigate('/chat'),
+        badge: unreadMessageCount > 0 ? unreadMessageCount : null,
+      },
+      {
+        label: 'My Listings',
+        icon: LayoutList,
+        path: `/profile/${currentUser.id}`,
+        onClick: () => navigate(`/profile/${currentUser.id}`),
+      },
+    ] : []),
+  ]
   return (
    <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep border-t border-slate-border">
       <div className="max-w-lg mx-auto flex items-center justify-around h-16">
