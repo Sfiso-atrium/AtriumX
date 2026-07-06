@@ -55,10 +55,6 @@ useEffect(() => {
 
 if (!plan || !currentUser) return null
 
-  const isGhostLocked =
-    currentUser.plan === 'ghost' &&
-    (!currentUser.plan_expires_at || new Date(currentUser.plan_expires_at) <= new Date())
-
   if (isGhostLocked) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Choose a Plan to Post</p>
