@@ -1,49 +1,18 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin } = useApp()
+const navigate = useNavigate()
+  const { currentUser } = useApp()
 
-  const isActive = (path: string) => location.pathname === path
-
-  const handleProtected = (path: string) => {
-    if (!currentUser) {
-      setRedirectAfterLogin(path)
-      setAuthPromptOpen(true)
-      return
-    }
-    navigate(path)
-  }
-
-  const navLinks = [
-    { label: 'Feed', path: '/feed', protected: false },
-    { label: 'Post', path: '/plan-select', protected: true },
-  ]
-
-  return (
+return (
     <nav className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
-      <button onClick={() => navigate('/')} className="font-serif text-xl text-cream">
-        Atrium
+      <button onClick={() => navigate('/feed')} className="font-serif text-xl text-cream">
+        AtriumX
       </button>
 
       <div className="flex items-center gap-4">
-        {navLinks.map(link => (
-          <button
-            key={link.path}
-            onClick={() => link.protected ? handleProtected(link.path) : navigate(link.path)}
-            className={`text-sm font-medium transition-colors hidden md:block ${
-              isActive(link.path)
-                ? 'text-ember border-b-2 border-ember pb-0.5'
-                : 'text-cream-muted hover:text-cream'
-            }`}
-          >
-            {link.label}
-          </button>
-        ))}
-
         {currentUser ? (
           <div className="flex items-center gap-2">
             <NotificationBell />
