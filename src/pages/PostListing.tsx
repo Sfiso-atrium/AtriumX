@@ -39,6 +39,7 @@ const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [atLimit, setAtLimit] = useState(false)
   const [posterMode, setPosterMode] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 useEffect(() => {
     if (!plan) navigate('/plan-select')
@@ -73,7 +74,25 @@ if (!plan || !currentUser) return null
     </div>
   )
 
-  if (atLimit) return (
+ if (submitted) return (
+    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
+      <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
+        <span className="text-3xl">✓</span>
+      </div>
+      <h2 className="text-cream font-bold text-2xl mb-2">Listing Submitted</h2>
+      <p className="text-cream-muted text-sm max-w-sm mb-6">
+        Your listing is under review. Once our team approves it, it will appear on the feed for students in your residence to see.
+      </p>
+      <button
+        onClick={() => navigate('/feed')}
+        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-8 rounded-xl transition-colors"
+      >
+        Back to Feed
+      </button>
+    </div>
+  )
+
+  if (atLimit) return ( 
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
       <p className="text-cream-muted text-sm mb-6">
@@ -153,10 +172,9 @@ const { id, error: createError } = await createListing({
         .map(v => ({ name: v.name.trim(), price: Number(v.price) })),
     })
     setLoading(false)
+if (createError) return setError(createError)
+    setSubmitted(true)
 
-    if (createError) return setError(createError)
-    showToast('Listing submitted for review. It will go live once approved.', 'success')
-    navigate('/feed')
   }
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
