@@ -98,9 +98,9 @@ export default function PlanSelect() {
               const isSelected = selected === key
               const isCurrent = currentPlan === key
               return (
-                <button
+          <button
                   key={key}
-                  onClick={() => setSelected(key)}
+                  onClick={() => { setSelected(key); navigate('/post', { state: { plan: key } }) }}
                   className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-teal-primary'
                   }`}
@@ -137,13 +137,9 @@ export default function PlanSelect() {
             })}
           </div>
 
-          <button
-            disabled={!selected}
-            onClick={() => selected && navigate('/post', { state: { plan: selected } })}
-            className="w-full mt-6 bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
-          >
-            {selected ? `Continue with ${PLAN_TIERS[selected].label}` : 'Select a plan'}
-          </button>
+<p className="text-cream-muted text-xs text-center mt-6">
+            Tap a plan above to go straight to the listing form.
+          </p>
         </div>
     </div>
       <BottomNav />
