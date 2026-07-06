@@ -22,9 +22,9 @@ export default function AuthPromptModal() {
         >
           <X size={18} />
         </button>
-        <h2 className="text-cream font-bold text-xl mb-2">Login Required</h2>
+<h2 className="text-cream font-bold text-xl mb-2">Hold on — you're not in yet</h2>
         <p className="text-cream-muted text-sm mb-6">
-          You need to be logged in to do that.
+          Sign in or create a free account to post listings, chat with sellers, and track your deals.
         </p>
         <div className="flex gap-3">
           <button
