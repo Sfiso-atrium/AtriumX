@@ -13,7 +13,8 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 const [ratingTarget, setRatingTarget] = useState<Notification | null>(null)
-  const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
+const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
+  const [ratingBuyerId, setRatingBuyerId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!currentUser) return
