@@ -56,14 +56,15 @@ const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
     await markNotificationRead(notif.id)
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
     setOpen(false)
-    if (notif.type === 'rating_request' && notif.conversation_id) {
+if (notif.type === 'rating_request' && notif.conversation_id) {
       const { data } = await supabase
         .from('conversations')
-        .select('seller_id')
+        .select('seller_id, buyer_id')
         .eq('id', notif.conversation_id)
         .single()
-      if (data?.seller_id) {
+      if (data?.seller_id && data?.buyer_id) {
         setRatingSellerId(data.seller_id)
+        setRatingBuyerId(data.buyer_id)
         setRatingTarget(notif)
       }
     } else if (notif.type === 'listing_approved' || notif.type === 'listing_rejected') {
@@ -115,13 +116,14 @@ const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
         </div>
       )}
 
-{ratingTarget && ratingTarget.listing_id && ratingSellerId && (
+{ratingTarget && ratingTarget.listing_id && ratingSellerId && ratingBuyerId && (
         <RatingModal
           sellerId={ratingSellerId}
+          buyerId={ratingBuyerId}
           listingId={ratingTarget.listing_id}
           listingTitle={ratingTarget.message}
-          onClose={() => { setRatingTarget(null); setRatingSellerId(null) }}
-          onSubmitted={() => { setRatingTarget(null); setRatingSellerId(null) }}
+          onClose={() => { setRatingTarget(null); setRatingSellerId(null); setRatingBuyerId(null) }}
+          onSubmitted={() => { setRatingTarget(null); setRatingSellerId(null); setRatingBuyerId(null) }}
         />
       )}
     </div>
