@@ -26,8 +26,9 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [actionLoading, setActionLoading] = useState(false)
+const [actionLoading, setActionLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [activeImage, setActiveImage] = useState(0)
 useEffect(() => {
     if (!id) return
     getListingById(id)
@@ -122,14 +123,41 @@ const handleReportClick = () => {
         )}
         </div>
         <div className="max-w-lg mx-auto pb-32">
-          {listing.image_urls?.length > 0 ? (
-            <img src={listing.image_urls[0]} alt={listing.title} className="w-full aspect-video object-cover" />
+{listing.video_url ? (
+            <video
+              src={listing.video_url}
+              controls
+              className="w-full aspect-video object-cover bg-black"
+              poster={listing.image_urls?.[0] || undefined}
+            />
+          ) : listing.image_urls?.length > 0 ? (
+            <div className="w-full">
+              <img
+                src={listing.image_urls[activeImage]}
+                alt={listing.title}
+                className="w-full aspect-video object-cover"
+              />
+              {listing.image_urls.length > 1 && (
+                <div className="flex gap-2 px-4 py-2 overflow-x-auto">
+                  {listing.image_urls.map((url, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImage(idx)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                        activeImage === idx ? 'border-ember' : 'border-slate-border'
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="w-full aspect-video bg-teal-faint flex items-center justify-center">
               <span className="text-cream-muted text-sm">No photo</span>
             </div>
           )}
-
           <div className="px-4 pt-5 flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
