@@ -62,11 +62,10 @@ export default function EditProfile() {
       console.warn('Residence upsert failed:', residenceErr.message)
     }
 
-    const { user, error: updateErr } = await updateProfile(currentUser.id, {
+const { user, error: updateErr } = await updateProfile(currentUser.id, {
       full_name: fullName.trim(),
       residence: residence.trim(),
       avatar_color: avatarColor,
-      avatar_initials: initials || currentUser.avatar_initials,
     })
 
     setLoading(false)
