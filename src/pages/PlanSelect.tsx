@@ -6,19 +6,17 @@ import { PLAN_TIERS, PlanKey } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
-  ghost: [
+ghost: [
     'Text-only listing',
     '1 active listing',
     '3 messages per conversation',
     '3-day visibility',
-    'Visible to all students',
   ],
   flash: [
     '1 photo per listing',
     '1 listing, 48 hours only',
     '10 messages per conversation',
     'Price negotiation badge',
-    'Visible to all students',
   ],
   visible: [
     '1 photo per listing',
