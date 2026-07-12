@@ -85,9 +85,11 @@ const activeList =
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
 
   return (
-    <div className="min-h-screen bg-slate-deep">
-      <Navbar />
-      <div className="max-w-3xl mx-auto px-4 pt-6 pb-16">
+<div className="min-h-screen bg-slate-deep">
+      <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4">
+        <span className="text-cream font-bold text-lg">Admin Panel</span>
+      </div>
+      <div className="max-w-3xl mx-auto px-4 pt-6 pb-24">
         <h1 className="font-serif text-3xl text-cream mb-1">Admin Panel</h1>
         <p className="text-cream-muted text-sm mb-6">Manage listings and reports.</p>
 
