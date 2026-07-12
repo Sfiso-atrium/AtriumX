@@ -235,6 +235,7 @@ const activeList =
           </div>
         )}
       </div>
+  <BottomNav />
     </div>
   )
-}
+} 
