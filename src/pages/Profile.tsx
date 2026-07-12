@@ -94,12 +94,16 @@ const activeListings = listings.filter(l => l.status === 'active')
             </div>
           )}
 
-          <h2 className="text-cream font-bold text-base mb-3">
+<h2 className="text-cream font-bold text-base mb-3">
             Active Listings ({activeListings.length})
           </h2>
 
           {activeListings.length === 0 ? (
-            <p className="text-cream-muted text-sm mb-6">No active listings.</p>
+            <p className="text-cream-muted text-sm mb-6">
+              {isOwn && pendingListings.length > 0
+                ? 'Your listings are awaiting approval and will appear here once approved.'
+                : 'No active listings.'}
+            </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {activeListings.map(l => (
