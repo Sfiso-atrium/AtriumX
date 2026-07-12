@@ -52,6 +52,14 @@ const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
   }, [])
 
 
+const handleBellClick = async () => {
+    if (!open && notifications.length === 0 && currentUser) {
+      const fetched = await getUnreadNotifications(currentUser.id)
+      setNotifications(fetched)
+    }
+    setOpen(o => !o)
+  }
+
   const handleMarkRead = async (notif: Notification) => {
     await markNotificationRead(notif.id)
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
@@ -77,7 +85,7 @@ if (notif.type === 'rating_request' && notif.conversation_id) {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setOpen(o => !o)}
+      onClick={handleBellClick}
         className="relative flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
         aria-label="Notifications"
       >
