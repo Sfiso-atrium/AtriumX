@@ -577,19 +577,41 @@ export async function getAllListingsAdmin(): Promise<Listing[]> {
 }
 
 export async function approveListingById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('listings')
     .update({ status: 'active' })
     .eq('id', id)
-  return { error: error ? error.message : null }
+    .select('seller_id')
+    .single()
+  if (error) return { error: error.message }
+  if (data?.seller_id) {
+    await supabase.from('notifications').insert({
+      user_id: data.seller_id,
+      type: 'listing_approved',
+      message: 'Your listing has been approved and is now live on the feed.',
+      listing_id: id,
+    })
+  }
+  return { error: null }
 }
 
 export async function rejectListingById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('listings')
     .update({ status: 'suspended' })
     .eq('id', id)
-  return { error: error ? error.message : null }
+    .select('seller_id')
+    .single()
+  if (error) return { error: error.message }
+  if (data?.seller_id) {
+    await supabase.from('notifications').insert({
+      user_id: data.seller_id,
+      type: 'listing_rejected',
+      message: 'Your listing was reviewed and could not be approved.',
+      listing_id: id,
+    })
+  }
+  return { error: null }
 }
 
 export async function clearReports(listingId: string): Promise<{ error: string | null }> {
