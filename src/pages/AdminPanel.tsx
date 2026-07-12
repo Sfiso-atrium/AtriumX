@@ -10,8 +10,7 @@ import {
   rejectListingById,
   clearReports,
 } from '../services/dataService'
-import Navbar from '../components/common/Navbar'
-
+import BottomNav from '../components/common/BottomNav'
 type Tab = 'pending' | 'all' | 'reports'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
