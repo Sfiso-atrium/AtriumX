@@ -26,24 +26,22 @@ const { currentUser, showToast, isLoadingAuth } = useApp()
   const [actionId, setActionId] = useState<string | null>(null)
 
 useEffect(() => {
-  if (isLoadingAuth) return
-  if (!currentUser) { navigate('/student'); return }
-  if (!currentUser.is_admin) { navigate('/feed'); return }
+    if (isLoadingAuth) return
+    if (!currentUser) { navigate('/student'); return }
+    if (!currentUser.is_admin) { navigate('/feed'); return }
 
-  Promise.all([getPendingListings(), getAllListingsAdmin()])
-    .then(([pending, all]) => {
-      setPendingListings(pending)
-      setAllListings(all)
-      setReportedListings(all.filter(l => l.report_count > 0))
-    })
-    .catch((err) => {
-      showToast('Failed to load admin data.', 'error')
-    })
-    .finally(() => {
-      setLoading(false)
-    })
-}, [currentUser, isLoadingAuth, navigate])
-
+Promise.all([getPendingListings(), getAllListingsAdmin()])
+      .then(([pending, all]) => {
+        setPendingListings(pending)
+        setAllListings(all)
+        setReportedListings(all.filter(l => l.report_count > 0))
+        setLoading(false)
+      })
+      .catch(() => {
+        showToast('Failed to load listings.', 'error')
+        setLoading(false)
+      })
+  }, [currentUser, navigate, isLoadingAuth])
   const handleApprove = async (id: string) => {
     setActionId(id)
     const { error } = await approveListingById(id)
