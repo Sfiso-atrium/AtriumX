@@ -2,8 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Home, PlusCircle, MessageCircle, LayoutList, ShieldCheck } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
-  const isActive = (path: string) => location.pathname === path
+export default function BottomNav() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
 
+  const isActive = (path: string) => location.pathname === path
   const handleProtected = (path: string) => {
     if (!currentUser) {
       setRedirectAfterLogin(path)
