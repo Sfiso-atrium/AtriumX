@@ -1,6 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, PlusCircle, MessageCircle, LayoutList } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
+import { Home, PlusCircle, MessageCircle, LayoutList, ShieldCheck } from 'lucide-react'import { useApp } from '../../context/AppContext'
 
 export default function BottomNav() {
   const navigate = useNavigate()
@@ -45,6 +44,14 @@ const tabs = [
         path: `/profile/${currentUser.id}`,
         onClick: () => navigate(`/profile/${currentUser.id}`),
       },
+      ...(currentUser.is_admin ? [
+        {
+          label: 'Admin',
+          icon: ShieldCheck,
+          path: '/admin',
+          onClick: () => navigate('/admin'),
+        },
+      ] : []),
     ] : []),
   ]
   return (
