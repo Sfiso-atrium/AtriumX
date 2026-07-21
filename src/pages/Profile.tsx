@@ -106,8 +106,8 @@ const activeListings = listings.filter(l => l.status === 'active')
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              {activeListings.map(l => (
-                <ListingCard key={l.id} listing={l} seller={profile} />
+{activeListings.map(l => (
+                <ListingCard key={l.id} listing={l} seller={profile} isOwner={isOwn} />
               ))}
             </div>
           )}
@@ -123,8 +123,8 @@ const activeListings = listings.filter(l => l.status === 'active')
               </button>
               {showSold && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 opacity-60">
-                  {soldListings.map(l => (
-                    <ListingCard key={l.id} listing={l} seller={profile} />
+{soldListings.map(l => (
+                    <ListingCard key={l.id} listing={l} seller={profile} isOwner={isOwn} />
                   ))}
                 </div>
               )}
