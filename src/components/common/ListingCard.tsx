@@ -6,8 +6,8 @@ interface ListingCardProps {
 
   listing: Listing | any
   seller?: Profile | any
+  isOwner?: boolean
 }
-
 function Avatar({ initials, color, size = 24 }: { initials: string; color: string; size?: number }) {
   return (
     <div
@@ -23,7 +23,7 @@ function formatPrice(price: number) {
   return `R ${price.toLocaleString('en-ZA')}`
 }
 
-export default function ListingCard({ listing, seller }: ListingCardProps) {
+export default function ListingCard({ listing, seller, isOwner = false }: ListingCardProps) {
   const navigate = useNavigate()
   const [imgError, setImgError] = useState(false)
   const sellerData = seller || listing.seller
@@ -97,10 +97,12 @@ export default function ListingCard({ listing, seller }: ListingCardProps) {
           )}
         </div>
 
-     <div className="flex items-center justify-between pt-1 border-t border-slate-border">
-          <span className="text-cream-muted text-xs">{contactCount} interested</span>
-          {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
-        </div>
+{isOwner && (
+          <div className="flex items-center justify-between pt-1 border-t border-slate-border">
+            <span className="text-cream-muted text-xs">{contactCount} interested</span>
+            {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
+          </div>
+        )}
       </div>
     </div>
   )
