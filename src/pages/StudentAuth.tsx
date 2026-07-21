@@ -58,15 +58,17 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       setLoading(false)
 
       if (err) return setError(err)
-      if (user) {
+
+if (user) {
         setCurrentUser(user)
         const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/feed')
         setRedirectAfterLogin(null)
         navigate(dest)
       }
+    }
+  }
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
-
   return (
     <div className="min-h-screen bg-slate-deep">
       <Navbar />
