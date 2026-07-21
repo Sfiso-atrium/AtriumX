@@ -53,19 +53,17 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (!email) return setError('Email is required.')
       if (!password) return setError('Password is required.')
 
-      setLoading(true)
+    setLoading(true)
       const { user, error: err } = await loginWithEmail(email, password)
       setLoading(false)
 
       if (err) return setError(err)
       if (user) {
         setCurrentUser(user)
-        const dest = redirectAfterLogin || '/feed'
+        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/feed')
         setRedirectAfterLogin(null)
         navigate(dest)
       }
-    }
-  }
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
 
