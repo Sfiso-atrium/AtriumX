@@ -41,7 +41,7 @@ Promise.all([getPendingListings(), getAllListingsAdmin()])
         showToast('Failed to load listings.', 'error')
         setLoading(false)
       })
-}, [currentUser, isLoadingAuth, navigate])
+}, [currentUser, isLoadingAuth, navigate, showToast])
   const handleApprove = async (id: string) => {
     setActionId(id)
     const { error } = await approveListingById(id)
