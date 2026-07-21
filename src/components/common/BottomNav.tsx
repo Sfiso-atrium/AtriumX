@@ -1,10 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, PlusCircle, MessageCircle, LayoutList, ShieldCheck } from 'lucide-react'import { useApp } from '../../context/AppContext'
-
-export default function BottomNav() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
+import { Home, PlusCircle, MessageCircle, LayoutList, ShieldCheck } from 'lucide-react'
+import { useApp } from '../../context/AppContext'
 
   const isActive = (path: string) => location.pathname === path
 
