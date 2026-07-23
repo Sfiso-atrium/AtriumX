@@ -234,8 +234,7 @@ const handleReportClick = () => {
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-deep border-t border-slate-border px-4 py-3 max-w-lg mx-auto">
-          {isSeller ? (
+<div className="fixed bottom-16 left-0 right-0 z-40 bg-slate-deep border-t border-slate-border px-4 py-3 max-w-lg mx-auto">
             <div className="flex gap-3">
               <button
                 onClick={handleMarkSold}
