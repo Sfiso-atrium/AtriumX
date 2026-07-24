@@ -235,6 +235,7 @@ const handleReportClick = () => {
         </div>
 
 <div className="fixed bottom-16 left-0 right-0 z-40 bg-slate-deep border-t border-slate-border px-4 py-3 max-w-lg mx-auto">
+          {isSeller ? (
             <div className="flex gap-3">
               <button
                 onClick={handleMarkSold}
@@ -244,7 +245,7 @@ const handleReportClick = () => {
                 <CheckCircle size={16} />
                 {listing.status === 'sold' ? 'Sold' : 'Mark as Sold'}
               </button>
-           {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && (
+              {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && (
                 <button
                   onClick={handleRenew}
                   disabled={actionLoading}
