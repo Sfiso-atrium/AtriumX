@@ -8,13 +8,13 @@ export default function Entrance() {
   return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6">
 
-      <div className="mb-10 text-center">
-        <h1 className="font-serif text-5xl text-cream mb-2">
-          Atrium
+<div className="mb-10 text-center flex flex-col items-center">
+        <img src="/logo.png" alt="AtriumX" className="h-24 w-auto mb-4" />
+        <h1 className="font-serif text-5xl text-ember mb-2">
+          AtriumX
         </h1>
         <p className="text-cream-muted text-sm">The campus economy, organised.</p>
       </div>
-
       <div className="flex flex-col gap-4 w-full max-w-sm">
 
         <div className="bg-slate-card border border-slate-border rounded-2xl p-6">
@@ -51,8 +51,8 @@ export default function Entrance() {
 
       </div>
 
-      <p className="text-cream-muted text-xs text-center mt-8">
-        Atrium is your campus marketplace.
+<p className="text-cream-muted text-xs text-center mt-8">
+        AtriumX is your campus marketplace.
       </p>
     </div>
   )
