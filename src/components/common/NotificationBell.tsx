@@ -77,8 +77,8 @@ if (notif.type === 'rating_request' && notif.conversation_id) {
       }
 } else if (notif.type === 'listing_approved' && notif.listing_id) {
       navigate(`/listing/${notif.listing_id}`)
-    } else if (notif.type === 'listing_rejected' || notif.type === 'listing_expired') {
-      navigate(`/profile/${currentUser?.id}`)
+} else if ((notif.type === 'listing_rejected' || notif.type === 'listing_expired') && currentUser) {
+      navigate(`/profile/${currentUser.id}`)
     }
   }
 
