@@ -31,7 +31,7 @@ const [actionLoading, setActionLoading] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
 useEffect(() => {
     if (!id) return
-    getListingById(id)
+getListingById(id, currentUser?.id)
       .then(data => {
         setListing(data)
         setLoading(false)
