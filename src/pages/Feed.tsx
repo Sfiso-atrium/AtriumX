@@ -9,7 +9,7 @@ import ListingCard from '../components/common/ListingCard'
 import EmptyState from '../components/common/EmptyState'
 import BottomNav from '../components/common/BottomNav'
 export default function Feed() {
-  const { activeCategory, currentUser } = useApp()
+const { activeCategory } = useApp()
   const navigate = useNavigate()
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
