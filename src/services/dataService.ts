@@ -258,7 +258,7 @@ export async function getListings(filters: {
   return data as Listing[]
 }
 
-export async function getListingById(id: string): Promise<Listing | null> {
+export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
   const { data, error } = await supabase
     .from('listings')
     .select('*, seller:profiles(*)')
@@ -266,14 +266,15 @@ export async function getListingById(id: string): Promise<Listing | null> {
     .single()
   if (error || !data) return null
 
-  await supabase
-    .from('listings')
-    .update({ view_count: (data.view_count || 0) + 1 })
-    .eq('id', id)
+  if (!viewerId || viewerId !== data.seller_id) {
+    await supabase
+      .from('listings')
+      .update({ view_count: (data.view_count || 0) + 1 })
+      .eq('id', id)
+  }
 
   return data as Listing
 }
-
 export async function createListing(payload: {
   sellerId: string
   title: string
