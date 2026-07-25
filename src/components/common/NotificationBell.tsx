@@ -75,8 +75,10 @@ if (notif.type === 'rating_request' && notif.conversation_id) {
         setRatingBuyerId(data.buyer_id)
         setRatingTarget(notif)
       }
-    } else if (notif.type === 'listing_approved' || notif.type === 'listing_rejected') {
-      if (notif.listing_id) navigate(`/listing/${notif.listing_id}`)
+} else if (notif.type === 'listing_approved' && notif.listing_id) {
+      navigate(`/listing/${notif.listing_id}`)
+    } else if (notif.type === 'listing_rejected' || notif.type === 'listing_expired') {
+      navigate(`/profile/${currentUser?.id}`)
     }
   }
 
