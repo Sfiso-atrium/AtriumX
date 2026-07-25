@@ -648,17 +648,7 @@ export async function getPushPreference(userId: string): Promise<boolean> {
   return data?.push_enabled ?? false
 }
 
-// ── RESOLVE SALE ───────────────────────────────────────────────────────────
 
-export async function resolveConversation(
-  convId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('conversations')
-    .update({ is_resolved: true })
-    .eq('id', convId)
-  return { error: error ? error.message : null }
-}
 
 // ── BUSINESS ───────────────────────────────────────────────────────────────
 
