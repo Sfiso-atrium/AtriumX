@@ -53,7 +53,7 @@ const [ratingSellerId, setRatingSellerId] = useState<string | null>(null)
 
 
 const handleBellClick = async () => {
-    if (!open && notifications.length === 0 && currentUser) {
+    if (!open && currentUser) {
       const fetched = await getUnreadNotifications(currentUser.id)
       setNotifications(fetched)
     }
