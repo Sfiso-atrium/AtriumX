@@ -9,7 +9,7 @@ const navigate = useNavigate()
 return (
     <nav className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
  <button onClick={() => navigate('/feed')} className="flex items-center">
-        <img src="/logo.png" alt="Atrium" className="h-8 w-auto" />
+ <img src="/logo.png" alt="AtriumX" className="h-12 w-auto" />
       </button>
 
       <div className="flex items-center gap-4">
