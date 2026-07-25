@@ -651,8 +651,45 @@ export async function getPushPreference(userId: string): Promise<boolean> {
 
 
 
-// ── BUSINESS ───────────────────────────────────────────────────────────────
+// ── RATING INVITE ──────────────────────────────────────────────────────────
 
+export interface RecentBuyer {
+  buyer_id: string
+  full_name: string
+  avatar_initials: string
+  avatar_color: string
+}
+
+export async function getRecentBuyers(
+  sellerId: string,
+  listingId: string
+): Promise<RecentBuyer[]> {
+  const { data, error } = await supabase.rpc('get_recent_buyers', {
+    p_seller_id: sellerId,
+    p_listing_id: listingId,
+  })
+  if (error || !data) return []
+  return data as RecentBuyer[]
+}
+
+export async function sendRatingInvite(
+  sellerId: string,
+  sellerName: string,
+  buyerId: string,
+  listingId: string,
+  conversationId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('notifications').insert({
+    user_id: buyerId,
+    type: 'rating_request',
+    message: `${sellerName} would like you to rate your experience with them.`,
+    listing_id: listingId,
+    conversation_id: conversationId,
+  })
+  return { error: error ? error.message : null }
+}
+
+// ── BUSINESS ───────────────────────────────────────────────────────────────
 export async function submitBusinessApplication(payload: {
   businessName: string
   businessType: string
