@@ -10,6 +10,7 @@ import {
   renewListing, getRecentBuyers, sendRatingInvite,
   PLAN_TIERS, PlanKey
 } from '../services/dataService'
+import { supabase } from '../services/supabaseClient'
 function timeLeft(expiresAt: string) {
   const diff = new Date(expiresAt).getTime() - Date.now()
   if (diff <= 0) return { label: 'Expired', color: 'text-red-400' }
@@ -295,7 +296,7 @@ const handleReportClick = () => {
                   key={buyer.buyer_id}
                   onClick={async () => {
                     if (!listing) return
-                    const { data: conv } = await (await import('../services/supabaseClient')).supabase
+const { data: conv } = await supabase
                       .from('conversations')
                       .select('id')
                       .eq('listing_id', listing.id)
