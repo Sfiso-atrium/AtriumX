@@ -409,9 +409,11 @@ export async function startConversation(
     .select('id')
     .single()
 
-  if (error || !data) return { convId: null, error: error?.message || 'Failed to start conversation.' }
-await supabase.rpc('increment_contact_count', { listing_id: listingId }).catch(() => {})
+if (error || !data) return { convId: null, error: error?.message || 'Failed to start conversation.' }
 
+  try {
+    await supabase.rpc('increment_contact_count', { listing_id: listingId })
+  } catch (_) {}
 
   return { convId: data.id, error: null }
 }
