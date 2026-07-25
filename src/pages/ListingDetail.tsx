@@ -5,11 +5,11 @@ import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
 import ReportModal from '../components/student/ReportModal'
 import {
-Listing, Profile, getListingById,
+  Listing, Profile, RecentBuyer, getListingById,
   startConversation, markListingAsSold,
-  renewListing, PLAN_TIERS, PlanKey
+  renewListing, getRecentBuyers, sendRatingInvite,
+  PLAN_TIERS, PlanKey
 } from '../services/dataService'
-
 function timeLeft(expiresAt: string) {
   const diff = new Date(expiresAt).getTime() - Date.now()
   if (diff <= 0) return { label: 'Expired', color: 'text-red-400' }
@@ -23,12 +23,13 @@ export default function ListingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, showToast } = useApp()
-  const [listing, setListing] = useState<Listing | null>(null)
+const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
-
-const [actionLoading, setActionLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
+  const [showBuyerPicker, setShowBuyerPicker] = useState(false)
+  const [recentBuyers, setRecentBuyers] = useState<RecentBuyer[]>([])
 useEffect(() => {
     if (!id) return
 getListingById(id, currentUser?.id)
@@ -80,14 +81,20 @@ getListingById(id, currentUser?.id)
     if (convId) navigate(`/chat/${convId}`)
   }
 
-  const handleMarkSold = async () => {
-    if (!id) return
+const handleMarkSold = async () => {
+    if (!id || !currentUser) return
     setActionLoading(true)
     const { error } = await markListingAsSold(id)
+    if (error) { setActionLoading(false); showToast(error, 'error'); return }
+    const buyers = await getRecentBuyers(currentUser.id, id)
     setActionLoading(false)
-    if (error) { showToast(error, 'error'); return }
     showToast('Listing marked as sold.', 'success')
-    navigate('/feed')
+    if (buyers.length > 0) {
+      setRecentBuyers(buyers)
+      setShowBuyerPicker(true)
+    } else {
+      navigate('/feed')
+    }
   }
 
   const handleRenew = async () => {
@@ -271,9 +278,64 @@ const handleReportClick = () => {
           )}
         </div>
   </div>
-      {showReportModal && (
+{showReportModal && (
         <ReportModal listingId={listing.id} onClose={() => setShowReportModal(false)} />
       )}
+
+      {showBuyerPicker && currentUser && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
+            <h2 className="font-serif text-xl text-cream mb-2">Who bought this?</h2>
+            <p className="text-cream-muted text-sm mb-5">
+              Select the buyer to invite them to rate your experience. They can choose whether to rate you or not.
+            </p>
+            <div className="flex flex-col gap-2 mb-5 max-h-60 overflow-y-auto">
+              {recentBuyers.map(buyer => (
+                <button
+                  key={buyer.buyer_id}
+                  onClick={async () => {
+                    if (!listing) return
+                    const { data: conv } = await (await import('../services/supabaseClient')).supabase
+                      .from('conversations')
+                      .select('id')
+                      .eq('listing_id', listing.id)
+                      .eq('buyer_id', buyer.buyer_id)
+                      .single()
+                    if (conv?.id) {
+                      await sendRatingInvite(
+                        currentUser.id,
+                        currentUser.full_name,
+                        buyer.buyer_id,
+                        listing.id,
+                        conv.id
+                      )
+                      showToast(`Rating invite sent to ${buyer.full_name}.`, 'success')
+                    }
+                    setShowBuyerPicker(false)
+                    navigate('/feed')
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 bg-slate-card border border-slate-border rounded-xl hover:border-teal-primary transition-colors text-left"
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: buyer.avatar_color }}
+                  >
+                    {buyer.avatar_initials}
+                  </div>
+                  <span className="text-cream text-sm font-medium">{buyer.full_name}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setShowBuyerPicker(false); navigate('/feed') }}
+              className="w-full border border-slate-border text-cream-muted hover:text-cream font-bold py-3 rounded-xl transition-colors"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
       <BottomNav />
     </>
   )
