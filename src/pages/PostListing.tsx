@@ -4,7 +4,7 @@ import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   createListing, uploadListingImage,
-  getUserListings, PLAN_TIERS, PlanKey
+  getUserListings, getResidences, PLAN_TIERS, PlanKey
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
@@ -38,6 +38,7 @@ export default function PostListing() {
 const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [atLimit, setAtLimit] = useState(false)
+  const [residenceOptions, setResidenceOptions] = useState<string[]>([])
   const [posterMode, setPosterMode] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -50,6 +51,7 @@ useEffect(() => {
         const max = PLAN_TIERS[plan].maxListings
         if (active >= max) setAtLimit(true)
       })
+      getResidences().then(setResidenceOptions)
     }
   }, [plan, currentUser, navigate])
 
@@ -386,6 +388,7 @@ if (createError) return setError(createError)
 
             {/* RESIDENCE */}
             <div>
+<div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Residence <span className="text-red-400">*</span>
               </label>
@@ -394,8 +397,14 @@ if (createError) return setError(createError)
                 placeholder="e.g. Dalrymple House"
                 value={residence}
                 onChange={e => setResidence(e.target.value)}
+                list="residence-options"
                 className={inputClass}
               />
+              <datalist id="residence-options">
+                {residenceOptions.map(r => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
             </div>
 
           {/* DESCRIPTION */}
