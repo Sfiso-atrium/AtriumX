@@ -26,8 +26,8 @@ export default function ReportModal({ listingId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center">
-      <div className="bg-slate-card border border-slate-border rounded-t-2xl p-6 w-full max-w-lg">
+<div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
+      <div className="bg-slate-card border border-slate-border rounded-2xl p-6 w-full max-w-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-cream font-bold text-lg">Report Listing</h2>
           <button onClick={onClose} className="text-cream-muted hover:text-cream">
