@@ -42,7 +42,7 @@ getListingById(id, currentUser?.id)
         setListing(null)
         setLoading(false)
       })
-  }, [id])
+}, [id, currentUser?.id])
 
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
