@@ -386,9 +386,8 @@ if (createError) return setError(createError)
               </div>
             )}
 
-            {/* RESIDENCE */}
+{/* RESIDENCE */}
             <div>
-<div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Residence <span className="text-red-400">*</span>
               </label>
@@ -406,7 +405,6 @@ if (createError) return setError(createError)
                 ))}
               </datalist>
             </div>
-
           {/* DESCRIPTION */}
             {!posterMode && <div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
