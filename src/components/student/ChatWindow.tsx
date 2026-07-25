@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Send, CircleCheck as CheckCircle } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-import RatingModal from './RatingModal'
-import {
 import {
   Message, Conversation, Profile,
   getConversationMessages, sendMessage,
   markConversationResolved, getUnreadMessageCount,
+  sendRatingInvite,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
-
 interface Props {
   conversation: Conversation & {
     buyer: Profile
@@ -27,7 +25,7 @@ const { currentUser, showToast, setUnreadMessageCount } = useApp()
   const [sending, setSending] = useState(false)
   const [msgCount, setMsgCount] = useState(0)
 const [resolving, setResolving] = useState(false)
-  const [showRating, setShowRating] = useState(false)
+  const [showResolvePrompt, setShowResolvePrompt] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
@@ -83,14 +81,14 @@ const handleSend = async () => {
     setMsgCount(c => c + 1)
   }
 
-  const handleResolve = async () => {
+const handleResolve = async () => {
     if (!isSeller) return
     setResolving(true)
-const { error } = await markConversationResolved(conversation.id)
+    const { error } = await markConversationResolved(conversation.id)
     setResolving(false)
-if (error) { showToast(error, 'error'); return }
-    showToast('Conversation resolved. Buyer will be prompted to rate.', 'success')
-    setShowRating(true)
+    if (error) { showToast(error, 'error'); return }
+    onResolved()
+    setShowResolvePrompt(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -182,15 +180,39 @@ if (error) { showToast(error, 'error'); return }
           This conversation is resolved.
         </p>
       )}
-{showRating && (
-        <RatingModal
-          sellerId={conversation.seller_id}
-          buyerId={conversation.buyer_id}
-          listingId={conversation.listing?.id ?? ''}
-          listingTitle={conversation.listing?.title ?? ''}
-          onClose={() => { setShowRating(false); onResolved() }}
-          onSubmitted={() => { setShowRating(false); onResolved() }}
-        />
+{showResolvePrompt && currentUser && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
+            <h2 className="font-serif text-xl text-cream mb-2">Invite a Rating?</h2>
+            <p className="text-cream-muted text-sm mb-6">
+              Would you like to invite {otherParty.full_name} to rate their experience with you?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  await sendRatingInvite(
+                    conversation.seller_id,
+                    currentUser.full_name,
+                    conversation.buyer_id,
+                    conversation.listing?.id ?? '',
+                    conversation.id
+                  )
+                  setShowResolvePrompt(false)
+                  showToast('Rating invite sent.', 'success')
+                }}
+                className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                Yes, invite them
+              </button>
+              <button
+                onClick={() => setShowResolvePrompt(false)}
+                className="flex-1 border border-slate-border text-cream-muted hover:text-cream font-bold py-3 rounded-xl transition-colors"
+              >
+                No thanks
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
