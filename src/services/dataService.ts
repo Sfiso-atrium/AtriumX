@@ -457,14 +457,7 @@ export async function sendMessage(
   return { error: error ? error.message : null }
 }
 
-export async function getMessageCount(convId: string, senderId: string): Promise<number> {
-  const { count } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('conversation_id', convId)
-    .eq('sender_id', senderId)
-  return count || 0
-}
+
 
 export async function deleteConversation(
   convId: string
