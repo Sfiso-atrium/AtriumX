@@ -53,7 +53,9 @@ useEffect(() => {
 payload => {
           setMessages(prev => {
             if (prev.find(m => m.id === (payload.new as Message).id)) return prev
-            return [...prev, payload.new as Message]
+            const updated = [...prev, payload.new as Message]
+            setMsgCount(updated.length)
+            return updated
           })
           if (currentUser) getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
         }
