@@ -17,8 +17,8 @@ export default function Feed() {
 
 const [fetchError, setFetchError] = useState(false)
 
-  useEffect(() => {
-    getListings({ currentUser })
+useEffect(() => {
+    getListings()
       .then(data => {
         setListings(data)
         setDbLoading(false)
@@ -27,7 +27,7 @@ const [fetchError, setFetchError] = useState(false)
         setDbLoading(false)
         setFetchError(true)
       })
-  }, [currentUser])
+  }, [])
 
   const filtered = useMemo(() => {
     return listings.filter(listing => {
