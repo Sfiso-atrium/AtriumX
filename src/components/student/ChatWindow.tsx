@@ -3,9 +3,10 @@ import { Send, CircleCheck as CheckCircle } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import RatingModal from './RatingModal'
 import {
-Message, Conversation, Profile,
+import {
+  Message, Conversation, Profile,
   getConversationMessages, sendMessage,
-  getMessageCount, markConversationResolved, getUnreadMessageCount,
+  markConversationResolved, getUnreadMessageCount,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
@@ -33,10 +34,12 @@ const [resolving, setResolving] = useState(false)
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
   const maxMsgs = sellerPlan ? PLAN_TIERS[sellerPlan]?.maxMsgs ?? 999 : 999
 
-  useEffect(() => {
+useEffect(() => {
     if (!currentUser) return
-    getConversationMessages(conversation.id).then(setMessages)
-    getMessageCount(conversation.id, currentUser.id).then(setMsgCount)
+    getConversationMessages(conversation.id).then(msgs => {
+      setMessages(msgs)
+      setMsgCount(msgs.length)
+    })
   }, [conversation.id, currentUser])
 
   useEffect(() => {
@@ -62,10 +65,14 @@ payload => {
     return () => { supabase.removeChannel(channel) }
   }, [conversation.id])
 
-  const handleSend = async () => {
+const handleSend = async () => {
     if (!text.trim() || !currentUser) return
-if (isSeller && msgCount >= maxMsgs) {
-      showToast(`Message limit reached on your plan (${maxMsgs} messages).`, 'info')
+    if (msgCount >= maxMsgs) {
+      if (isSeller) {
+        showToast(`Message limit reached on your plan (${maxMsgs} messages).`, 'info')
+      } else {
+        showToast(`This conversation has reached the seller's plan limit of ${maxMsgs} messages.`, 'info')
+      }
       return
     }
     setSending(true)
