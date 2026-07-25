@@ -41,13 +41,13 @@ export default function App() {
           <Route path="/feed" element={<Feed />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/plan-select" element={<PlanSelect />} />
-          <Route path="/post" element={<PostListing />} />
-<Route path="/profile/edit" element={<EditProfile />} />
+<Route path="/post" element={<PostListing />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/chat" element={<ChatPage />} />
-<Route path="/chat/:convId" element={<ChatPage />} />
-<Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />
         </Routes>
 
