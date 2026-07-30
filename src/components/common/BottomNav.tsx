@@ -1,5 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, PlusCircle, MessageCircle, LayoutList, ShieldCheck } from 'lucide-react'
+import { PlusCircle, ShieldCheck } from 'lucide-react'
+import HomeIcon from './icons/HomeIcon'
+import ChatIcon from './icons/ChatIcon'
+import ListingsIcon from './icons/ListingsIcon'
 import { useApp } from '../../context/AppContext'
 
 export default function BottomNav() {
@@ -20,7 +23,7 @@ export default function BottomNav() {
 const tabs = [
     {
       label: 'Feed',
-      icon: Home,
+    icon: HomeIcon,
       path: '/feed',
       onClick: () => navigate('/feed'),
     },
@@ -33,14 +36,14 @@ const tabs = [
     ...(currentUser ? [
       {
         label: 'Messages',
-        icon: MessageCircle,
+        icon: ChatIcon,
         path: '/chat',
         onClick: () => navigate('/chat'),
         badge: unreadMessageCount > 0 ? unreadMessageCount : null,
       },
       {
         label: 'My Listings',
-        icon: LayoutList,
+        icon: ListingsIcon,
         path: `/profile/${currentUser.id}`,
         onClick: () => navigate(`/profile/${currentUser.id}`),
       },
