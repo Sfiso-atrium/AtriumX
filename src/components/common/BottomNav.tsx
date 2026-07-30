@@ -71,7 +71,7 @@ const tabs = [
             >
               <div className="relative">
                 <Icon
-                  size={tab.label === 'Post' ? 28 : 22}
+                  size={tab.label === 'Post' ? 28 : tab.label === 'Feed' ? 26 : 22}
                   className={active ? 'text-ember' : 'text-cream-muted'}
                 />
                 {tab.badge && (
