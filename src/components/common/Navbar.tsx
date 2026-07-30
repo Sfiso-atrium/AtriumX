@@ -8,9 +8,11 @@ const navigate = useNavigate()
 
 return (
     <nav className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
- <button onClick={() => navigate('/feed')} className="flex items-center">
- <img src="/logo.png" alt="AtriumX" className="h-14 w-auto" />
-      </button>
+<button onClick={() => navigate('/feed')} className="flex items-center gap-0.5">
+          <img src="/logo.png" alt="A" className="h-14 w-auto" />
+          <span className="text-cream font-serif text-2xl font-bold">trium</span>
+          <span className="text-ember font-serif text-2xl font-bold">X</span>
+        </button>
 
       <div className="flex items-center gap-4">
         {currentUser ? (
