@@ -70,8 +70,8 @@ const tabs = [
               className="flex flex-col items-center justify-center gap-1 flex-1 h-full relative"
             >
               <div className="relative">
-                <Icon
-                  size={tab.label === 'Post' ? 28 : 22}
+               <Icon
+                  size={tab.label === 'Post' ? 28 : tab.label === 'Feed' ? 26 : 22}
                   className={active ? 'text-ember' : 'text-cream-muted'}
                 />
                 {tab.badge && (
