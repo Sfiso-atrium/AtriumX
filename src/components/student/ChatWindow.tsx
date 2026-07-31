@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, CircleCheck as CheckCircle } from 'lucide-react'
+import { CircleCheck as CheckCircle } from 'lucide-react'
+import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
   Message, Conversation, Profile,
@@ -178,7 +179,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
             disabled={sending || !text.trim()}
             className="w-10 h-10 flex items-center justify-center bg-ember hover:bg-ember-dark disabled:opacity-40 rounded-xl text-white flex-shrink-0 transition-colors"
           >
-            <Send size={16} />
+            <SendIcon size={16} />
           </button>
         </div>
       )}
