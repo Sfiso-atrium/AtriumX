@@ -16,6 +16,7 @@ export default function ListingsIcon({ size = 24, className }: IconProps) {
         <path d="M8 15h12" />
         <path d="M4 20h0.01" />
         <path d="M8 20h12" />
-      </g>
+ </g>
+    </svg>
   )
 }
