@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import { Listing, Profile, PLAN_TIERS, PlanKey } from '../../services/dataService'
@@ -9,38 +8,17 @@ interface ListingCardProps {
   isOwner?: boolean
 }
 
-function Avatar({ initials, color, size = 24 }: { initials: string; color: string; size?: number }) {
-  return (
-    <div
-      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.38 }}
-    >
-      {initials}
-    </div>
-  )
-}
-
 function formatPrice(price: number) {
   return `R ${price.toLocaleString('en-ZA')}`
 }
 
 export default function ListingCard({ listing, seller, isOwner = false }: ListingCardProps) {
-  const navigate = useNavigate()
-  const [imgError, setImgError] = useState(false)
+const navigate = useNavigate()
   const sellerData = seller || listing.seller
 
   const contactCount = listing.contact_count ?? listing.contactCount ?? 0
-  const imageUrl = listing.image_urls?.[0] || listing.imageUrl || null
 
-  const lowestVariantPrice = listing.variants?.length
-    ? Math.min(...listing.variants.map((v: any) => v.price))
-    : null
-
-  const displayPrice = lowestVariantPrice !== null
-    ? `From ${formatPrice(lowestVariantPrice)}`
-    : formatPrice(listing.price)
-
-const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
+  const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
   const isFeatured = listing.plan_tier === 'unmissable'
 
   return (
@@ -62,26 +40,27 @@ const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
           {badge}
         </span>
       )}
-      {imageUrl && !imgError ? (
-        <img
-          src={imageUrl}
-          alt={listing.title}
-          className="w-full aspect-video object-cover"
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <div className="w-full aspect-video bg-teal-faint flex items-center justify-center">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-            stroke="#1A5F7A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <circle cx="9" cy="9" r="2"/>
-            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-          </svg>
-        </div>
-      )}
+<div className="p-4 flex flex-col gap-2">
+        <h3 className="text-cream font-bold text-base leading-snug">
+          {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
+        </h3>
 
-      <div className="p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
+        {sellerData && (sellerData.total_ratings ?? 0) > 0 && (
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={13}
+                className={i < Math.round(sellerData.avg_rating) ? 'fill-gold text-gold' : 'text-slate-border'}
+              />
+            ))}
+            <span className="text-cream-muted text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
+          </div>
+        )}
+
+        <p className="text-cream-muted text-xs">{listing.residence}</p>
+
+        <div className="flex items-center gap-2 flex-wrap pt-1">
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
             {listing.custom_category || listing.category}
           </span>
@@ -89,27 +68,6 @@ const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
             <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">
               Open to offers
             </span>
-          )}
-        </div>
-
-        <h3 className="text-cream font-bold text-base leading-snug line-clamp-2">
-          {listing.title}
-        </h3>
-
-        <p className="text-gold font-bold text-xl">{displayPrice}</p>
-
-        <div className="flex items-center gap-2">
-          {sellerData && (
-            <>
-              <Avatar
-                initials={sellerData.avatar_initials || sellerData.sellerInitials || '?'}
-                color={sellerData.avatar_color || sellerData.sellerColor || '#1A5F7A'}
-                size={22}
-              />
-              <span className="text-cream-muted text-xs">
-                {sellerData.full_name || sellerData.sellerName || ''}
-              </span>
-            </>
           )}
         </div>
 
