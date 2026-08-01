@@ -285,20 +285,23 @@ export default function ListingDetail() {
             )}
 
 <div className="flex items-center gap-4 text-cream-muted text-xs flex-wrap">
-              <span className={`flex items-center gap-1 ${expiry.color}`}>
-                <CalendarIcon className="w-4 h-4" />
-                {expiry.label}
-              </span>
-              <span className="flex items-center gap-1">
-                <PeopleIcon className="w-4 h-4 text-ember" />
-                {listing.contact_count} interested
-              </span>
+              {isSeller && (
+                <>
+                  <span className={`flex items-center gap-1 ${expiry.color}`}>
+                    <CalendarIcon className="w-4 h-4" />
+                    {expiry.label}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <PeopleIcon className="w-4 h-4 text-ember" />
+                    {listing.contact_count} interested
+                  </span>
+                </>
+              )}
               <span className="flex items-center gap-1">
                 <LocationIcon className="w-4 h-4 text-ember" />
                 {listing.residence}
               </span>
             </div>
-
             <hr className="border-slate-border" />
 
             <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
