@@ -14,8 +14,8 @@ html {
 }
 
 body {
-  background-color: #0D2538;
-  color: #FFF7ED;
+  background-color: #0A0F1E;
+  color: #F0F4F8;
   font-family: 'DM Sans', system-ui, sans-serif;
   min-height: 100vh;
 }
@@ -26,11 +26,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0D2538;
+  background: #0A0F1E;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E3A4F;
+  background: #1F2D3D;
   border-radius: 2px;
 }
 
