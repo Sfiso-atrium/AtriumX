@@ -6,45 +6,36 @@ import { PLAN_TIERS, PlanKey } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
-ghost: [
+  ghost: [
     'Text-only listing',
     '1 active listing',
     '3 messages per conversation',
     '3-day visibility',
   ],
-  flash: [
-    '1 photo per listing',
-    '1 listing, 48 hours only',
-    '10 messages per conversation',
-    'Price negotiation badge',
-  ],
   visible: [
     '1 photo per listing',
-    'Up to 3 active listings',
-    'Unlimited messaging',
+    'Up to 2 active listings',
+    '10 messages per conversation',
+    '"Spotted" badge on your listings',
     'Push notification on interest',
     '7-day visibility',
     'Listing renewal (once)',
   ],
   loud: [
     'Up to 3 photos per listing',
-    '8 active listings',
+    'Up to 3 active listings',
     'Unlimited messaging',
     'Boosted feed placement',
-    'Basic analytics',
-    'Highlighted card border',
-    'Verified seller badge',
+    '"Verified" badge on your listings',
     'Bulk post up to 3 listings',
     '14-day visibility',
   ],
   unmissable: [
     'Up to 5 photos + video',
-    'Unlimited active listings',
+    'Up to 6 active listings',
     'Pinned to top of category',
-    'Full analytics dashboard',
     'Search ranking boost',
-    'Seller Spotlight eligibility',
-    'Buyer identity visibility',
+    'Gold-bordered "Spotlight" listing cards',
     'All Loud features',
     '30-day visibility',
   ],
@@ -52,7 +43,6 @@ ghost: [
 
 const PLAN_COLORS: Record<PlanKey, string> = {
   ghost: 'border-slate-border',
-  flash: 'border-teal-primary',
   visible: 'border-teal-light',
   loud: 'border-gold',
   unmissable: 'border-ember',
