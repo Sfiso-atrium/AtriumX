@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service - AtriumX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate-deep:#0D2538;
+    --slate-card:#0F2D45;
+    --slate-border:#1E3A4F;
+    --teal-primary:#1A5F7A;
+    --teal-light:#2A7A9A;
+    --teal-faint:#1A5F7A22;
+    --cream:#FFF7ED;
+    --cream-muted:#C9B99A;
+    --gold:#FBBF24;
+    --gold-muted:#D97706;
+    --ember:#F97316;
+    --ember-dark:#C2550F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background-color:var(--slate-deep);
+    color:var(--cream);
+    font-family:'DM Sans',system-ui,sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:var(--slate-deep);}
+  ::-webkit-scrollbar-thumb{background:var(--slate-border);border-radius:2px;}
+
+  .page{max-width:800px;margin:0 auto;padding:56px 20px 80px;}
+
+  .top-accent{
+    height:3px;
+    width:64px;
+    border-radius:2px;
+    background:linear-gradient(90deg,var(--teal-light),var(--gold),var(--ember));
+    margin-bottom:28px;
+  }
+
+  header.doc-header{margin-bottom:40px;}
+  header.doc-header h1{
+    font-family:'DM Serif Display',Georgia,serif;
+    font-weight:400;
+    font-size:2.4rem;
+    color:var(--cream);
+    letter-spacing:-0.01em;
+  }
+  .updated-pill{
+    display:inline-block;
+    margin-top:14px;
+    padding:5px 14px;
+    background:var(--teal-faint);
+    border:1px solid var(--teal-primary);
+    border-radius:999px;
+    color:var(--teal-light);
+    font-size:0.8rem;
+    font-weight:600;
+  }
+
+  .card{
+    background:var(--slate-card);
+    border:1px solid var(--slate-border);
+    border-radius:20px;
+    padding:36px 32px;
+  }
+  @media (max-width:600px){
+    .card{padding:26px 20px;}
+    header.doc-header h1{font-size:1.9rem;}
+  }
+
+  section{margin-bottom:34px;}
+  section:last-of-type{margin-bottom:0;}
+
+  h2.section-title{
+    font-size:1.05rem;
+    font-weight:700;
+    color:var(--teal-light);
+    margin-bottom:12px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  h2.section-title .num{
+    font-family:'DM Serif Display',Georgia,serif;
+    color:var(--gold);
+    font-size:0.95rem;
+  }
+
+  p{
+    color:var(--cream-muted);
+    line-height:1.85;
+    font-size:0.94rem;
+  }
+  p + p{margin-top:0.85rem;}
+
+  .lead-in{
+    font-weight:600;
+    color:var(--cream);
+    margin-bottom:0.5rem;
+    margin-top:1rem;
+    font-size:0.94rem;
+  }
+  section p.lead-in:first-of-type{margin-top:0;}
+
+  ul{
+    color:var(--cream-muted);
+    line-height:2;
+    font-size:0.94rem;
+    padding-left:1.4rem;
+    margin-bottom:0.75rem;
+  }
+  ul.tight li::marker{color:var(--teal-light);}
+
+  strong.hl{color:var(--cream);}
+
+  a{color:var(--teal-light);text-decoration:none;border-bottom:1px solid var(--teal-primary);}
+  a:hover{color:var(--gold);border-bottom-color:var(--gold-muted);}
+
+  table.plan-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:0.75rem;
+    font-size:0.86rem;
+  }
+  table.plan-table th{
+    text-align:left;
+    color:var(--cream);
+    font-weight:700;
+    padding:8px 10px;
+    border-bottom:1px solid var(--slate-border);
+  }
+  table.plan-table td{
+    color:var(--cream-muted);
+    padding:8px 10px;
+    border-bottom:1px solid var(--slate-border);
+  }
+  table.plan-table tr:last-child td{border-bottom:none;}
+  @media (max-width:600px){
+    table.plan-table{font-size:0.78rem;}
+    table.plan-table th, table.plan-table td{padding:6px 6px;}
+  }
+
+  .callout{
+    background:var(--slate-deep);
+    border:1px solid var(--slate-border);
+    border-left:3px solid var(--gold);
+    border-radius:10px;
+    padding:16px 18px;
+    margin-top:0.85rem;
+  }
+  .callout p{color:var(--cream-muted);font-size:0.88rem;line-height:1.75;}
+
+  footer.doc-footer{
+    max-width:800px;
+    margin:36px auto 0;
+    padding:0 20px;
+    text-align:center;
+  }
+  footer.doc-footer p{
+    color:var(--cream-muted);
+    font-size:0.8rem;
+  }
+  footer.doc-footer p + p{margin-top:4px;}
+</style>
+</head>
+<body>
+
+<main class="page">
+  <div class="top-accent"></div>
+  <header class="doc-header">
+    <h1>Terms of Service</h1>
+    <span class="updated-pill">Last updated: August 2026</span>
+  </header>
+
+  <div class="card">
+
+    <section>
+      <h2 class="section-title"><span class="num">1.</span> Agreement to These Terms</h2>
+      <p>
+        These Terms of Service ("Terms") govern your use of AtriumX, the campus marketplace platform that lets students buy, sell, and trade with others in their residence and campus community. By creating an account or using AtriumX in any way, you agree to these Terms and to our <a href="privacy.html">Privacy Policy</a>. If you don't agree to them, please don't use AtriumX.
+      </p>
+      <p>
+        These Terms are governed by the laws of the Republic of South Africa, including the Electronic Communications and Transactions Act 25 of 2002 (ECT Act).
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">2.</span> Who Can Use AtriumX</h2>
+      <p>
+        You must be 18 years or older to create an account. By registering, you confirm that the information you provide — including your name and residence — is accurate, and that you'll keep it up to date. AtriumX is built for students in a residence or campus community, so please only register a residence you're genuinely affiliated with.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">3.</span> Your Account</h2>
+      <p>
+        You're responsible for keeping your login details secure and for all activity that happens under your account. Let us know straight away if you think someone else has accessed your account without permission. You may only create one account for yourself — accounts are not transferable.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">4.</span> Plans and Listing Limits</h2>
+      <p>Every listing is posted under one of four plans, which control how many active listings you can have, how long a listing stays visible, and which features it gets:</p>
+      <table class="plan-table">
+        <tr><th>Plan</th><th>Price</th><th>Visibility</th><th>Active listings</th><th>Photos</th></tr>
+        <tr><td>Ghost</td><td>Free</td><td>3 days</td><td>1</td><td>Text only</td></tr>
+        <tr><td>Visible</td><td>R29</td><td>7 days</td><td>2</td><td>1</td></tr>
+        <tr><td>Loud</td><td>R79</td><td>14 days</td><td>3</td><td>Up to 3</td></tr>
+        <tr><td>Unmissable</td><td>R149</td><td>30 days</td><td>6</td><td>Up to 5 + video</td></tr>
+      </table>
+      <p style="margin-top:0.85rem;">
+        A listing automatically stops being shown once its visibility window ends. Depending on your plan, you may be able to renew it. We may change plan pricing, limits, or features going forward — the current terms for each plan are always shown on the plan selection page at the time you post.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">5.</span> Posting a Listing</h2>
+      <p>
+        When you post a listing, you're representing that you own the item (or have the right to sell it), that the description, price, category, and any photos are accurate, and that you intend to genuinely sell it. Listings are reviewed before they go live — we may approve, reject, or remove a listing at our discretion, including after it's already active.
+      </p>
+      <p>
+        Listings are organised into categories: Textbooks, Electronics, Clothing, Food, Services, Furniture, and Other. Choose the category that best fits what you're selling.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">6.</span> Prohibited Items and Conduct</h2>
+      <p class="lead-in">You may not list or offer, anywhere on AtriumX:</p>
+      <ul class="tight">
+        <li>Illegal items, or items you don't have the legal right to sell</li>
+        <li>Stolen goods or counterfeit/replica products</li>
+        <li>Weapons, ammunition, or hazardous materials</li>
+        <li>Alcohol, tobacco, vapes, or any controlled or prescription substance</li>
+        <li>Academic dishonesty services (assignments, tests, or exams written on someone else's behalf)</li>
+        <li>Adult content or services</li>
+      </ul>
+      <p class="lead-in">You also agree not to:</p>
+      <ul class="tight">
+        <li>Harass, threaten, or discriminate against another user in messages, listings, or reviews</li>
+        <li>Post spam, scams, or misleading listings</li>
+        <li>Create more than one account, or use AtriumX to impersonate someone else</li>
+        <li>Attempt to interfere with the platform's normal operation or security</li>
+      </ul>
+      <div class="callout">
+        <p>
+          AtriumX does not inspect, test, or certify any item listed under the Food category. Buying and consuming food listed by another user is entirely at your own risk.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">7.</span> Messaging and Ratings</h2>
+      <p>
+        Messages are for arranging and discussing a sale — please keep them respectful and on-topic. Ratings and reviews must reflect a genuine interaction you had with that seller; you may only rate a seller once per listing you engaged with, and you may not post a rating to mislead other users or to retaliate against a seller unrelated to an actual transaction.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">8.</span> Reporting and Moderation</h2>
+      <p>
+        If you come across a listing that breaks these Terms, you can report it and an administrator will review it. We may approve, reject, suspend, or remove any listing, and may warn, suspend, or terminate any account, at our discretion and without needing to give advance notice, particularly where we believe these Terms, the law, or another user's safety is at risk. We don't guarantee a specific outcome or turnaround time on any report.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">9.</span> Business and Partner Applications</h2>
+      <p>Businesses can apply to advertise on AtriumX under one of the following packages:</p>
+      <table class="plan-table">
+        <tr><th>Package</th><th>Price</th><th>Highlights</th></tr>
+        <tr><td>Noticeboard</td><td>Free / 7 days</td><td>Text listing in the student feed, basic view count</td></tr>
+        <tr><td>Featured</td><td>R350 / week</td><td>Pinned to top of category, Sponsored badge, analytics</td></tr>
+        <tr><td>Campus Partner</td><td>R800 / month</td><td>Permanent Business section listing, category sponsorship</td></tr>
+      </table>
+      <p style="margin-top:0.85rem;">
+        Submitting an application does not guarantee approval — we review each one to make sure it's a good fit for the student community, typically within 48 hours. Payment terms and billing arrangements will be confirmed with you directly once an application is approved.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">10.</span> Content You Post</h2>
+      <p>
+        You keep ownership of the listings, messages, photos, and reviews you post. By posting them, you give AtriumX a licence to display, store, and distribute that content on the platform for as long as your account or listing is active. You confirm that you have the right to post everything you submit, and that doing so doesn't infringe anyone else's rights.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">11.</span> Disclaimer and Limitation of Liability</h2>
+      <p>
+        AtriumX is a platform that facilitates listings and communication between students — we are not a party to any sale, trade, or agreement made between users, and we do not guarantee the accuracy, quality, safety, or legality of any listing, message, rating, or business application on the platform.
+      </p>
+      <p>
+        To the maximum extent permitted by South African law, AtriumX, its owners, and its administrators will not be held liable for any direct, indirect, incidental, or consequential loss or damage arising from: reliance on any listing, rating, or review; content exchanged in chat between users; disputes between buyers and sellers, or between applicants and AtriumX; inaccurate or fraudulent listings or business applications; interruptions, downtime, delays, or errors caused by Supabase or any other third-party service AtriumX relies on; or any transaction, meet-up, or exchange arranged through the platform.
+      </p>
+      <p>
+        Nothing in this section excludes any liability that cannot lawfully be excluded under South African law, including liability arising from AtriumX's own fraud, wilful misconduct, or gross negligence.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">12.</span> Indemnity</h2>
+      <p>
+        By submitting content to AtriumX — including listings, messages, ratings, or business applications — you confirm that the content is your own honest account or genuine information, and you agree to indemnify AtriumX against any claim, loss, or cost (including reasonable legal costs) arising from content you submitted being false, defamatory, infringing, or otherwise unlawful, or from your breach of these Terms.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">13.</span> Suspension and Termination</h2>
+      <p>
+        You can stop using AtriumX and delete your account at any time. We may suspend or terminate your access if you breach these Terms, if we're required to by law, or if we reasonably believe your account poses a risk to AtriumX or its users. Sections of these Terms that by their nature should survive termination — including Sections 10 through 12 — continue to apply after your account is closed.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">14.</span> Changes to These Terms</h2>
+      <p>
+        We may update these Terms as the platform grows or as legal requirements change. The date at the top of this page reflects when it was last updated. Continued use of AtriumX after any update constitutes acceptance of the revised Terms.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">15.</span> Contact</h2>
+      <p>
+        Questions about these Terms? Email us at <a href="mailto:outis6669@gmail.com">outis6669@gmail.com</a>.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer class="doc-footer">
+  <p>&copy; AtriumX | Built for campus communities</p>
+  <p>Questions about these terms: <a href="mailto:outis6669@gmail.com">outis6669@gmail.com</a></p>
+</footer>
+
+</body>
+</html>
