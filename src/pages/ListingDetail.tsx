@@ -228,16 +228,17 @@ const expiry = timeLeft(listing.expires_at)
             </button>
           )}
         </div>
-       <div className="max-w-lg mx-auto pb-8">
-{listing.video_url ? (
+<div className="max-w-5xl mx-auto pb-8 md:px-6 lg:px-8">
+          <div className="md:flex md:gap-6 md:pt-6 md:items-start">
+          {listing.video_url ? (
             <video
               src={listing.video_url}
               controls
-              className="w-full aspect-video object-cover bg-black"
+              className="w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 md:rounded-2xl object-cover bg-black"
               poster={listing.image_urls?.[0] || undefined}
             />
           ) : (
-            <div className="relative w-full aspect-video bg-teal-faint overflow-hidden">
+            <div className="relative w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 md:rounded-2xl bg-teal-faint overflow-hidden">
               {listing.image_urls?.length > 0 ? (
                 <img
                   src={listing.image_urls[activeImage]}
@@ -252,7 +253,7 @@ const expiry = timeLeft(listing.expires_at)
 
               {seller && seller.total_ratings > 0 && (
                 <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
-                  <Star size={12} className="fill-gold" />
+                  <Star size={13} className="fill-gold" />
                   {seller.avg_rating} ({seller.total_ratings})
                 </span>
               )}
@@ -263,31 +264,30 @@ const expiry = timeLeft(listing.expires_at)
                     onClick={() =>
                       setActiveImage(prev => (prev - 1 + listing.image_urls.length) % listing.image_urls.length)
                     }
-                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
                     aria-label="Previous photo"
                   >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={22} />
                   </button>
                   <button
                     onClick={() => setActiveImage(prev => (prev + 1) % listing.image_urls.length)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
                     aria-label="Next photo"
                   >
-                    <ChevronRight size={18} />
+                    <ChevronRight size={22} />
                   </button>
                 </>
               )}
             </div>
           )}
-          <div className="px-4 pt-5 flex flex-col gap-4">
-<div>
+          <div className="px-4 pt-5 md:px-0 md:pt-0 md:flex-1 md:min-w-0 flex flex-col gap-4">
+            <div>
               <h1 className="font-serif text-2xl text-cream mb-1.5">{listing.title}</h1>
-              <p className="text-cream-muted text-xs flex items-center gap-1">
-                <LocationIcon className="w-3.5 h-3.5 text-ember flex-shrink-0" />
+              <p className="text-cream-muted text-sm flex items-center gap-1.5">
+                <LocationIcon className="w-5 h-5 text-ember flex-shrink-0" />
                 {listing.residence}
               </p>
             </div>
-
 <div className="w-full bg-slate-card border border-slate-border rounded-xl p-4 flex flex-col gap-3">
               <div className="flex flex-wrap gap-2">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
@@ -309,8 +309,8 @@ const expiry = timeLeft(listing.expires_at)
             </div>
 
             <div className="w-full grid grid-cols-3 gap-3 bg-slate-card border border-slate-border rounded-xl p-4">
-              <div className="flex items-start gap-2 min-w-0">
-                <Repeat size={18} className="text-gold flex-shrink-0 mt-0.5" />
+<div className="flex items-start gap-2.5 min-w-0">
+                <Repeat size={22} className="text-gold flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Type</p>
                   <p className="text-cream text-xs font-semibold truncate">
@@ -318,15 +318,15 @@ const expiry = timeLeft(listing.expires_at)
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-2 min-w-0">
-                <CalendarIcon className="w-[18px] h-[18px] text-gold flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 min-w-0">
+                <CalendarIcon className="w-[22px] h-[22px] text-gold flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Posted</p>
                   <p className="text-cream text-xs font-semibold truncate">{postedAgo(listing.created_at)}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2 min-w-0">
-                <Wrench size={18} className="text-gold flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Wrench size={22} className="text-gold flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Category</p>
                   <p className="text-cream text-xs font-semibold truncate capitalize">
@@ -355,7 +355,7 @@ const expiry = timeLeft(listing.expires_at)
                 className="w-full flex items-center gap-3 p-4 text-left"
                 aria-expanded={showPricing}
               >
-                <Tag size={20} className="text-gold flex-shrink-0" />
+<Tag size={24} className="text-gold flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-gold font-bold text-sm">Pricing Options</p>
                   <p className="text-cream-muted text-xs">See what's on offer and how much it costs.</p>
@@ -464,12 +464,12 @@ const expiry = timeLeft(listing.expires_at)
                     ))}
                   </div>
                 </div>
-              </>
+</>
             )}
           </div>
+          </div>
         </div>
-
-</div>
+      </div>
 
       {showReportModal && (
         <ReportModal listingId={listing.id} onClose={() => setShowReportModal(false)} />
