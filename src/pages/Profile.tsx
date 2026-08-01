@@ -162,8 +162,8 @@ export default function Profile() {
                         <div className="flex items-center gap-2 min-w-0">
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                            style={{ backgroundColor: r.buyer?.avatar_color || '#1A5F7A' }}
-                          >
+style={{ backgroundColor: r.buyer?.avatar_color || '#0D9488' }}
+                            >
                             {r.buyer?.avatar_initials || '?'}
                           </div>
                           <span className="text-cream text-sm font-medium truncate">
