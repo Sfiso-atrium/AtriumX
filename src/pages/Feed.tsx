@@ -12,8 +12,7 @@ function EmptyState({ message, actionLabel, onAction }: { message: string; actio
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
       <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-          stroke="#1A5F7A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+stroke="#0D9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
         </svg>
       </div>
       <p className="text-cream-muted text-sm mb-4">{message}</p>
