@@ -41,9 +41,13 @@ const navigate = useNavigate()
         </span>
       )}
 <div className="p-4 flex flex-col gap-2">
-        <h3 className="text-cream font-bold text-base leading-snug">
-          {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
+        <h3 className="text-cream font-bold text-base leading-snug break-words">
+          {listing.title}
         </h3>
+
+        <p className="text-cream-muted text-xs">
+          {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
+        </p>
 
         {sellerData && (sellerData.total_ratings ?? 0) > 0 && (
           <div className="flex items-center gap-0.5">
