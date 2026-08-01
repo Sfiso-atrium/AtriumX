@@ -228,7 +228,7 @@ const expiry = timeLeft(listing.expires_at)
             </button>
           )}
         </div>
-        <div className="max-w-lg mx-auto pb-32">
+       <div className="max-w-lg mx-auto pb-8">
 {listing.video_url ? (
             <video
               src={listing.video_url}
@@ -288,24 +288,27 @@ const expiry = timeLeft(listing.expires_at)
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
-                {listing.custom_category || listing.category}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-card border border-slate-border text-cream-muted capitalize">
-                {listing.listing_type === 'single' ? 'Once-off' : 'Ongoing'}
-              </span>
-              {listing.is_negotiable && tierConfig.canNegBadge && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">
-                  Open to offers
+<div className="w-full bg-slate-card border border-slate-border rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
+                  {listing.custom_category || listing.category}
                 </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-deep border border-slate-border text-cream-muted capitalize">
+                  {listing.listing_type === 'single' ? 'Once-off' : 'Ongoing'}
+                </span>
+                {listing.is_negotiable && tierConfig.canNegBadge && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">
+                    Open to offers
+                  </span>
+                )}
+              </div>
+
+              {listing.description && (
+                <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
               )}
             </div>
 
-            {listing.description && (
-              <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
-            )}
-<div className="grid grid-cols-3 gap-3 bg-slate-card border border-slate-border rounded-xl p-4">
+            <div className="w-full grid grid-cols-3 gap-3 bg-slate-card border border-slate-border rounded-xl p-4">
               <div className="flex items-start gap-2 min-w-0">
                 <Repeat size={18} className="text-gold flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
@@ -382,6 +385,43 @@ const expiry = timeLeft(listing.expires_at)
               )}
             </div>
 
+    <div className="w-full">
+              {isSeller ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleMarkSold}
+                    disabled={actionLoading || listing.status === 'sold'}
+                    className="flex-1 flex items-center justify-center gap-2 border border-slate-border text-cream font-bold py-3 rounded-xl disabled:opacity-40 transition-colors hover:border-teal-primary"
+                  >
+                    <CheckCircle size={16} />
+                    {listing.status === 'sold' ? 'Sold' : 'Mark as Sold'}
+                  </button>
+                  {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && (
+                    <button
+                      onClick={handleRenew}
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center gap-2 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl disabled:opacity-40 transition-colors"
+                    >
+                      <RefreshCw size={16} />
+                      Renew
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleInterested}
+                  disabled={actionLoading || listing.status !== 'active'}
+                  className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors"
+                >
+                  {listing.status !== 'active'
+                    ? 'Listing Unavailable'
+                    : actionLoading
+                    ? 'Opening chat...'
+                    : "I'm Interested — Message Seller"}
+                </button>
+              )}
+            </div>
+
             {seller && (
               <p className="text-cream-muted text-xs">
                 Sold by{' '}
@@ -429,43 +469,7 @@ const expiry = timeLeft(listing.expires_at)
           </div>
         </div>
 
-        <div className="fixed bottom-16 left-0 right-0 z-40 bg-slate-deep border-t border-slate-border px-4 py-3 max-w-lg mx-auto">
-          {isSeller ? (
-            <div className="flex gap-3">
-              <button
-                onClick={handleMarkSold}
-                disabled={actionLoading || listing.status === 'sold'}
-                className="flex-1 flex items-center justify-center gap-2 border border-slate-border text-cream font-bold py-3 rounded-xl disabled:opacity-40 transition-colors hover:border-teal-primary"
-              >
-                <CheckCircle size={16} />
-                {listing.status === 'sold' ? 'Sold' : 'Mark as Sold'}
-              </button>
-              {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && (
-                <button
-                  onClick={handleRenew}
-                  disabled={actionLoading}
-                  className="flex-1 flex items-center justify-center gap-2 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl disabled:opacity-40 transition-colors"
-                >
-                  <RefreshCw size={16} />
-                  Renew
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={handleInterested}
-              disabled={actionLoading || listing.status !== 'active'}
-              className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors"
-            >
-              {listing.status !== 'active'
-                ? 'Listing Unavailable'
-                : actionLoading
-                ? 'Opening chat...'
-                : "I'm Interested — Message Seller"}
-            </button>
-          )}
-        </div>
-      </div>
+</div>
 
       {showReportModal && (
         <ReportModal listingId={listing.id} onClose={() => setShowReportModal(false)} />
