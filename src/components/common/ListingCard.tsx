@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Star } from 'lucide-react'
 import { Listing, Profile, PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
-
 interface ListingCardProps {
   listing: Listing | any
   seller?: Profile | any
@@ -41,23 +41,28 @@ export default function ListingCard({ listing, seller, isOwner = false }: Listin
     : formatPrice(listing.price)
 
 const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
-  const isUnmissable = listing.plan_tier === 'unmissable'
+  const isFeatured = listing.plan_tier === 'unmissable'
 
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
       className={`relative bg-slate-card rounded-2xl overflow-hidden transition-colors cursor-pointer ${
-        isUnmissable
+        isFeatured
           ? 'border-2 border-gold hover:border-gold'
           : 'border border-slate-border hover:border-teal-primary'
       }`}
     >
-      {badge && (
+      {isFeatured ? (
+        <div className="bg-gold text-slate-deep text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
+          <Star size={12} className="fill-slate-deep" />
+          Featured
+        </div>
+      ) : badge && (
         <span className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
           {badge}
         </span>
       )}
-  {imageUrl && !imgError ? (
+      {imageUrl && !imgError ? (
         <img
           src={imageUrl}
           alt={listing.title}
