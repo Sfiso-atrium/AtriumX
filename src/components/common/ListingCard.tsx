@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Listing, Profile } from '../../services/dataService'
+import { Listing, Profile, PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 
 interface ListingCardProps {
@@ -40,12 +40,24 @@ export default function ListingCard({ listing, seller, isOwner = false }: Listin
     ? `From ${formatPrice(lowestVariantPrice)}`
     : formatPrice(listing.price)
 
+const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
+  const isUnmissable = listing.plan_tier === 'unmissable'
+
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-primary transition-colors cursor-pointer"
+      className={`relative bg-slate-card rounded-2xl overflow-hidden transition-colors cursor-pointer ${
+        isUnmissable
+          ? 'border-2 border-gold hover:border-gold'
+          : 'border border-slate-border hover:border-teal-primary'
+      }`}
     >
-      {imageUrl && !imgError ? (
+      {badge && (
+        <span className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
+          {badge}
+        </span>
+      )}
+  {imageUrl && !imgError ? (
         <img
           src={imageUrl}
           alt={listing.title}
