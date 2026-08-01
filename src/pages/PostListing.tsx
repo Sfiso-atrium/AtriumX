@@ -8,6 +8,26 @@ import {
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
+// The listing detail page displays photos in a 16:9 box with object-cover,
+// so a photo whose own shape is far from 16:9 gets aggressively cropped —
+// potentially cutting off the actual item. This reads the file's real pixel
+// dimensions client-side, before it's ever uploaded, so we can catch that.
+function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('unreadable'))
+    }
+    img.src = objectUrl
+  })
+}
+
 const CATEGORIES_LIST = [
   { id: 'textbooks', label: 'Textbooks' },
   { id: 'electronics', label: 'Electronics' },
@@ -96,10 +116,30 @@ if (isLoadingAuth || !plan || !currentUser) return null
   const maxPhotos = tierConfig.maxPhotos
   const maxVariants = tierConfig.maxVariants
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (imageUrls.length >= maxPhotos) return
+
+    try {
+      const { width, height } = await getImageDimensions(file)
+      const ratio = width / height
+      const targetRatio = 16 / 9
+      const tolerance = 0.15 // 15% wiggle room either side of 16:9
+      if (Math.abs(ratio - targetRatio) / targetRatio > tolerance) {
+        showToast(
+          'That photo is too far from a 16:9 landscape shape — it would get cropped and cut off in the listing. Please crop it closer to 16:9 first.',
+          'error'
+        )
+        if (fileRef.current) fileRef.current.value = ''
+        return
+      }
+    } catch {
+      showToast('Could not read that image. Try a different file.', 'error')
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+
     setUploading(true)
    const { url, error: uploadError } = await uploadListingImage(file, currentUser.id)
     setUploading(false)
