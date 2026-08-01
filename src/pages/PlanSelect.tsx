@@ -35,7 +35,7 @@ const PLAN_FEATURES: Record<PlanKey, string[]> = {
     'Up to 6 active listings',
     'Pinned to top of category',
     'Search ranking boost',
-    'Gold-bordered "Spotlight" listing cards',
+    'Gold "★ Featured" banner on your listing cards',
     'All Loud features',
     '30-day visibility',
   ],
