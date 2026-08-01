@@ -63,11 +63,11 @@ return (
           <X size={22} className="text-cream-muted" />
         </button>
       </div>
-      <a href="/how-it-works.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">How It Works</a>
-      <a href="/faq.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">FAQ</a>
-      <a href="/safety.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Safety Tips</a>
-      <a href="/terms.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Terms of Service</a>
-      <a href="/privacy.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 transition-colors">Privacy Policy</a>
+      <a href="/How-it-works.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">How It Works</a>
+      <a href="/Faq.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">FAQ</a>
+      <a href="/Safety.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Safety Tips</a>
+      <a href="/Terms.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Terms of Service</a>
+      <a href="/Privacy.html" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 transition-colors">Privacy Policy</a>
     </div>
     </>
   )
