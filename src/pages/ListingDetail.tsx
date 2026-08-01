@@ -228,7 +228,7 @@ const expiry = timeLeft(listing.expires_at)
             </button>
           )}
         </div>
-<div className="max-w-5xl mx-auto pb-8 md:px-6 lg:px-8 md:pt-6">
+<div className="max-w-5xl mx-auto pb-24 md:px-6 lg:px-8 md:pt-6">
           {/* Hero placeholder: image/video, title, and badges live together */}
           <div className="w-full bg-slate-card border border-slate-border rounded-2xl overflow-hidden md:flex md:gap-6 md:items-stretch">
           {listing.video_url ? (
