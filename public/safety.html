@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safety Tips - AtriumX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate-deep:#0A0F1E;
+    --slate-card:#111827;
+    --slate-border:#1F2D3D;
+    --teal-primary:#0D9488;
+    --teal-light:#14B8A6;
+    --teal-faint:#0D948822;
+    --cream:#F0F4F8;
+    --cream-muted:#8B949E;
+    --gold:#D4A017;
+    --gold-muted:#A6790F;
+    --ember:#D4A017;
+    --ember-dark:#A6790F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background-color:var(--slate-deep);
+    color:var(--cream);
+    font-family:'DM Sans',system-ui,sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:var(--slate-deep);}
+  ::-webkit-scrollbar-thumb{background:var(--slate-border);border-radius:2px;}
+
+  .page{max-width:800px;margin:0 auto;padding:56px 20px 80px;}
+
+  .top-accent{
+    height:3px;
+    width:64px;
+    border-radius:2px;
+    background:linear-gradient(90deg,var(--teal-light),var(--gold),var(--ember));
+    margin-bottom:28px;
+  }
+
+  header.doc-header{margin-bottom:16px;}
+  header.doc-header h1{
+    font-family:'DM Serif Display',Georgia,serif;
+    font-weight:400;
+    font-size:2.4rem;
+    color:var(--cream);
+    letter-spacing:-0.01em;
+  }
+  header.doc-header p.subhead{
+    color:var(--cream-muted);
+    font-size:0.98rem;
+    margin-top:10px;
+    max-width:52ch;
+  }
+  .updated-pill{
+    display:inline-block;
+    margin-top:16px;
+    padding:5px 14px;
+    background:var(--teal-faint);
+    border:1px solid var(--teal-primary);
+    border-radius:999px;
+    color:var(--teal-light);
+    font-size:0.8rem;
+    font-weight:600;
+  }
+
+  .card{
+    background:var(--slate-card);
+    border:1px solid var(--slate-border);
+    border-radius:20px;
+    padding:36px 32px;
+    margin-top:32px;
+  }
+  @media (max-width:600px){
+    .card{padding:26px 20px;}
+    header.doc-header h1{font-size:1.9rem;}
+  }
+
+  section{margin-bottom:34px;}
+  section:last-of-type{margin-bottom:0;}
+
+  h2.section-title{
+    font-size:1.05rem;
+    font-weight:700;
+    color:var(--teal-light);
+    margin-bottom:12px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  h2.section-title .num{
+    font-family:'DM Serif Display',Georgia,serif;
+    color:var(--gold);
+    font-size:0.95rem;
+  }
+
+  p{
+    color:var(--cream-muted);
+    line-height:1.85;
+    font-size:0.94rem;
+  }
+  p + p{margin-top:0.85rem;}
+
+  ul{
+    color:var(--cream-muted);
+    line-height:2;
+    font-size:0.94rem;
+    padding-left:1.4rem;
+    margin-bottom:0.75rem;
+  }
+  ul.tight li::marker{color:var(--teal-light);}
+
+  strong.hl{color:var(--cream);}
+
+  a{color:var(--teal-light);text-decoration:none;border-bottom:1px solid var(--teal-primary);}
+  a:hover{color:var(--gold);border-bottom-color:var(--gold-muted);}
+
+  .callout{
+    background:var(--slate-deep);
+    border:1px solid var(--slate-border);
+    border-left:3px solid var(--ember);
+    border-radius:10px;
+    padding:16px 18px;
+    margin-top:0.85rem;
+  }
+  .callout p{color:var(--cream-muted);font-size:0.88rem;line-height:1.75;}
+  .callout p.callout-title{color:var(--cream);font-weight:700;margin-bottom:4px;}
+
+  .report-box{
+    background:var(--teal-faint);
+    border:1px solid var(--teal-primary);
+    border-radius:16px;
+    padding:24px;
+    margin-top:8px;
+    text-align:center;
+  }
+  .report-box p{color:var(--cream-muted);font-size:0.9rem;}
+  .report-box p.report-lead{color:var(--cream);font-weight:700;font-size:1rem;margin-bottom:6px;}
+
+  footer.doc-footer{
+    max-width:800px;
+    margin:36px auto 0;
+    padding:0 20px;
+    text-align:center;
+  }
+  footer.doc-footer p{
+    color:var(--cream-muted);
+    font-size:0.8rem;
+  }
+  footer.doc-footer p + p{margin-top:4px;}
+</style>
+</head>
+<body>
+
+<main class="page">
+  <div class="top-accent"></div>
+  <header class="doc-header">
+    <h1>Safety Tips</h1>
+    <p class="subhead">AtriumX connects you with people in your own residence and campus community — that's what makes it useful. Here's how to keep exchanges safe.</p>
+    <span class="updated-pill">Last updated: August 2026</span>
+  </header>
+
+  <div class="card">
+
+    <section>
+      <h2 class="section-title"><span class="num">1.</span> Meeting Up to Exchange an Item</h2>
+      <ul class="tight">
+        <li>Meet in a public, well-lit common area of the residence — a lobby, common room, or reception — rather than a private room, where possible</li>
+        <li>Bring a friend along, or let someone know where you're going and who you're meeting</li>
+        <li>Meet during the day if you can</li>
+        <li>Check the item in person before you pay — make sure it matches the listing and actually works</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">2.</span> Paying for an Item</h2>
+      <ul class="tight">
+        <li>Prefer paying in person, at the point of exchange, over sending money upfront</li>
+        <li>Be cautious of any seller who pushes you to pay before you've seen the item or asks you to use an unusual payment method</li>
+        <li>AtriumX does not process payments for listings between students — any payment you make is arranged directly between you and the other user, and isn't protected or refunded by AtriumX</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">3.</span> Keep Conversations on AtriumX</h2>
+      <p>
+        Chat through AtriumX's messaging rather than moving to a personal number or another app right away. It keeps a record of what was agreed, and makes it possible for us to look into a conversation if something goes wrong.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">4.</span> Trust Your Judgement</h2>
+      <ul class="tight">
+        <li>If a listing seems too good to be true, or a seller is unusually pushy, it's okay to walk away</li>
+        <li>You're never obligated to complete a sale just because you messaged someone about it</li>
+        <li>Check a seller's rating and past listings before agreeing to meet</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title">Food listings</p>
+        <p>Items listed under the Food category aren't inspected or certified by AtriumX. Use your own judgement about freshness, allergens, and where it was prepared before buying.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title"><span class="num">5.</span> If Something Feels Wrong</h2>
+      <p>
+        If a listing looks like a scam, or someone's behaviour makes you uncomfortable, don't meet up — report the listing instead. If you're ever in a situation you feel is unsafe, prioritise your own safety first and involve campus security or the relevant authorities before anything else.
+      </p>
+      <div class="report-box">
+        <p class="report-lead">Report a listing</p>
+        <p>Use the report option on any listing to flag it to an administrator, or email us directly.</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="doc-footer">
+  <p>&copy; AtriumX | Built for campus communities</p>
+  <p>Safety concerns: <a href="mailto:outis6669@gmail.com">outis6669@gmail.com</a></p>
+</footer>
+
+</body>
+</html>
