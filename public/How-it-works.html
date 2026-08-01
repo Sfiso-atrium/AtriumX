@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works - AtriumX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate-deep:#0D2538;
+    --slate-card:#0F2D45;
+    --slate-border:#1E3A4F;
+    --teal-primary:#1A5F7A;
+    --teal-light:#2A7A9A;
+    --teal-faint:#1A5F7A22;
+    --cream:#FFF7ED;
+    --cream-muted:#C9B99A;
+    --gold:#FBBF24;
+    --gold-muted:#D97706;
+    --ember:#F97316;
+    --ember-dark:#C2550F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background-color:var(--slate-deep);color:var(--cream);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;line-height:1.5;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:var(--slate-deep);}
+  ::-webkit-scrollbar-thumb{background:var(--slate-border);border-radius:2px;}
+
+  .page{max-width:800px;margin:0 auto;padding:56px 20px 80px;}
+  .top-accent{height:3px;width:64px;border-radius:2px;background:linear-gradient(90deg,var(--teal-light),var(--gold),var(--ember));margin-bottom:28px;}
+  header.doc-header{margin-bottom:16px;}
+  header.doc-header h1{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:2.4rem;color:var(--cream);letter-spacing:-0.01em;}
+  header.doc-header p.subhead{color:var(--cream-muted);font-size:0.98rem;margin-top:10px;max-width:56ch;}
+
+  .steps{display:flex;flex-direction:column;gap:16px;margin-top:32px;}
+  .step{background:var(--slate-card);border:1px solid var(--slate-border);border-radius:20px;padding:26px 28px;display:flex;gap:20px;align-items:flex-start;}
+  .step-num{font-family:'DM Serif Display',Georgia,serif;color:var(--gold);font-size:1.8rem;line-height:1;flex-shrink:0;width:36px;}
+  .step-body h3{color:var(--cream);font-size:1.05rem;font-weight:700;margin-bottom:6px;}
+  .step-body p{color:var(--cream-muted);font-size:0.92rem;line-height:1.75;}
+  @media (max-width:600px){
+    .step{padding:20px;gap:14px;}
+    header.doc-header h1{font-size:1.9rem;}
+  }
+
+  .card{background:var(--slate-card);border:1px solid var(--slate-border);border-radius:20px;padding:32px;margin-top:32px;}
+  h2.section-title{font-size:1.05rem;font-weight:700;color:var(--teal-light);margin-bottom:14px;}
+  ul{color:var(--cream-muted);line-height:2;font-size:0.94rem;padding-left:1.4rem;}
+  ul li::marker{color:var(--teal-light);}
+  p{color:var(--cream-muted);line-height:1.85;font-size:0.94rem;}
+  a{color:var(--teal-light);text-decoration:none;border-bottom:1px solid var(--teal-primary);}
+  a:hover{color:var(--gold);border-bottom-color:var(--gold-muted);}
+
+  footer.doc-footer{max-width:800px;margin:36px auto 0;padding:0 20px;text-align:center;}
+  footer.doc-footer p{color:var(--cream-muted);font-size:0.8rem;}
+</style>
+</head>
+<body>
+
+<main class="page">
+  <div class="top-accent"></div>
+  <header class="doc-header">
+    <h1>How It Works</h1>
+    <p class="subhead">AtriumX is the campus economy, organised. Here's what happens from posting a listing to closing the deal.</p>
+  </header>
+
+  <div class="steps">
+    <div class="step">
+      <span class="step-num">01</span>
+      <div class="step-body">
+        <h3>Post a listing</h3>
+        <p>Pick a category — Textbooks, Electronics, Clothing, Food, Services, Furniture, or Other — add a title, price, description, and photos, and choose a plan. Your plan decides how long the listing stays visible and how many photos you can add, from the free Ghost plan up to Unmissable.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">02</span>
+      <div class="step-body">
+        <h3>It goes live in the Feed</h3>
+        <p>Once your listing is reviewed and approved, it appears in the Feed for students in your residence and campus community to browse.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">03</span>
+      <div class="step-body">
+        <h3>A buyer finds it and reaches out</h3>
+        <p>A student browsing the Feed clicks into a listing that catches their eye. If they're interested, they message the seller directly, right there in the listing — no need to leave the app or share a personal number.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">04</span>
+      <div class="step-body">
+        <h3>You chat and sort out the details</h3>
+        <p>Buyer and seller talk price, timing, and where to meet, all inside the AtriumX chat. Take a look at our <a href="safety.html">Safety Tips</a> before you meet up.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">05</span>
+      <div class="step-body">
+        <h3>Meet up and exchange</h3>
+        <p>Meet in a public spot in the residence, check the item, and complete the exchange in person. Payment is arranged directly between the two of you.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">06</span>
+      <div class="step-body">
+        <h3>Leave a rating</h3>
+        <p>Once you've bought from a seller, you can leave them a rating. Ratings build up on a seller's profile, so future buyers know who they're dealing with.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">A few other things worth knowing</h2>
+    <ul>
+      <li>Listings automatically stop showing once their plan's visibility window ends — you can renew from your profile on plans that support it</li>
+      <li>Spot something that shouldn't be on the platform? You can report any listing directly from its page</li>
+      <li>Businesses in the area can also advertise on AtriumX — see the Business page to apply</li>
+    </ul>
+  </div>
+</main>
+
+<footer class="doc-footer">
+  <p>&copy; AtriumX | Built for campus communities</p>
+</footer>
+
+</body>
+</html>
