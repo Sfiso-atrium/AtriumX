@@ -101,8 +101,8 @@ export default function ChatPage() {
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: other?.avatar_color || '#1A5F7A' }}
-                    >
+style={{ backgroundColor: other?.avatar_color || '#0D9488' }}
+                      >
                       {other?.avatar_initials || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
