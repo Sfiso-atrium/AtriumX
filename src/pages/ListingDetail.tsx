@@ -228,17 +228,18 @@ const expiry = timeLeft(listing.expires_at)
             </button>
           )}
         </div>
-<div className="max-w-5xl mx-auto pb-8 md:px-6 lg:px-8">
-          <div className="md:flex md:gap-6 md:pt-6 md:items-start">
+<div className="max-w-5xl mx-auto pb-8 md:px-6 lg:px-8 md:pt-6">
+          {/* Hero placeholder: image/video, title, and badges live together */}
+          <div className="w-full bg-slate-card border border-slate-border rounded-2xl overflow-hidden md:flex md:gap-6 md:items-stretch">
           {listing.video_url ? (
             <video
               src={listing.video_url}
               controls
-              className="w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 md:rounded-2xl object-cover bg-black"
+              className="w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 object-cover bg-black"
               poster={listing.image_urls?.[0] || undefined}
             />
           ) : (
-            <div className="relative w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 md:rounded-2xl bg-teal-faint overflow-hidden">
+            <div className="relative w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 bg-teal-faint overflow-hidden">
               {listing.image_urls?.length > 0 ? (
                 <img
                   src={listing.image_urls[activeImage]}
@@ -280,16 +281,9 @@ const expiry = timeLeft(listing.expires_at)
               )}
             </div>
           )}
-          <div className="px-4 pt-5 md:px-0 md:pt-0 md:flex-1 md:min-w-0 flex flex-col gap-4">
-            <div>
-              <h1 className="font-serif text-2xl text-cream mb-1.5">{listing.title}</h1>
-              <p className="text-cream-muted text-sm flex items-center gap-1.5">
-                <LocationIcon className="w-5 h-5 text-ember flex-shrink-0" />
-                {listing.residence}
-              </p>
-            </div>
-<div className="w-full bg-slate-card border border-slate-border rounded-xl p-4 flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
+          <div className="px-4 pb-5 pt-4 md:px-0 md:py-6 md:pr-6 md:flex-1 md:min-w-0 flex flex-col justify-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-serif text-2xl text-cream">{listing.title}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
                   {listing.custom_category || listing.category}
                 </span>
@@ -302,11 +296,17 @@ const expiry = timeLeft(listing.expires_at)
                   </span>
                 )}
               </div>
-
+              <p className="text-cream-muted text-sm flex items-center gap-1.5">
+                <LocationIcon className="w-5 h-5 text-ember flex-shrink-0" />
+                {listing.residence}
+              </p>
               {listing.description && (
                 <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
               )}
             </div>
+          </div>
+
+          <div className="px-4 md:px-0 flex flex-col gap-4 mt-4">
 
             <div className="w-full grid grid-cols-3 gap-3 bg-slate-card border border-slate-border rounded-xl p-4">
 <div className="flex items-start gap-2.5 min-w-0">
@@ -434,42 +434,43 @@ const expiry = timeLeft(listing.expires_at)
               </p>
             )}
 
-            {sellerRatings.length > 0 && (
-              <>
-                <hr className="border-slate-border" />
-                <div>
-                  <p className="text-gold font-bold text-sm mb-0.5">What Students Are Saying</p>
-                  <p className="text-cream-muted text-xs mb-3">Real reviews from other students who bought from this seller.</p>
-                  <div className="flex flex-col gap-3">
-                    {sellerRatings.map(r => (
-                      <div key={r.id} className="bg-slate-card border border-slate-border rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-3 mb-1.5">
-                          <span className="text-cream text-sm font-medium truncate">
-                            {r.buyer?.full_name || 'Anonymous'}
-                          </span>
-                          <div className="flex items-center gap-0.5 flex-shrink-0">
-                            {[1, 2, 3, 4, 5].map(n => (
-                              <Star
-                                key={n}
-                                size={12}
-                                className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'}
-                              />
-                            ))}
-                          </div>
+            <hr className="border-slate-border" />
+            <div>
+              <p className="text-gold font-bold text-sm mb-0.5">What Students Are Saying</p>
+              <p className="text-cream-muted text-xs mb-3">Real reviews from other students who bought from this seller.</p>
+              {sellerRatings.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {sellerRatings.map(r => (
+                    <div key={r.id} className="bg-slate-card border border-slate-border rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <span className="text-cream text-sm font-medium truncate">
+                          {r.buyer?.full_name || 'Anonymous'}
+                        </span>
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <Star
+                              key={n}
+                              size={12}
+                              className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'}
+                            />
+                          ))}
                         </div>
-                        {r.comment && (
-                          <p className="text-cream-muted text-xs leading-relaxed">{r.comment}</p>
-                        )}
                       </div>
-                    ))}
-                  </div>
+                      {r.comment && (
+                        <p className="text-cream-muted text-xs leading-relaxed">{r.comment}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-</>
-            )}
+              ) : (
+                <p className="text-cream-muted text-xs text-center py-6">
+                  No reviews yet for this seller.
+                </p>
+              )}
+            </div>
           </div>
           </div>
         </div>
-      </div>
 
       {showReportModal && (
         <ReportModal listingId={listing.id} onClose={() => setShowReportModal(false)} />
