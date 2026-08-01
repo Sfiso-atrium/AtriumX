@@ -267,8 +267,6 @@ export async function getListings(filters: {
 const { data, error } = await query
   if (error || !data) return []
 
-  // Highest plan tier always shows first; created_at (already the DB sort
-  // order above) breaks ties within the same tier since Array.sort is stable.
   const PLAN_RANK: Record<string, number> = { unmissable: 4, loud: 3, visible: 2, ghost: 1 }
   const sorted = [...data].sort(
     (a, b) => (PLAN_RANK[b.plan_tier] || 0) - (PLAN_RANK[a.plan_tier] || 0)
