@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle, Star } from 'lucide-react'
+import {
+  ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle, Star,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag
+} from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
 import ReportModal from '../components/student/ReportModal'
@@ -212,39 +215,54 @@ export default function ListingDetail() {
           )}
         </div>
         <div className="max-w-lg mx-auto pb-32">
-          {listing.video_url ? (
+{listing.video_url ? (
             <video
               src={listing.video_url}
               controls
               className="w-full aspect-video object-cover bg-black"
               poster={listing.image_urls?.[0] || undefined}
             />
-          ) : listing.image_urls?.length > 0 ? (
-            <div className="w-full">
-              <img
-                src={listing.image_urls[activeImage]}
-                alt={listing.title}
-                className="w-full aspect-video object-cover"
-              />
-              {listing.image_urls.length > 1 && (
-                <div className="flex gap-2 px-4 py-2 overflow-x-auto">
-                  {listing.image_urls.map((url, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImage(idx)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        activeImage === idx ? 'border-ember' : 'border-slate-border'
-                      }`}
-                    >
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+          ) : (
+            <div className="relative w-full aspect-video bg-teal-faint overflow-hidden">
+              {listing.image_urls?.length > 0 ? (
+                <img
+                  src={listing.image_urls[activeImage]}
+                  alt={listing.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-cream-muted text-sm">No photo</span>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="w-full aspect-video bg-teal-faint flex items-center justify-center">
-              <span className="text-cream-muted text-sm">No photo</span>
+
+              {seller && seller.total_ratings > 0 && (
+                <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
+                  <Star size={12} className="fill-gold" />
+                  {seller.avg_rating} ({seller.total_ratings})
+                </span>
+              )}
+
+              {listing.image_urls?.length > 1 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setActiveImage(prev => (prev - 1 + listing.image_urls.length) % listing.image_urls.length)
+                    }
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    onClick={() => setActiveImage(prev => (prev + 1) % listing.image_urls.length)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-slate-deep/70 hover:bg-slate-deep text-cream flex items-center justify-center transition-colors"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </>
+              )}
             </div>
           )}
           <div className="px-4 pt-5 flex flex-col gap-4">
