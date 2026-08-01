@@ -4,28 +4,28 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      colors: {
+colors: {
         slate: {
-          deep: '#0D2538',
-          card: '#0F2D45',
-          border: '#1E3A4F',
+          deep: '#0A0F1E',
+          card: '#111827',
+          border: '#1F2D3D',
         },
         teal: {
-          primary: '#1A5F7A',
-          light: '#2A7A9A',
-          faint: '#1A5F7A22',
+          primary: '#0D9488',
+          light: '#14B8A6',
+          faint: '#0D948822',
         },
         cream: {
-          DEFAULT: '#FFF7ED',
-          muted: '#C9B99A',
+          DEFAULT: '#F0F4F8',
+          muted: '#8B949E',
         },
         gold: {
-          DEFAULT: '#FBBF24',
-          muted: '#D97706',
+          DEFAULT: '#D4A017',
+          muted: '#A6790F',
         },
         ember: {
-          DEFAULT: '#F97316',
-          dark: '#C2550F',
+          DEFAULT: '#D4A017',
+          dark: '#A6790F',
         },
       },
       fontFamily: {
