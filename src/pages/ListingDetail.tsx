@@ -8,10 +8,10 @@ import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
 import ReportModal from '../components/student/ReportModal'
 import {
-  Listing, Profile, RecentBuyer, getListingById,
+  Listing, Profile, Rating, RecentBuyer, getListingById,
   startConversation, markListingAsSold,
   renewListing, getRecentBuyers, sendRatingInvite,
-  getConversationsForListing,
+  getConversationsForListing, getSellerRatings,
   PLAN_TIERS, PlanKey
 } from '../services/dataService'
 function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -37,6 +37,14 @@ function LocationIcon({ className = "w-4 h-4" }: { className?: string }) {
     </svg>
   )
 }
+function postedAgo(createdAt: string) {
+  const diff = Date.now() - new Date(createdAt).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  return `${days} days ago`
+}
+
 function timeLeft(expiresAt: string) {
   const diff = new Date(expiresAt).getTime() - Date.now()
   if (diff <= 0) return { label: 'Expired', color: 'text-red-400' }
@@ -60,9 +68,10 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [showReportModal, setShowReportModal] = useState(false)
+const [showReportModal, setShowReportModal] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
-
+  const [showPricing, setShowPricing] = useState(false)
+  const [sellerRatings, setSellerRatings] = useState<Rating[]>([])
   const [soldFlowStep, setSoldFlowStep] = useState<SoldFlowStep>(null)
   const [recentBuyers, setRecentBuyers] = useState<RecentBuyer[]>([])
   const [selectedBuyerIds, setSelectedBuyerIds] = useState<string[]>([])
@@ -75,11 +84,19 @@ export default function ListingDetail() {
         setListing(data)
         setLoading(false)
       })
-      .catch(() => {
+.catch(() => {
         setListing(null)
         setLoading(false)
       })
   }, [id, currentUser?.id])
+
+  useEffect(() => {
+    if (!listing?.seller_id) return
+    // Reviews are attached to the seller, not to any single listing — a
+    // rating left after one sale shows up here regardless of which of the
+    // seller's listings it came from.
+    getSellerRatings(listing.seller_id).then(setSellerRatings)
+  }, [listing?.seller_id])
 
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
@@ -97,10 +114,7 @@ export default function ListingDetail() {
   const isSeller = currentUser?.id === listing.seller_id
   const plan = listing.plan_tier as PlanKey
   const tierConfig = PLAN_TIERS[plan]
-  const expiry = timeLeft(listing.expires_at)
-  const lowestVariantPrice = listing.variants?.length
-    ? Math.min(...listing.variants.map(v => v.price))
-    : null
+const expiry = timeLeft(listing.expires_at)
 
   const handleInterested = async () => {
     if (!currentUser) {
@@ -266,6 +280,14 @@ export default function ListingDetail() {
             </div>
           )}
           <div className="px-4 pt-5 flex flex-col gap-4">
+<div>
+              <h1 className="font-serif text-2xl text-cream mb-1.5">{listing.title}</h1>
+              <p className="text-cream-muted text-xs flex items-center gap-1">
+                <LocationIcon className="w-3.5 h-3.5 text-ember flex-shrink-0" />
+                {listing.residence}
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
                 {listing.custom_category || listing.category}
@@ -280,80 +302,128 @@ export default function ListingDetail() {
               )}
             </div>
 
-            <h1 className="font-serif text-3xl text-cream">{listing.title}</h1>
-
-            <div>
-              {lowestVariantPrice !== null ? (
-                <p className="text-gold font-bold text-3xl">From R {lowestVariantPrice.toLocaleString('en-ZA')}</p>
-              ) : (
-                <p className="text-gold font-bold text-3xl">R {listing.price.toLocaleString('en-ZA')}</p>
-              )}
+            {listing.description && (
+              <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
+            )}
+<div className="grid grid-cols-3 gap-3 bg-slate-card border border-slate-border rounded-xl p-4">
+              <div className="flex items-start gap-2 min-w-0">
+                <Repeat size={18} className="text-gold flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Type</p>
+                  <p className="text-cream text-xs font-semibold truncate">
+                    {listing.listing_type === 'single' ? 'Once-off' : 'Ongoing'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 min-w-0">
+                <CalendarIcon className="w-[18px] h-[18px] text-gold flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Posted</p>
+                  <p className="text-cream text-xs font-semibold truncate">{postedAgo(listing.created_at)}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 min-w-0">
+                <Wrench size={18} className="text-gold flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">Category</p>
+                  <p className="text-cream text-xs font-semibold truncate capitalize">
+                    {listing.custom_category || listing.category}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {listing.variants?.length > 0 && (
-              <div className="bg-slate-card border border-slate-border rounded-xl p-4">
-                <p className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-3">Available Options</p>
-                {listing.variants.map((v, i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-slate-border last:border-0">
-                    <span className="text-cream text-sm">{v.name}</span>
-                    <span className="text-gold font-bold text-sm">R {v.price.toLocaleString('en-ZA')}</span>
-                  </div>
-                ))}
+            {isSeller && (
+              <div className="flex items-center gap-4 text-cream-muted text-xs flex-wrap">
+                <span className={`flex items-center gap-1 ${expiry.color}`}>
+                  <CalendarIcon className="w-4 h-4" />
+                  {expiry.label}
+                </span>
+                <span className="flex items-center gap-1">
+                  <PeopleIcon className="w-4 h-4 text-ember" />
+                  {listing.contact_count} interested
+                </span>
               </div>
             )}
 
-<div className="flex items-center gap-4 text-cream-muted text-xs flex-wrap">
-              {isSeller && (
-                <>
-                  <span className={`flex items-center gap-1 ${expiry.color}`}>
-                    <CalendarIcon className="w-4 h-4" />
-                    {expiry.label}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <PeopleIcon className="w-4 h-4 text-ember" />
-                    {listing.contact_count} interested
-                  </span>
-                </>
-              )}
-              <span className="flex items-center gap-1">
-                <LocationIcon className="w-4 h-4 text-ember" />
-                {listing.residence}
-              </span>
-            </div>
-            <hr className="border-slate-border" />
-
-            <p className="text-cream text-sm leading-relaxed">{listing.description}</p>
-
-{seller && (
-              <>
-                <hr className="border-slate-border" />
-                <button
-                  onClick={() => navigate(`/profile/${seller.id}`)}
-                  className="w-full flex items-center justify-between gap-3 bg-teal-faint border border-teal-primary/30 rounded-xl px-4 py-3 text-left hover:border-teal-primary transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                      style={{ backgroundColor: seller.avatar_color }}
-                    >
-                      {seller.avatar_initials}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-cream font-bold text-sm truncate">{seller.full_name}</p>
-                      <p className="text-cream-muted text-xs flex items-center gap-1 truncate">
-                        <LocationIcon className="w-3.5 h-3.5 text-ember flex-shrink-0" />
-                        {seller.residence || 'Campus'}
-                      </p>
-                    </div>
-                  </div>
-                  {seller.avg_rating > 0 && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Star size={14} className="text-gold fill-gold" />
-                      <span className="text-cream font-semibold text-sm">{seller.avg_rating}</span>
-                      <span className="text-cream-muted text-xs">({seller.total_ratings})</span>
+            <div className="bg-slate-card border border-slate-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowPricing(!showPricing)}
+                className="w-full flex items-center gap-3 p-4 text-left"
+                aria-expanded={showPricing}
+              >
+                <Tag size={20} className="text-gold flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-gold font-bold text-sm">Pricing Options</p>
+                  <p className="text-cream-muted text-xs">See what's on offer and how much it costs.</p>
+                </div>
+                {showPricing ? (
+                  <ChevronUp size={18} className="text-cream-muted flex-shrink-0" />
+                ) : (
+                  <ChevronDown size={18} className="text-cream-muted flex-shrink-0" />
+                )}
+              </button>
+              {showPricing && (
+                <div className="px-4 pb-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                  {listing.variants?.length > 0 ? (
+                    listing.variants.map((v, i) => (
+                      <div key={i}>
+                        <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide truncate">{v.name}</p>
+                        <p className="text-gold font-bold text-sm">R {v.price.toLocaleString('en-ZA')}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div>
+                      <p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide truncate">{listing.title}</p>
+                      <p className="text-gold font-bold text-sm">R {listing.price.toLocaleString('en-ZA')}</p>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {seller && (
+              <p className="text-cream-muted text-xs">
+                Sold by{' '}
+                <button
+                  onClick={() => navigate(`/profile/${seller.id}`)}
+                  className="text-teal-light font-semibold hover:underline"
+                >
+                  {seller.full_name}
                 </button>
+              </p>
+            )}
+
+            {sellerRatings.length > 0 && (
+              <>
+                <hr className="border-slate-border" />
+                <div>
+                  <p className="text-gold font-bold text-sm mb-0.5">What Students Are Saying</p>
+                  <p className="text-cream-muted text-xs mb-3">Real reviews from other students who bought from this seller.</p>
+                  <div className="flex flex-col gap-3">
+                    {sellerRatings.map(r => (
+                      <div key={r.id} className="bg-slate-card border border-slate-border rounded-xl p-4">
+                        <div className="flex items-center justify-between gap-3 mb-1.5">
+                          <span className="text-cream text-sm font-medium truncate">
+                            {r.buyer?.full_name || 'Anonymous'}
+                          </span>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <Star
+                                key={n}
+                                size={12}
+                                className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {r.comment && (
+                          <p className="text-cream-muted text-xs leading-relaxed">{r.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
