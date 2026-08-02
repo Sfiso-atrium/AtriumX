@@ -6,7 +6,7 @@ import {
   Message, Conversation, Profile,
   getConversationMessages, sendMessage,
   markConversationResolved, getUnreadMessageCount,
-  sendRatingInvite,
+  markMessagesRead, sendRatingInvite,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
@@ -39,6 +39,11 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
     getConversationMessages(conversation.id).then(msgs => {
       setMessages(msgs)
       setMsgCount(msgs.length)
+    })
+    // Opening a conversation is what "reading" it means here — mark
+    // the other person's messages read and refresh the badge count.
+    markMessagesRead(conversation.id, currentUser.id).then(() => {
+      getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
     })
   }, [conversation.id, currentUser])
 
