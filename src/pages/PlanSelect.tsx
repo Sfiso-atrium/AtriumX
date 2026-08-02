@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { PLAN_TIERS, PLAN_ORDER, PlanKey, getUserListings } from '../services/dataService'
@@ -50,6 +50,8 @@ const PLAN_COLORS: Record<PlanKey, string> = {
 
 export default function PlanSelect() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const forcePlans = !!(location.state as { forcePlans?: boolean } | null)?.forcePlans
   const { currentUser, showToast, isLoadingAuth } = useApp()
   const [selected, setSelected] = useState<PlanKey | null>(null)
   const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
@@ -61,6 +63,12 @@ export default function PlanSelect() {
 
   useEffect(() => {
     if (isLoadingAuth || !currentUser) return
+
+    // Came here explicitly wanting to see plan options (e.g. "Upgrade to
+    // add photos") — skip the under-limit shortcut entirely, or this would
+    // just bounce them straight back to where they clicked from.
+    if (forcePlans) { setView('grid'); return }
+
     const plan = currentUser.plan as PlanKey
 
     getUserListings(currentUser.id).then(listings => {
@@ -83,7 +91,7 @@ export default function PlanSelect() {
 
       setView(plan === 'unmissable' ? 'maxed' : 'upgrade')
     })
-  }, [currentUser, isLoadingAuth, navigate])
+  }, [currentUser, isLoadingAuth, navigate, forcePlans])
 
   const handleSelectPlan = (key: PlanKey) => {
     if (planIsActive && currentPlan) {
