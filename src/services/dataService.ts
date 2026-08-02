@@ -360,11 +360,20 @@ if (error || !data) return { id: null, error: error?.message || 'Failed to creat
   const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
   const newRank = PLAN_ORDER.indexOf(payload.planTier)
 
-  if (!currentStillActive || newRank >= currentRank) {
+if (!currentStillActive || newRank >= currentRank) {
     await supabase
       .from('profiles')
       .update({ plan: payload.planTier, plan_expires_at: expiresAt })
       .eq('id', payload.sellerId)
+
+    // Plan is account-wide, not per-listing — every other listing this
+    // seller has rides along to the new tier too. Their own expiry is left
+    // alone; this only changes which plan's badge/features they show.
+    await supabase
+      .from('listings')
+      .update({ plan_tier: payload.planTier })
+      .eq('seller_id', payload.sellerId)
+      .in('status', ['active', 'pending'])
   }
 
   return { id: data.id, error: null }
