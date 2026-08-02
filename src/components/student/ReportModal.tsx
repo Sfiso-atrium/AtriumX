@@ -10,12 +10,17 @@ interface Props {
 
 export default function ReportModal({ listingId, onClose }: Props) {
   const { currentUser, showToast } = useApp()
+  const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleReport = async () => {
     if (!currentUser) return
+    if (!reason.trim()) {
+      showToast('Please describe the issue before submitting.', 'error')
+      return
+    }
     setLoading(true)
-    const { error } = await reportListing(listingId, currentUser.id)
+    const { error } = await reportListing(listingId, currentUser.id, reason.trim())
     setLoading(false)
     if (error) {
       showToast('Failed to submit report.', 'error')
@@ -34,13 +39,21 @@ export default function ReportModal({ listingId, onClose }: Props) {
             <X size={18} />
           </button>
         </div>
-        <p className="text-cream-muted text-sm mb-6 leading-relaxed">
+<p className="text-cream-muted text-sm mb-4 leading-relaxed">
           If this listing is fraudulent, misleading, or violates community rules,
           our team will review it and may remove it.
         </p>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="What's wrong with this listing? Be specific — this is what our team reviews."
+          rows={4}
+          maxLength={500}
+          className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted mb-6 resize-none focus:outline-none focus:border-teal-primary"
+        />
         <button
           onClick={handleReport}
-          disabled={loading}
+          disabled={loading || !reason.trim()}
           className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors"
         >
           {loading ? 'Submitting...' : 'Confirm Report'}
