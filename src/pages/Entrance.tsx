@@ -17,9 +17,9 @@ export default function Entrance() {
       </div>
       <div className="flex flex-col gap-4 w-full max-w-sm">
 
-        <div className="bg-slate-card border border-slate-border rounded-2xl p-6">
+<div className="bg-slate-card border border-slate-border hover:border-gold rounded-2xl p-6 transition-colors">
           <div className="flex items-center gap-3 mb-3">
-            <GraduationCap size={28} className="text-teal-primary" />
+            <GraduationCap size={28} className="text-gold" />
             <h2 className="text-cream font-bold text-xl">I'm a Student</h2>
           </div>
           <p className="text-cream-muted text-sm mb-5">
@@ -27,15 +27,15 @@ export default function Entrance() {
           </p>
           <button
             onClick={() => navigate('/feed')}
-            className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
+            className="w-full bg-gold hover:opacity-85 text-black font-bold py-3 rounded-xl transition-opacity"
           >
             Enter the Marketplace
           </button>
         </div>
 
-        <div className="bg-teal-primary border border-teal-light rounded-2xl p-6">
+        <div className="bg-slate-card border border-slate-border hover:border-teal-primary rounded-2xl p-6 transition-colors">
           <div className="flex items-center gap-3 mb-3">
-            <Store size={28} className="text-gold" />
+            <Store size={28} className="text-teal-primary" />
             <h2 className="text-cream font-bold text-xl">I'm a Business</h2>
           </div>
           <p className="text-cream-muted text-sm mb-5">
@@ -43,7 +43,7 @@ export default function Entrance() {
           </p>
           <button
             onClick={() => navigate('/retailer')}
-            className="w-full bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors"
+            className="w-full bg-teal-primary hover:opacity-85 text-black font-bold py-3 rounded-xl transition-opacity"
           >
             Advertise With Us
           </button>
