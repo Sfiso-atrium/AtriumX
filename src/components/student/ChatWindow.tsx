@@ -139,7 +139,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+  <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-2">
         {messages.length === 0 && (
           <p className="text-cream-muted text-xs text-center mt-8">No messages yet. Say hello!</p>
         )}
