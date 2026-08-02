@@ -20,12 +20,25 @@ interface Props {
   onResolved: () => void
 }
 
+// Catches emails outright, and phone numbers after stripping the separators
+// people commonly use to dodge a plain digit-count check (spaces, dashes,
+// dots, parens) — e.g. "071 234 5678" or "071-234-5678" both get caught.
+function containsContactInfo(text: string): boolean {
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+  if (emailPattern.test(text)) return true
+
+  const digitsOnly = text.replace(/[\s\-().]/g, '')
+  if (/\d{7,}/.test(digitsOnly)) return true
+
+  return false
+}
+
 export default function ChatWindow({ conversation, onResolved }: Props) {
   const { currentUser, showToast, setUnreadMessageCount } = useApp()
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const [msgCount, setMsgCount] = useState(0)
+  const [ownMsgCount, setOwnMsgCount] = useState(0)
   const [resolving, setResolving] = useState(false)
   const [showResolvePrompt, setShowResolvePrompt] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -38,7 +51,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
     if (!currentUser) return
     getConversationMessages(conversation.id).then(msgs => {
       setMessages(msgs)
-      setMsgCount(msgs.length)
+      setOwnMsgCount(msgs.filter(m => m.sender_id === currentUser.id).length)
     })
     // Opening a conversation is what "reading" it means here — mark
     // the other person's messages read and refresh the badge count.
@@ -61,7 +74,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
           setMessages(prev => {
             if (prev.find(m => m.id === (payload.new as Message).id)) return prev
             const updated = [...prev, payload.new as Message]
-            setMsgCount(updated.length)
+            setOwnMsgCount(updated.filter(m => m.sender_id === currentUser?.id).length)
             return updated
           })
           if (currentUser) getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
@@ -74,7 +87,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
 
   const handleSend = async () => {
     if (!text.trim() || !currentUser) return
-    if (msgCount >= maxMsgs) {
+    if (ownMsgCount >= maxMsgs) {
       if (isSeller) {
         showToast(`Message limit reached on your plan (${maxMsgs} messages).`, 'info')
       } else {
@@ -82,12 +95,16 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
       }
       return
     }
+    if (containsContactInfo(text)) {
+      showToast('For safety, phone numbers and email addresses can\'t be sent in chat.', 'error')
+      return
+    }
     setSending(true)
     const { error } = await sendMessage(conversation.id, currentUser.id, text.trim())
     setSending(false)
     if (error) { showToast(error, 'error'); return }
     setText('')
-    setMsgCount(c => c + 1)
+    setOwnMsgCount(c => c + 1)
   }
 
   const handleResolve = async () => {
