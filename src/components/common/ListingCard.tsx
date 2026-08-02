@@ -30,20 +30,23 @@ const navigate = useNavigate()
           : 'border border-slate-border hover:border-teal-primary'
       }`}
     >
-      {isFeatured ? (
+      {isFeatured && (
         <div className="bg-gold text-slate-deep text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
           <Star size={12} className="fill-slate-deep" />
           Featured
         </div>
-      ) : badge && (
-        <span className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
-          {badge}
-        </span>
       )}
 <div className="p-4 flex flex-col gap-2">
-        <h3 className="text-cream font-bold text-base leading-snug break-words">
-          {listing.title}
-        </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-cream font-bold text-base leading-snug break-words flex-1 min-w-0">
+            {listing.title}
+          </h3>
+          {!isFeatured && badge && (
+            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
+              {badge}
+            </span>
+          )}
+        </div>
 
         <p className="text-cream-muted text-xs">
           {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
