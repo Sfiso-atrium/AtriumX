@@ -90,6 +90,14 @@ export interface Rating {
   buyer?: { full_name: string; avatar_initials: string; avatar_color: string }
 }
 
+export interface Report {
+  id: string
+  listing_id: string
+  reporter_id: string
+  reason: string
+  created_at: string
+  reporter?: { full_name: string }
+}
 // ── PLAN CONSTANTS ─────────────────────────────────────────────────────────
 
 export const PLAN_TIERS = {
@@ -371,7 +379,7 @@ export async function renewListing(
 export async function reportListing(
   listingId: string,
   reporterId: string,
-  reason?: string
+  reason: string
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('reports')
@@ -682,6 +690,21 @@ export async function rejectListingById(id: string): Promise<{ error: string | n
 export async function suspendListingById(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('suspend_listing', { p_listing_id: id })
   return { error: error ? error.message : null }
+}
+
+// reports->profiles is a single, unambiguous FK (only reporter_id), so
+// embedding through public_profiles works fine here — unlike ratings/
+// conversations which have two FKs into profiles and need the two-step
+// fetch pattern instead.
+export async function getReportsForListings(listingIds: string[]): Promise<Report[]> {
+  if (listingIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*, reporter:public_profiles(full_name)')
+    .in('listing_id', listingIds)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as unknown as Report[]
 }
 
 export async function clearReports(listingId: string): Promise<{ error: string | null }> {
