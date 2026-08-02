@@ -11,7 +11,7 @@ const navigate = useNavigate()
 
 return (
 <>
-<nav className="flex items-center justify-between p-4">
+<nav className="sticky top-0 z-40 bg-slate-deep flex items-center justify-between p-4">
       <div className="flex items-center gap-3">
         <button onClick={() => setMenuOpen(true)} aria-label="Open menu">
           <Menu size={24} className="text-cream" />
