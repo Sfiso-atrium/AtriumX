@@ -77,7 +77,7 @@ export default function ChatPage() {
             {active && isMobile ? 'Chat' : 'Messages'}
           </span>
         </div>
-<div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 3.5rem - 6rem)' }}>
+<div className="flex flex-1 overflow-hidden min-h-0" style={{ height: 'calc(100dvh - 3.5rem - 4rem)' }}>
           {/* Conversation list — hidden on mobile when a convo is open */}
           <div className={`w-full md:w-80 border-r border-slate-border flex-shrink-0 overflow-y-auto ${active && isMobile ? 'hidden' : 'block'} md:block`}>
             {conversations.length === 0 ? (
@@ -121,7 +121,7 @@ style={{ backgroundColor: other?.avatar_color || '#0D9488' }}
           </div>
 
           {/* Chat window */}
-          <div className={`flex-1 overflow-hidden ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col`}>
+         <div className={`flex-1 overflow-hidden min-h-0 ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col`}>
             {active ? (
               <ChatWindow
                 conversation={active}
