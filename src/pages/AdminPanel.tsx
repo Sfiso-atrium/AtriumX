@@ -4,8 +4,10 @@ import { CircleCheck as CheckCircle, Circle as XCircle, Flag, ShieldOff } from '
 import { useApp } from '../context/AppContext'
 import {
   Listing,
+  Report,
   getPendingListings,
   getAllListingsAdmin,
+  getReportsForListings,
   approveListingById,
   rejectListingById,
   suspendListingById,
@@ -23,7 +25,8 @@ export default function AdminPanel() {
   const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [reportedListings, setReportedListings] = useState<Listing[]>([])
+const [reportedListings, setReportedListings] = useState<Listing[]>([])
+  const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
 
@@ -32,12 +35,22 @@ export default function AdminPanel() {
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-    Promise.all([getPendingListings(), getAllListingsAdmin()])
+Promise.all([getPendingListings(), getAllListingsAdmin()])
       .then(([pending, all]) => {
         setPendingListings(pending)
         setAllListings(all)
-        setReportedListings(all.filter(l => l.report_count > 0))
+        const reported = all.filter(l => l.report_count > 0)
+        setReportedListings(reported)
         setLoading(false)
+        if (reported.length > 0) {
+          getReportsForListings(reported.map(l => l.id)).then(reports => {
+            const grouped: Record<string, Report[]> = {}
+            reports.forEach(r => {
+              grouped[r.listing_id] = [...(grouped[r.listing_id] || []), r]
+            })
+            setReportReasons(grouped)
+          })
+        }
       })
       .catch(() => {
         showToast('Failed to load listings.', 'error')
@@ -63,12 +76,17 @@ export default function AdminPanel() {
     showToast('Listing rejected.', 'success')
   }
 
-  const handleClearReports = async (id: string) => {
+const handleClearReports = async (id: string) => {
     setActionId(id)
     const { error } = await clearReports(id)
     setActionId(null)
     if (error) { showToast(error, 'error'); return }
     setReportedListings(prev => prev.filter(l => l.id !== id))
+    setReportReasons(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
     showToast('Reports cleared.', 'success')
   }
 
@@ -182,10 +200,17 @@ export default function AdminPanel() {
                       <p className="text-cream-muted text-xs mt-0.5">
                         R {listing.price} · {listing.plan_tier} plan
                       </p>
-                      {tab === 'reports' && (
-                        <p className="text-red-400 text-xs mt-1 font-medium">
-                          {listing.report_count} report{listing.report_count !== 1 ? 's' : ''}
-                        </p>
+{tab === 'reports' && (
+                        <div className="mt-1">
+                          <p className="text-red-400 text-xs font-medium">
+                            {listing.report_count} report{listing.report_count !== 1 ? 's' : ''}
+                          </p>
+                          {(reportReasons[listing.id] || []).map(r => (
+                            <p key={r.id} className="text-cream-muted text-xs mt-1 pl-2 border-l-2 border-red-500/40">
+                              "{r.reason}" — {r.reporter?.full_name || 'Unknown user'}
+                            </p>
+                          ))}
+                        </div>
                       )}
                     </div>
                     {listing.image_urls?.[0] && (
