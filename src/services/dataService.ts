@@ -109,6 +109,8 @@ export const PLAN_TIERS = {
 
 export type PlanKey = keyof typeof PLAN_TIERS
 
+export const PLAN_ORDER: PlanKey[] = ['ghost', 'visible', 'loud', 'unmissable']
+
 // ── AUTH ───────────────────────────────────────────────────────────────────
 
 export async function registerWithEmail(
@@ -343,7 +345,28 @@ export async function createListing(payload: {
     .select('id')
     .single()
 
-  if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
+if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
+
+  // Roll the account's plan forward to match what was just used, refreshing
+  // its expiry. Guarded by rank so this can never downgrade the account —
+  // the UI already blocks picking a lower tier, this is the backstop.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan, plan_expires_at')
+    .eq('id', payload.sellerId)
+    .single()
+
+  const currentRank = profile ? PLAN_ORDER.indexOf(profile.plan as PlanKey) : -1
+  const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
+  const newRank = PLAN_ORDER.indexOf(payload.planTier)
+
+  if (!currentStillActive || newRank >= currentRank) {
+    await supabase
+      .from('profiles')
+      .update({ plan: payload.planTier, plan_expires_at: expiresAt })
+      .eq('id', payload.sellerId)
+  }
+
   return { id: data.id, error: null }
 }
 
