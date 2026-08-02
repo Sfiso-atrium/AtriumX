@@ -453,15 +453,28 @@ export async function getConversationsForUser(
       *,
       listing:listings(id, title, image_urls, price),
       buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan),
-      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan)
+      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan),
+      messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-    .order('created_at', { ascending: false })
+    .order('sent_at', { ascending: false, foreignTable: 'messages' })
+    .limit(1, { foreignTable: 'messages' })
 
   if (error || !data) return []
-  return data as unknown as Conversation[]
-}
 
+  const conversations = data as unknown as (Conversation & { messages?: Message[] })[]
+
+  // Latest activity = the conversation's most recent message. If nobody has
+  // sent a message yet, fall back to when the conversation itself was
+  // created so brand-new chats still slot in correctly.
+  return conversations
+    .map(c => ({ ...c, last_message: c.messages?.[0] }))
+    .sort((a, b) => {
+      const aTime = new Date(a.last_message?.sent_at ?? a.created_at).getTime()
+      const bTime = new Date(b.last_message?.sent_at ?? b.created_at).getTime()
+      return bTime - aTime
+    })
+}
 export async function getConversationsForListing(
   listingId: string,
   sellerId: string
