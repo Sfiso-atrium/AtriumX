@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CircleCheck as CheckCircle } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
@@ -128,13 +128,27 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0">
+<div className={`flex items-center justify-between px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 ${
+        isSeller ? 'border-t-teal-primary' : 'border-t-ember'
+      }`}>
         <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-            style={{ backgroundColor: otherParty.avatar_color }}
-          >
-            {otherParty.avatar_initials}
+          <div className="relative flex-shrink-0">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{ backgroundColor: otherParty.avatar_color }}
+            >
+              {otherParty.avatar_initials}
+            </div>
+            <span
+              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-slate-deep ${
+                isSeller ? 'bg-teal-primary' : 'bg-ember'
+              }`}
+              title={isSeller ? 'Your listing' : "You're interested"}
+            >
+              {isSeller
+                ? <Tag size={9} className="text-white" />
+                : <ShoppingBag size={9} className="text-white" />}
+            </span>
           </div>
           <div>
             <p className="text-cream font-bold text-sm">{otherParty.full_name}</p>
