@@ -83,7 +83,7 @@ export default function Profile() {
             </div>
           </div>
           {isOwn && pendingListings.length > 0 && (
-            <p className="text-amber-400 text-sm mb-4">
+<p className="text-gold text-sm mb-4">
               {pendingListings.length} listing{pendingListings.length !== 1 ? 's' : ''} awaiting admin approval
             </p>
           )}
