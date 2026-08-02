@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Tag, ShoppingBag } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { Conversation, Profile, getConversationsForUser } from '../services/dataService'
 import ChatWindow from '../components/student/ChatWindow'
@@ -88,22 +88,37 @@ export default function ChatPage() {
                 </p>
               </div>
             ) : (
-              conversations.map(conv => {
+conversations.map(conv => {
                 const other = currentUser?.id === conv.buyer_id ? conv.seller : conv.buyer
                 const isActive = active?.id === conv.id
+                const iAmSeller = currentUser?.id === conv.seller_id
                 return (
                   <button
                     key={conv.id}
                     onClick={() => setActive(conv)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 border-b border-slate-border text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 border-b border-b-slate-border border-l-4 text-left transition-colors ${
+                      iAmSeller ? 'border-l-teal-primary' : 'border-l-ember'
+                    } ${
                       isActive ? 'bg-teal-faint' : 'hover:bg-slate-card'
                     }`}
                   >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-style={{ backgroundColor: other?.avatar_color || '#0D9488' }}
+                    <div className="relative flex-shrink-0">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                        style={{ backgroundColor: other?.avatar_color || '#0D9488' }}
                       >
-                      {other?.avatar_initials || '?'}
+                        {other?.avatar_initials || '?'}
+                      </div>
+                      <span
+                        className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-deep ${
+                          iAmSeller ? 'bg-teal-primary' : 'bg-ember'
+                        }`}
+                        title={iAmSeller ? 'Your listing' : "You're interested"}
+                      >
+                        {iAmSeller
+                          ? <Tag size={11} className="text-white" />
+                          : <ShoppingBag size={11} className="text-white" />}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-cream font-bold text-sm truncate">{other?.full_name || 'Unknown'}</p>
