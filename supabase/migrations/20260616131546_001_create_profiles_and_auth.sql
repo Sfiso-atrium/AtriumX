@@ -52,3 +52,14 @@ $$;
 CREATE TRIGGER handle_new_user
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- 015_require_report_reason.sql
+-- Reason was nullable, and until now nothing ever wrote to it — the
+-- frontend never collected it, so every report so far has reason = NULL.
+-- Making it required only at the UI layer isn't enough: a direct API
+-- call bypasses that entirely. This enforces it in the database too.
+
+UPDATE reports SET reason = 'No reason provided' WHERE reason IS NULL OR trim(reason) = '';
+
+ALTER TABLE reports ALTER COLUMN reason SET NOT NULL;
+ALTER TABLE reports ADD CONSTRAINT reports_reason_not_blank CHECK (trim(reason) <> '');
