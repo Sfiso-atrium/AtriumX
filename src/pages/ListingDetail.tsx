@@ -51,7 +51,7 @@ function timeLeft(expiresAt: string) {
   const days = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
   if (days >= 2) return { label: `${days} days left`, color: 'text-cream-muted' }
-  return { label: `${days > 0 ? days + 'd ' : ''}${hours}h left`, color: 'text-yellow-400' }
+return { label: `${days > 0 ? days + 'd ' : ''}${hours}h left`, color: 'text-gold' }
 }
 
 // The two steps of the "invite buyers to rate me" flow that opens after a
