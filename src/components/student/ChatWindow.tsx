@@ -128,7 +128,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-<div className={`flex items-center justify-between px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 ${
+      <div className={`flex items-center justify-between px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 ${
         isSeller ? 'border-t-teal-primary' : 'border-t-ember'
       }`}>
         <div className="flex items-center gap-3">
