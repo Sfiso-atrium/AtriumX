@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  createListing, uploadListingImage,
+  createListing, uploadListingImage, getUserById,
   getUserListings, getResidences, PLAN_TIERS, PlanKey
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -41,7 +41,7 @@ const CATEGORIES_LIST = [
 export default function PostListing() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, showToast, isLoadingAuth } = useApp()
+const { currentUser, setCurrentUser, showToast, isLoadingAuth } = useApp()
   const plan = (location.state as { plan?: PlanKey })?.plan
 
   const [title, setTitle] = useState('')
@@ -212,12 +212,18 @@ const { id, error: createError } = await createListing({
         .filter(v => v.name.trim() && v.price)
         .map(v => ({ name: v.name.trim(), price: Number(v.price) })),
     })
-    setLoading(false)
+setLoading(false)
 if (createError) return setError(createError)
+
+    // createListing may have just rolled the account onto a new plan —
+    // currentUser in context is still whatever it was at login, so without
+    // this it would keep reading as the old plan for the rest of the session.
+    const refreshed = await getUserById(currentUser.id)
+    if (refreshed) setCurrentUser(refreshed)
+
     setSubmitted(true)
 
   }
-
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
 
   return (
@@ -294,7 +300,7 @@ if (createError) return setError(createError)
                 <ImagePlus size={18} className="text-cream-muted" />
                 <div>
                   <p className="text-cream-muted text-sm">Photo upload not available on Ghost plan</p>
-                  <button onClick={() => navigate('/plan-select')} className="text-teal-light text-xs underline">
+              <button onClick={() => navigate('/plan-select', { state: { forcePlans: true } })} className="text-teal-light text-xs underline">
                     Upgrade to add photos
                   </button>
                 </div>
