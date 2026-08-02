@@ -23,7 +23,7 @@ export default function ListingCountdown({ expiresAt }: Props) {
         setColor('text-cream-muted')
       } else {
         setLabel(`${totalHours}h left`)
-        setColor('text-yellow-400')
+  setColor('text-gold')
       }
     }
     calculate()
