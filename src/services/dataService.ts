@@ -533,7 +533,17 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
 
   return count || 0
 }
-
+export async function markMessagesRead(
+  convId: string,
+  userId: string
+): Promise<void> {
+  await supabase
+    .from('messages')
+    .update({ read: true })
+    .eq('conversation_id', convId)
+    .eq('read', false)
+    .neq('sender_id', userId)
+}
 // ── RATINGS ────────────────────────────────────────────────────────────────
 
 export async function submitRating(
