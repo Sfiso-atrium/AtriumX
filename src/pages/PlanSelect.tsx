@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { PLAN_TIERS, PlanKey } from '../services/dataService'
+import { PLAN_TIERS, PLAN_ORDER, PlanKey, getUserListings } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
@@ -50,11 +50,105 @@ const PLAN_COLORS: Record<PlanKey, string> = {
 
 export default function PlanSelect() {
   const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, showToast, isLoadingAuth } = useApp()
   const [selected, setSelected] = useState<PlanKey | null>(null)
+  const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
 
   const plans = Object.entries(PLAN_TIERS) as [PlanKey, typeof PLAN_TIERS[PlanKey]][]
   const currentPlan = currentUser?.plan as PlanKey | undefined
+  const planIsActive = !!currentPlan && currentPlan !== 'ghost' &&
+    !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+
+  useEffect(() => {
+    if (isLoadingAuth || !currentUser) return
+    const plan = currentUser.plan as PlanKey
+
+    getUserListings(currentUser.id).then(listings => {
+      // Never posted before — always let them see what's on offer.
+      if (listings.length === 0) { setView('grid'); return }
+
+      const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+      const max = PLAN_TIERS[plan].maxListings
+      const planActive = plan !== 'ghost'
+        ? !!currentUser.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+        : true
+
+      // Paid plan lapsed — treat like a fresh choice.
+      if (!planActive) { setView('grid'); return }
+
+      if (active < max) {
+        navigate('/post', { state: { plan }, replace: true })
+        return
+      }
+
+      setView(plan === 'unmissable' ? 'maxed' : 'upgrade')
+    })
+  }, [currentUser, isLoadingAuth, navigate])
+
+  const handleSelectPlan = (key: PlanKey) => {
+    if (planIsActive && currentPlan) {
+      const currentRank = PLAN_ORDER.indexOf(currentPlan)
+      const targetRank = PLAN_ORDER.indexOf(key)
+      if (targetRank < currentRank) {
+        showToast(
+          `You're on the ${PLAN_TIERS[currentPlan].label} plan until ${new Date(currentUser!.plan_expires_at!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}. You can't switch to a lower plan while it's still active.`,
+          'error'
+        )
+        return
+      }
+    }
+    setSelected(key)
+    navigate('/post', { state: { plan: key } })
+  }
+ if (isLoadingAuth || view === 'checking') return (
+    <div className="min-h-screen bg-slate-deep flex items-center justify-center">
+      <p className="text-cream-muted text-sm">Loading...</p>
+    </div>
+  )
+
+  if (view === 'maxed') return (
+    <>
+      <div className="min-h-screen bg-slate-deep">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 pt-16 pb-24 text-center flex flex-col items-center">
+          <p className="text-cream font-bold text-2xl mb-2">Listing Limit Reached</p>
+          <p className="text-cream-muted text-sm mb-6 max-w-sm">
+            You're already on our top plan, Unmissable, which allows up to {PLAN_TIERS.unmissable.maxListings} active
+            listings — and you've used all of them. To post something new, mark one of your current listings as sold first.
+          </p>
+          <button
+            onClick={() => navigate(`/profile/${currentUser!.id}`)}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Go to My Listings
+          </button>
+        </div>
+      </div>
+      <BottomNav />
+    </>
+  )
+
+  if (view === 'upgrade') return (
+    <>
+      <div className="min-h-screen bg-slate-deep">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 pt-16 pb-24 text-center flex flex-col items-center">
+          <p className="text-cream font-bold text-2xl mb-2">Listing Limit Reached</p>
+          <p className="text-cream-muted text-sm mb-6 max-w-sm">
+            Your {PLAN_TIERS[currentPlan!].label} plan allows up to {PLAN_TIERS[currentPlan!].maxListings} active
+            listing{PLAN_TIERS[currentPlan!].maxListings !== 1 ? 's' : ''}. Upgrade to post more at the same time.
+          </p>
+          <button
+            onClick={() => setView('grid')}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Choose a New Plan
+          </button>
+        </div>
+      </div>
+      <BottomNav />
+    </>
+  )
 
   return (
     <>
@@ -65,31 +159,21 @@ export default function PlanSelect() {
           <p className="text-cream-muted text-sm mb-8">
             Select a plan for this listing. You can change plans anytime.
           </p>
-{currentPlan && currentPlan !== 'ghost' && currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date() && (
-            <div className="bg-teal-faint border border-teal-primary rounded-xl px-4 py-4 mb-6">
-              <p className="text-cream font-bold text-sm mb-1">Active Plan: {PLAN_TIERS[currentPlan].label}</p>
-              <p className="text-cream-muted text-xs">
-                Expires {new Date(currentUser.plan_expires_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
-              <button
-                onClick={() => navigate('/post', { state: { plan: currentPlan } })}
-                className="w-full mt-3 bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
-              >
-                Continue Posting on {PLAN_TIERS[currentPlan].label}
-              </button>
-            </div>
-          )}
-   
 
           <div className="flex flex-col gap-4">
             {plans.map(([key, tier]) => {
               const isSelected = selected === key
               const isCurrent = currentPlan === key
+              const isLowerThanCurrent = planIsActive && currentPlan
+                ? PLAN_ORDER.indexOf(key) < PLAN_ORDER.indexOf(currentPlan)
+                : false
               return (
           <button
                   key={key}
-                  onClick={() => { setSelected(key); navigate('/post', { state: { plan: key } }) }}
+                  onClick={() => handleSelectPlan(key)}
                   className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
+                    isLowerThanCurrent ? 'opacity-40' : ''
+                  } ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-teal-primary'
                   }`}
                 >
