@@ -96,19 +96,36 @@ if (isLoadingAuth || !plan || !currentUser) return null
     </div>
   )
 
-  if (atLimit) return ( 
+if (atLimit) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
-      <p className="text-cream-muted text-sm mb-6">
-        Your {PLAN_TIERS[plan].label} plan allows {PLAN_TIERS[plan].maxListings} active listing{PLAN_TIERS[plan].maxListings !== 1 ? 's' : ''}.
-        Wait for a listing to expire or upgrade your plan.
-      </p>
-      <button
-        onClick={() => navigate('/plan-select')}
-        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
-      >
-        Upgrade Plan
-      </button>
+      {plan === 'unmissable' ? (
+        <>
+          <p className="text-cream-muted text-sm mb-6">
+            You're already on our top plan, Unmissable, which allows up to {PLAN_TIERS.unmissable.maxListings} active
+            listings — and you've used all of them. To post something new, mark one of your current listings as sold first.
+          </p>
+          <button
+            onClick={() => navigate(`/profile/${currentUser.id}`)}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Go to My Listings
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-cream-muted text-sm mb-6">
+            Your {PLAN_TIERS[plan].label} plan allows {PLAN_TIERS[plan].maxListings} active listing{PLAN_TIERS[plan].maxListings !== 1 ? 's' : ''}.
+            Upgrade to post more at the same time.
+          </p>
+          <button
+            onClick={() => navigate('/plan-select')}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Upgrade Plan
+          </button>
+        </>
+      )}
     </div>
   )
   const tierConfig = PLAN_TIERS[plan]
