@@ -439,10 +439,10 @@ export async function updateListing(
       residence: payload.residence,
       listing_type: payload.listingType,
       is_negotiable: payload.isNegotiable,
-      variants: payload.variants,
-      // Edits go back through admin review before they're visible again —
-      // same rule as a brand-new listing.
-      status: 'pending',
+variants: payload.variants,
+      // Status is intentionally left untouched here — an edit to an already
+      // -live listing must stay live immediately. The admin still reviews
+      // the change, but reviewing it doesn't gate whether it's visible.
     })
     .eq('id', listingId)
  
