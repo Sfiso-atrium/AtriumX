@@ -378,7 +378,44 @@ if (!currentStillActive || newRank >= currentRank) {
 
   return { id: data.id, error: null }
 }
+export async function updateListing(
+  listingId: string,
+  payload: {
+    title: string
+    description: string
+    price: number
+    category: string
+    customCategory?: string
+    imageUrls: string[]
+    videoUrl?: string
+    residence: string
+    listingType: 'single' | 'ongoing'
+    isNegotiable: boolean
+    variants: { name: string; price: number }[]
+  }
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('listings')
+    .update({
+      title: payload.title,
+      description: payload.description,
+      price: payload.price,
+      category: payload.category,
+      custom_category: payload.customCategory || null,
+      image_urls: payload.imageUrls,
+      video_url: payload.videoUrl || null,
+      residence: payload.residence,
+      listing_type: payload.listingType,
+      is_negotiable: payload.isNegotiable,
+      variants: payload.variants,
+      // Edits go back through admin review before they're visible again —
+      // same rule as a brand-new listing.
+      status: 'pending',
+    })
+    .eq('id', listingId)
 
+  return { error: error ? error.message : null }
+}
 export async function markListingAsSold(
   listingId: string
 ): Promise<{ error: string | null }> {
