@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Star } from 'lucide-react'
+import { Star, Pencil } from 'lucide-react'
 import { Listing, Profile, PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 interface ListingCardProps {
@@ -78,10 +78,24 @@ const navigate = useNavigate()
           )}
         </div>
 
-        {isOwner && (
+{isOwner && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-border">
             <span className="text-cream-muted text-xs">{contactCount} interested</span>
-            {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
+            <div className="flex items-center gap-3">
+              {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
+              {listing.status !== 'sold' && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation()
+                    navigate('/post', { state: { plan: listing.plan_tier, editListing: listing } })
+                  }}
+                  className="flex items-center gap-1 text-cream-muted hover:text-gold text-xs font-medium transition-colors"
+                >
+                  <Pencil size={12} />
+                  Edit
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
