@@ -113,12 +113,44 @@ export const PLAN_ORDER: PlanKey[] = ['ghost', 'visible', 'loud', 'unmissable']
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 
+// Registration is restricted to eligible student email domains. Login is a
+// completely separate function (loginWithEmail, below) and is untouched by
+// this — existing accounts, including the gmail.com demo accounts used
+// during development, keep working exactly as before regardless of domain.
+const ALLOWED_STUDENT_DOMAINS = ['student.uj.ac.za', 'students.wits.ac.za']
+
+// Pre-existing accounts that predate this restriction. Kept here too, not
+// just relied on via login, so re-registering with one of these emails
+// (e.g. after an account reset) is never blocked either.
+const GRANDFATHERED_EMAILS = [
+  'mmvelase121@gmail.com',
+  'sfiso@gmail.com',
+  'sandile@gmail.com',
+  'abongwe@gmail.com',
+  'babongile@gmail.com',
+  'thandeka@gmail.com',
+]
+
+function isEligibleForRegistration(email: string): boolean {
+  const normalized = email.trim().toLowerCase()
+  if (GRANDFATHERED_EMAILS.includes(normalized)) return true
+  const domain = normalized.split('@')[1] || ''
+  return ALLOWED_STUDENT_DOMAINS.includes(domain)
+}
+
+const INELIGIBLE_EMAIL_MESSAGE =
+  'You have to be a student to create an account. If you believe your student email should be accepted, contact students@atriumx.co.za and we\'ll add your institution.'
+
 export async function registerWithEmail(
   email: string,
   password: string,
   fullName: string,
   residence: string
 ): Promise<{ user: Profile | null; error: string | null }> {
+  if (!isEligibleForRegistration(email)) {
+    return { user: null, error: INELIGIBLE_EMAIL_MESSAGE }
+  }
+
   const initials = fullName
     .split(' ')
     .map(w => w[0])
@@ -413,7 +445,8 @@ export async function updateListing(
       status: 'pending',
     })
     .eq('id', listingId)
-
+ 
+ 
   return { error: error ? error.message : null }
 }
 export async function markListingAsSold(
