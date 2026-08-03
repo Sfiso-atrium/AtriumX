@@ -102,12 +102,12 @@ if (isLoadingAuth || !plan || !currentUser) return null
       <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
         <span className="text-3xl">✓</span>
       </div>
-  <h2 className="text-cream font-bold text-2xl mb-2">
-        {editListing ? 'Changes Submitted' : 'Listing Submitted'}
+ <h2 className="text-cream font-bold text-2xl mb-2">
+        {editListing ? 'Listing Updated' : 'Listing Submitted'}
       </h2>
       <p className="text-cream-muted text-sm max-w-sm mb-6">
         {editListing
-          ? 'Your changes are under review. Once our team approves them, the updated listing will go live again.'
+          ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
           : 'Your listing is under review. Once our team approves it, it will appear on the feed for students in your residence to see.'}
       </p>
       <button
@@ -533,7 +533,6 @@ setLoading(true)
               
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
             </button>
           </div>
         </div>
