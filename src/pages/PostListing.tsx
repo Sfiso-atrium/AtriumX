@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  createListing, uploadListingImage, getUserById,
-  getUserListings, getResidences, PLAN_TIERS, PlanKey
+  createListing, updateListing, uploadListingImage, getUserById,
+  getUserListings, getResidences, PLAN_TIERS, PlanKey, Listing
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
@@ -42,7 +42,8 @@ export default function PostListing() {
   const navigate = useNavigate()
   const location = useLocation()
 const { currentUser, setCurrentUser, showToast, isLoadingAuth } = useApp()
-  const plan = (location.state as { plan?: PlanKey })?.plan
+  const { plan: statePlan, editListing } = (location.state as { plan?: PlanKey; editListing?: Listing }) || {}
+  const plan = (editListing?.plan_tier as PlanKey | undefined) || statePlan
 
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -67,14 +68,32 @@ useEffect(() => {
     if (!plan) navigate('/plan-select')
     else if (!currentUser) navigate('/student')
     else {
-      getUserListings(currentUser.id).then(listings => {
-        const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
-        const max = PLAN_TIERS[plan].maxListings
-        if (active >= max) setAtLimit(true)
-      })
+      // Editing doesn't add a new listing, so it shouldn't be blocked by
+      // (or count toward) the active-listing limit.
+      if (!editListing) {
+        getUserListings(currentUser.id).then(listings => {
+          const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+          const max = PLAN_TIERS[plan].maxListings
+          if (active >= max) setAtLimit(true)
+        })
+      }
       getResidences().then(setResidenceOptions)
     }
-  }, [plan, currentUser, navigate, isLoadingAuth])
+  }, [plan, currentUser, navigate, isLoadingAuth, editListing])
+
+  useEffect(() => {
+    if (!editListing) return
+    setTitle(editListing.title)
+    setCategory(editListing.category)
+    setCustomCategory(editListing.custom_category || '')
+    setPrice(String(editListing.price))
+    setDescription(editListing.description)
+    setResidence(editListing.residence)
+    setListingType(editListing.listing_type)
+    setIsNegotiable(editListing.is_negotiable)
+    setImageUrls(editListing.image_urls || [])
+    setVariants((editListing.variants || []).map(v => ({ name: v.name, price: String(v.price) })))
+  }, [editListing])
 
 if (isLoadingAuth || !plan || !currentUser) return null
 
@@ -83,15 +102,19 @@ if (isLoadingAuth || !plan || !currentUser) return null
       <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
         <span className="text-3xl">✓</span>
       </div>
-      <h2 className="text-cream font-bold text-2xl mb-2">Listing Submitted</h2>
+  <h2 className="text-cream font-bold text-2xl mb-2">
+        {editListing ? 'Changes Submitted' : 'Listing Submitted'}
+      </h2>
       <p className="text-cream-muted text-sm max-w-sm mb-6">
-        Your listing is under review. Once our team approves it, it will appear on the feed for students in your residence to see.
+        {editListing
+          ? 'Your changes are under review. Once our team approves them, the updated listing will go live again.'
+          : 'Your listing is under review. Once our team approves it, it will appear on the feed for students in your residence to see.'}
       </p>
       <button
-        onClick={() => navigate('/feed')}
+        onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
         className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-8 rounded-xl transition-colors"
       >
-        Back to Feed
+        {editListing ? 'Back to My Listings' : 'Back to Feed'}
       </button>
     </div>
   )
@@ -195,9 +218,9 @@ if (posterMode) {
       if (description.length < 20) return setError('Description must be at least 20 characters.')
       if (!residence.trim()) return setError('Residence is required.')
     }
-    setLoading(true)
-const { id, error: createError } = await createListing({
-      sellerId: currentUser.id,
+setLoading(true)
+
+    const sharedFields = {
       title: posterMode ? 'Poster listing' : title.trim(),
       description: posterMode ? '' : description.trim(),
       price: posterMode ? 0 : Number(price),
@@ -207,13 +230,26 @@ const { id, error: createError } = await createListing({
       residence: residence.trim(),
       listingType,
       isNegotiable: tierConfig.canNegBadge ? isNegotiable : false,
-      planTier: plan,
       variants: variants
         .filter(v => v.name.trim() && v.price)
         .map(v => ({ name: v.name.trim(), price: Number(v.price) })),
+    }
+
+    if (editListing) {
+      const { error: updateError } = await updateListing(editListing.id, sharedFields)
+      setLoading(false)
+      if (updateError) return setError(updateError)
+      setSubmitted(true)
+      return
+    }
+
+    const { error: createError } = await createListing({
+      sellerId: currentUser.id,
+      ...sharedFields,
+      planTier: plan,
     })
-setLoading(false)
-if (createError) return setError(createError)
+    setLoading(false)
+    if (createError) return setError(createError)
 
     // createListing may have just rolled the account onto a new plan —
     // currentUser in context is still whatever it was at login, so without
@@ -222,7 +258,6 @@ if (createError) return setError(createError)
     if (refreshed) setCurrentUser(refreshed)
 
     setSubmitted(true)
-
   }
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
 
@@ -233,7 +268,7 @@ if (createError) return setError(createError)
         <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
           <div className="flex items-center gap-3 mb-6">
             <div>
-              <h1 className="font-serif text-2xl text-cream">New Listing</h1>
+              <h1 className="font-serif text-2xl text-cream">{editListing ? 'Edit Listing' : 'New Listing'}</h1>
               <span className="text-xs text-teal-light font-medium">
                 {PLAN_TIERS[plan].label} plan · {PLAN_TIERS[plan].days} days
               </span>
@@ -498,7 +533,7 @@ if (createError) return setError(createError)
               
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {loading ? 'Submitting...' : 'Post Listing'}
+              {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
             </button>
           </div>
         </div>
