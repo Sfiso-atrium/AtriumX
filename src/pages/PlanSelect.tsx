@@ -187,8 +187,8 @@ export default function PlanSelect() {
           <button
                   key={key}
                   onClick={() => handleSelectPlan(key)}
-                  className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
-                    isLowerThanCurrent ? 'opacity-40' : ''
+className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
+                    isLowerThanCurrent ? 'opacity-40 cursor-not-allowed' : ''
                   } ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-teal-primary'
                   }`}
