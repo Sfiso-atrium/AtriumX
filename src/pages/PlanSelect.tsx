@@ -163,10 +163,18 @@ export default function PlanSelect() {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-8 pb-24">
-          <h1 className="font-serif text-3xl text-cream mb-1">Choose Your Plan</h1>
-          <p className="text-cream-muted text-sm mb-8">
+<h1 className="font-serif text-3xl text-cream mb-1">Choose Your Plan</h1>
+          <p className="text-cream-muted text-sm mb-4">
             Select a plan for this listing. You can change plans anytime.
           </p>
+
+          <div className="bg-gold/10 border border-gold/30 rounded-2xl px-5 py-4 mb-8">
+            <p className="text-cream font-bold text-sm md:text-base leading-snug">
+              🎓 You're one of our Founding Students — every plan, including Unmissable, is{' '}
+              <span className="text-gold">100% free for August</span>. No card, no catch. Grab the tier
+              that gets your stuff seen before pricing kicks in on September 1st.
+            </p>
+          </div>
 
           <div className="flex flex-col gap-4">
             {plans.map(([key, tier]) => {
@@ -199,9 +207,16 @@ export default function PlanSelect() {
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
-                      <span className="text-gold font-bold text-xl">{tier.price}</span>
-                      <span className="text-cream-muted text-xs ml-1">/ {tier.days}d</span>
+ <div className="text-right">
+                      {tier.priceNum > 0 ? (
+                        <>
+                          <span className="text-cream-muted text-xs line-through mr-1.5">{tier.price}</span>
+                          <span className="text-gold font-bold text-xl">Free</span>
+                        </>
+                      ) : (
+                        <span className="text-gold font-bold text-xl">{tier.price}</span>
+                      )}
+                      <span className="text-cream-muted text-xs ml-1 block md:inline">/ {tier.days}d</span>
                     </div>
                   </div>
                   <ul className="flex flex-col gap-1 ml-8">
