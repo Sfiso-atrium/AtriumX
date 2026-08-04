@@ -525,7 +525,7 @@ setLoading(true)
 </div>
             </div>}
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+{error && <p className="text-red-400 text-sm">{error}</p>}
 
             <button
               onClick={handleSubmit}
@@ -533,8 +533,20 @@ setLoading(true)
               
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
-            {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}  
+              {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
             </button>
+
+            {/* Nothing ranks above Unmissable, so there's nothing to upgrade
+                to — hide the button entirely rather than show a dead end. */}
+            {plan !== 'unmissable' && (
+              <button
+                type="button"
+                onClick={() => navigate('/plan-select', { state: { forcePlans: true } })}
+                className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-3 rounded-xl transition-colors"
+              >
+                Upgrade Plan
+              </button>
+            )}
           </div>
         </div>
      </div>
