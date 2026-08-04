@@ -20,7 +20,6 @@ export interface Profile {
   joined_date: string
   created_at: string
 }
-
 export interface Listing {
   id: string
   seller_id: string
@@ -42,8 +41,11 @@ export interface Listing {
   variants: { name: string; price: number }[]
   expires_at: string
   created_at: string
+  has_pending_edit: boolean
+  edited_at: string | null
   seller?: Profile
 }
+
 
 export interface Conversation {
   id: string
@@ -441,8 +443,11 @@ export async function updateListing(
       is_negotiable: payload.isNegotiable,
 variants: payload.variants,
       // Status is intentionally left untouched here — an edit to an already
-      // -live listing must stay live immediately. The admin still reviews
-      // the change, but reviewing it doesn't gate whether it's visible.
+      // -live listing must stay live immediately. has_pending_edit/edited_at
+      // are what let admins know a review is warranted, without gating
+      // visibility on that review happening.
+      has_pending_edit: true,
+      edited_at: new Date().toISOString(),
     })
     .eq('id', listingId)
  
@@ -782,6 +787,26 @@ export async function getAllListingsAdmin(): Promise<Listing[]> {
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return data as Listing[]
+}
+
+export async function getEditedListings(): Promise<Listing[]> {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*, seller:profiles(*)')
+    .eq('has_pending_edit', true)
+    .order('edited_at', { ascending: false })
+  if (error || !data) return []
+  return data as Listing[]
+}
+
+// Admin has looked at the edit — clears the flag without touching status,
+// since the listing was never taken down in the first place.
+export async function acknowledgeListingEdit(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('listings')
+    .update({ has_pending_edit: false })
+    .eq('id', id)
+  return { error: error ? error.message : null }
 }
 
 // Approve (pending → active) and reject (pending → suspended) both notify
