@@ -177,7 +177,7 @@ export default function RetailerLanding() {
         <h2 className="text-cream font-bold text-xl mb-3">Ready to reach students?</h2>
         <p className="text-cream-muted text-sm mb-6">
           Questions first? Email us at{' '}
-          <span className="text-gold font-bold">hello@atrium.co.za</span>
+          <span className="text-gold font-bold">students@atriumx.co.za</span>
         </p>
         <button
           onClick={() => handlePackageSelect('featured')}
