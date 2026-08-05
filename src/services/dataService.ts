@@ -351,11 +351,31 @@ export async function createListing(payload: {
   isNegotiable: boolean
   planTier: PlanKey
   variants: { name: string; price: number }[]
-}): Promise<{ id: string | null; error: string | null }> {
+): Promise<{ id: string | null; error: string | null }> {
+  // Check the account's current plan BEFORE creating the listing. We need
+  // this to know whether the person still has time left on what they paid
+  // for, or whether this is a fresh purchase.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan, plan_expires_at')
+    .eq('id', payload.sellerId)
+    .single()
+
+  const currentRank = profile ? PLAN_ORDER.indexOf(profile.plan as PlanKey) : -1
+  const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
+  const newRank = PLAN_ORDER.indexOf(payload.planTier)
+
   const tierConfig = PLAN_TIERS[payload.planTier]
-  const expiresAt = new Date(
-    Date.now() + tierConfig.days * 86400000
-  ).toISOString()
+  const fullDuration = new Date(Date.now() + tierConfig.days * 86400000).toISOString()
+
+  // Same tier (or lower) while the plan is still active: this listing rides
+  // on time already paid for, so it expires WITH the plan, not 14 fresh days
+  // from today. Higher tier, or a lapsed plan: that's a new purchase, so it
+  // gets the full duration.
+  const expiresAt =
+    currentStillActive && newRank <= currentRank
+      ? profile!.plan_expires_at!
+      : fullDuration
 
   const { data, error } = await supabase
     .from('listings')
@@ -380,19 +400,6 @@ export async function createListing(payload: {
     .single()
 
 if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
-
-  // Roll the account's plan forward to match what was just used, refreshing
-  // its expiry. Guarded by rank so this can never downgrade the account —
-  // the UI already blocks picking a lower tier, this is the backstop.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan, plan_expires_at')
-    .eq('id', payload.sellerId)
-    .single()
-
-  const currentRank = profile ? PLAN_ORDER.indexOf(profile.plan as PlanKey) : -1
-  const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
-  const newRank = PLAN_ORDER.indexOf(payload.planTier)
 
 if (!currentStillActive || newRank >= currentRank) {
     await supabase
