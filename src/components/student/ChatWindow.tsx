@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CircleCheck as CheckCircle, Tag, ShoppingBag } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
@@ -34,6 +35,7 @@ function containsContactInfo(text: string): boolean {
 }
 
 export default function ChatWindow({ conversation, onResolved }: Props) {
+  const navigate = useNavigate()
   const { currentUser, showToast, setUnreadMessageCount } = useApp()
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
@@ -46,6 +48,12 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const otherParty = isSeller ? conversation.buyer : conversation.seller
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
   const maxMsgs = sellerPlan ? PLAN_TIERS[sellerPlan]?.maxMsgs ?? 999 : 999
+  // A Noticeboard business can't reply — the send is blocked at the RLS
+  // level too (migration 014), this just shows them why instead of a
+  // silent failed send.
+  const sellerLocked = isSeller &&
+    (conversation.seller as Profile & { account_type?: string })?.account_type === 'business' &&
+    sellerPlan === 'noticeboard'
 
   useEffect(() => {
     if (!currentUser) return
@@ -87,6 +95,10 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
 
   const handleSend = async () => {
     if (!text.trim() || !currentUser) return
+    if (sellerLocked) {
+      showToast('Upgrade to Campus Partner or Featured to respond to messages.', 'info')
+      return
+    }
     if (ownMsgCount >= maxMsgs) {
       if (isSeller) {
         showToast(`Message limit reached on your plan (${maxMsgs} messages).`, 'info')
@@ -200,7 +212,20 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
       </div>
 
       {/* Input */}
-      {!conversation.is_resolved && (
+      {!conversation.is_resolved && sellerLocked && (
+        <div className="px-4 py-3 border-t border-slate-border flex items-center justify-between gap-3 flex-shrink-0 bg-slate-card">
+          <p className="text-cream-muted text-xs">
+            A student has messaged you. Upgrade to respond.
+          </p>
+          <button
+            onClick={() => navigate('/retailer')}
+            className="flex-shrink-0 bg-gold text-slate-deep text-xs font-bold px-3 py-2 rounded-xl hover:bg-gold/90 transition-colors"
+          >
+            Upgrade
+          </button>
+        </div>
+      )}
+      {!conversation.is_resolved && !sellerLocked && (
         <div className="px-4 py-3 border-t border-slate-border flex gap-2 flex-shrink-0">
           <textarea
             value={text}
