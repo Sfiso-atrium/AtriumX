@@ -84,7 +84,19 @@ export default function NotificationBell() {
       navigate(`/listing/${notif.listing_id}`)
     } else if (notif.type === 'listing_rejected' && currentUser) {
       navigate(`/profile/${currentUser.id}`)
+    } else if ((notif.type === 'message' || notif.type === 'message_locked') && notif.conversation_id) {
+      navigate(`/chat/${notif.conversation_id}`)
+    } else if ((notif.type === 'review' || notif.type === 'review_locked' || notif.type === 'business_approved' || notif.type === 'business_rejected') && currentUser) {
+      navigate(`/profile/${currentUser.id}`)
     }
+  }
+
+  const handleUpgradeClick = (e: React.MouseEvent, notif: Notification) => {
+    e.stopPropagation()
+    markNotificationRead(notif.id)
+    setNotifications(prev => prev.filter(n => n.id !== notif.id))
+    setOpen(false)
+    navigate('/retailer')
   }
 
   if (!currentUser) return null
@@ -116,16 +128,29 @@ export default function NotificationBell() {
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
-              {notifications.map(notif => (
+              {notifications.map(notif => {
+                const locked = notif.type === 'message_locked' || notif.type === 'review_locked'
+                return (
                 <button
                   key={notif.id}
                   onClick={() => handleMarkRead(notif)}
                   className="w-full flex items-start gap-3 px-4 py-3 border-b border-slate-border hover:bg-slate-card transition-colors text-left"
                 >
                   <div className="w-2 h-2 rounded-full bg-ember mt-1.5 flex-shrink-0" />
-                  <p className="text-cream-muted text-xs leading-relaxed">{notif.message}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-cream-muted text-xs leading-relaxed">{notif.message}</p>
+                    {locked && (
+                      <span
+                        onClick={e => handleUpgradeClick(e, notif)}
+                        className="inline-block mt-1.5 bg-gold text-slate-deep text-[11px] font-bold px-2.5 py-1 rounded-lg hover:bg-gold/90 transition-colors"
+                      >
+                        Upgrade
+                      </span>
+                    )}
+                  </div>
                 </button>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
