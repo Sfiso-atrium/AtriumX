@@ -351,7 +351,7 @@ export async function createListing(payload: {
   isNegotiable: boolean
   planTier: PlanKey
   variants: { name: string; price: number }[]
-): Promise<{ id: string | null; error: string | null }> {
+}): Promise<{ id: string | null; error: string | null }> {
   // Check the account's current plan BEFORE creating the listing. We need
   // this to know whether the person still has time left on what they paid
   // for, or whether this is a fresh purchase.
