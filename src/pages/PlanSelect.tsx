@@ -5,7 +5,8 @@ import { useApp } from '../context/AppContext'
 import { PLAN_TIERS, PLAN_ORDER, PlanKey, getUserListings } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
-const PLAN_FEATURES: Record<PlanKey, string[]> = {
+type StudentPlanKey = 'ghost' | 'visible' | 'loud' | 'unmissable'
+const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
   ghost: [
     'Text-only listing',
     '1 active listing',
@@ -41,7 +42,7 @@ const PLAN_FEATURES: Record<PlanKey, string[]> = {
   ],
 }
 
-const PLAN_COLORS: Record<PlanKey, string> = {
+const PLAN_COLORS: Record<StudentPlanKey, string> = {
   ghost: 'border-slate-border',
   visible: 'border-teal-light',
   loud: 'border-gold',
@@ -56,7 +57,7 @@ export default function PlanSelect() {
   const [selected, setSelected] = useState<PlanKey | null>(null)
   const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
 
-  const plans = Object.entries(PLAN_TIERS) as [PlanKey, typeof PLAN_TIERS[PlanKey]][]
+  const plans = PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [StudentPlanKey, typeof PLAN_TIERS[StudentPlanKey]])
   const currentPlan = currentUser?.plan as PlanKey | undefined
   const planIsActive = !!currentPlan && currentPlan !== 'ghost' &&
     !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
