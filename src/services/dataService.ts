@@ -9,8 +9,9 @@ export interface Profile {
   residence: string | null
   avatar_initials: string
   avatar_color: string
-  plan: 'ghost' | 'flash' | 'visible' | 'loud' | 'unmissable'
+  plan: 'ghost' | 'flash' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' | 'campus_partner'
   plan_expires_at: string | null
+  account_type: 'student' | 'business'
   avg_rating: number
   total_ratings: number
   total_listings: number
@@ -72,7 +73,8 @@ export interface Message {
 export interface Notification {
   id: string
   user_id: string
-  type: 'listing_approved' | 'listing_rejected' | 'rating_request'
+  type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
+        'review' | 'review_locked' | 'business_approved' | 'business_rejected'
   message: string
   listing_id: string | null
   conversation_id: string | null
@@ -107,6 +109,14 @@ export const PLAN_TIERS = {
   visible:     { label: 'Visible',     price: 'R29',  priceNum: 29,  days: 7,  maxListings: 2, maxPhotos: 1, maxVariants: 3,   maxMsgs: 10,  canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 0,   searchBoost: false, badge: 'Spotted' },
   loud:        { label: 'Loud',        price: 'R79',  priceNum: 79,  days: 14, maxListings: 3, maxPhotos: 3, maxVariants: 8,   maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 3,   searchBoost: false, badge: 'Verified' },
   unmissable:  { label: 'Unmissable',  price: 'R149', priceNum: 149, days: 30, maxListings: 6, maxPhotos: 5, maxVariants: 999, maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 999, searchBoost: true,  badge: 'Featured' },
+  // Business tiers. No payment infrastructure exists yet, so every business
+  // account currently lives on 'noticeboard' regardless of what's shown
+  // here — these values are what the tier grants once upgrades are wired
+  // up, and are also what the reply/chat gates (migration 014) check
+  // against right now.
+  noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
+  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 3, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
+  campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 6, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner' },
 } as const
 
 export type PlanKey = keyof typeof PLAN_TIERS
@@ -296,8 +306,9 @@ export async function getListings(filters: {
 } = {}): Promise<Listing[]> {
   let query = supabase
     .from('listings')
-    .select('*, seller:profiles(*)')
+    .select('*, seller:profiles!inner(*)')
     .eq('status', 'active')
+    .eq('seller.account_type', 'student')
     .order('created_at', { ascending: false })
 
   if (filters.category && filters.category !== 'all') {
@@ -314,6 +325,26 @@ const { data, error } = await query
   const PLAN_RANK: Record<string, number> = { unmissable: 4, loud: 3, visible: 2, ghost: 1 }
   const sorted = [...data].sort(
     (a, b) => (PLAN_RANK[b.plan_tier] || 0) - (PLAN_RANK[a.plan_tier] || 0)
+  )
+
+  return sorted as Listing[]
+}
+
+// Business tab on the feed — same listings table, filtered the other way.
+// Campus Partner is pinned above Featured, which is pinned above Noticeboard,
+// matching the "pinned to top" promise on the pricing page.
+export async function getBusinessListings(): Promise<Listing[]> {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*, seller:profiles!inner(*)')
+    .eq('status', 'active')
+    .eq('seller.account_type', 'business')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+
+  const BUSINESS_PLAN_RANK: Record<string, number> = { campus_partner: 3, featured: 2, noticeboard: 1 }
+  const sorted = [...data].sort(
+    (a, b) => (BUSINESS_PLAN_RANK[b.plan_tier] || 0) - (BUSINESS_PLAN_RANK[a.plan_tier] || 0)
   )
 
   return sorted as Listing[]
@@ -354,24 +385,30 @@ export async function createListing(payload: {
 }): Promise<{ id: string | null; error: string | null }> {
   // Check the account's current plan BEFORE creating the listing. We need
   // this to know whether the person still has time left on what they paid
-  // for, or whether this is a fresh purchase.
+  // for, or whether this is a fresh purchase. Business tiers (noticeboard/
+  // featured/campus_partner) and student tiers rank on separate scales, so
+  // pick the right order before comparing.
   const { data: profile } = await supabase
     .from('profiles')
     .select('plan, plan_expires_at')
     .eq('id', payload.sellerId)
     .single()
 
-  const currentRank = profile ? PLAN_ORDER.indexOf(profile.plan as PlanKey) : -1
+  const BUSINESS_PLAN_ORDER: PlanKey[] = ['noticeboard', 'featured', 'campus_partner']
+  const isBusinessTier = (BUSINESS_PLAN_ORDER as string[]).includes(payload.planTier)
+  const rankOrder = isBusinessTier ? BUSINESS_PLAN_ORDER : PLAN_ORDER
+
+  const currentRank = profile ? rankOrder.indexOf(profile.plan as PlanKey) : -1
   const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
-  const newRank = PLAN_ORDER.indexOf(payload.planTier)
+  const newRank = rankOrder.indexOf(payload.planTier)
 
   const tierConfig = PLAN_TIERS[payload.planTier]
   const fullDuration = new Date(Date.now() + tierConfig.days * 86400000).toISOString()
 
   // Same tier (or lower) while the plan is still active: this listing rides
-  // on time already paid for, so it expires WITH the plan, not 14 fresh days
-  // from today. Higher tier, or a lapsed plan: that's a new purchase, so it
-  // gets the full duration.
+  // on time already paid for, so it expires WITH the plan, not a fresh
+  // countdown from today. Higher tier, or a lapsed plan: that's a new
+  // purchase, so it gets the full duration.
   const expiresAt =
     currentStillActive && newRank <= currentRank
       ? profile!.plan_expires_at!
@@ -399,9 +436,13 @@ export async function createListing(payload: {
     .select('id')
     .single()
 
-if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
+  if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
 
-if (!currentStillActive || newRank >= currentRank) {
+  // Roll the account's plan forward to match what was just used, refreshing
+  // its expiry to match this listing. Guarded by rank so this can never
+  // downgrade the account — the UI already blocks picking a lower tier,
+  // this is the backstop.
+  if (!currentStillActive || newRank >= currentRank) {
     await supabase
       .from('profiles')
       .update({ plan: payload.planTier, plan_expires_at: expiresAt })
@@ -566,8 +607,8 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
-      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan),
-      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan),
+      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
+      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
@@ -890,25 +931,163 @@ export async function getPushPreference(userId: string): Promise<boolean> {
 
 // ── BUSINESS ───────────────────────────────────────────────────────────────
 
-export async function submitBusinessApplication(payload: {
-  businessName: string
-  businessType: string
-  customBusinessType?: string
-  contactPerson: string
-  email: string
-  phone: string
-  selectedPackage: string
-  description: string
-}): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('business_profiles').insert({
-    business_name: payload.businessName,
-    business_type: payload.businessType,
-    custom_business_type: payload.customBusinessType || null,
-    contact_person: payload.contactPerson,
-    email: payload.email,
-    phone: payload.phone,
-    selected_package: payload.selectedPackage,
-    description: payload.description,
+export interface BusinessProfile {
+  id: string
+  business_name: string
+  business_type: string
+  custom_business_type: string | null
+  contact_number: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+}
+
+// Businesses register a real account (same auth.users + profiles path as
+// students, just tagged account_type: 'business' — see migration 014) so
+// they can log in, chat, and get notifications like everyone else. No
+// student-domain email restriction applies here, unlike registerWithEmail.
+export async function registerBusinessWithEmail(
+  email: string,
+  password: string,
+  businessName: string,
+  businessType: string,
+  customBusinessType: string | undefined,
+  contactNumber: string
+): Promise<{ user: Profile | null; error: string | null }> {
+  const initials = businessName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  const colors = ['#0F6E56', '#185FA5', '#993C1D', '#993556', '#534AB7', '#3B6D11']
+  const avatarColor = colors[Math.floor(Math.random() * colors.length)]
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: businessName,
+        avatar_initials: initials,
+        avatar_color: avatarColor,
+        account_type: 'business',
+        email,
+      },
+    },
   })
+
+  if (error) return { user: null, error: error.message }
+  if (!data.user) return { user: null, error: 'Registration failed.' }
+
+  let profile = null
+  for (let i = 0; i < 5; i++) {
+    await new Promise(r => setTimeout(r, 600))
+    profile = await getUserById(data.user.id)
+    if (profile) break
+  }
+  if (!profile) return { user: null, error: 'Account created but profile is missing. Contact support.' }
+
+  const { error: bizError } = await supabase.from('business_profiles').insert({
+    id: data.user.id,
+    business_name: businessName,
+    business_type: businessType,
+    custom_business_type: businessType === 'Other' ? customBusinessType || null : null,
+    contact_number: contactNumber,
+  })
+  if (bizError) return { user: null, error: bizError.message }
+
+  return { user: profile, error: null }
+}
+
+export async function getBusinessProfile(id: string): Promise<BusinessProfile | null> {
+  const { data, error } = await supabase
+    .from('business_profiles')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !data) return null
+  return data as BusinessProfile
+}
+
+export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
+  const { data, error } = await supabase
+    .from('business_profiles')
+    .select('*, profile:profiles(*)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+  if (error || !data) return []
+  return data as (BusinessProfile & { profile: Profile })[]
+}
+
+export async function approveBusinessById(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('approve_business', { p_business_id: id })
   return { error: error ? error.message : null }
+}
+
+export async function rejectBusinessById(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('reject_business', { p_business_id: id })
+  return { error: error ? error.message : null }
+}
+
+// ── BUSINESS REVIEWS ─────────────────────────────────────────────────────
+// Separate from `ratings` (buyer rates seller after a sale) — any student
+// can leave a business a review at any time, no purchase required. Reply
+// gating by plan tier is enforced in the database (migration 014
+// enforce_review_reply_tier), not just here.
+
+export interface BusinessReview {
+  id: string
+  business_id: string
+  student_id: string
+  stars: number
+  comment: string | null
+  reply: string | null
+  replied_at: string | null
+  created_at: string
+  student?: { full_name: string; avatar_initials: string; avatar_color: string }
+}
+
+export async function getBusinessReviews(businessId: string): Promise<BusinessReview[]> {
+  const { data, error } = await supabase
+    .from('business_reviews')
+    .select('*, student:profiles(full_name, avatar_initials, avatar_color)')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as BusinessReview[]
+}
+
+export async function submitBusinessReview(
+  businessId: string,
+  studentId: string,
+  stars: number,
+  comment: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('business_reviews').insert({
+    business_id: businessId,
+    student_id: studentId,
+    stars,
+    comment: comment.trim() || null,
+  })
+  if (error) {
+    if (error.message.includes('duplicate key')) return { error: 'You have already reviewed this business.' }
+    return { error: error.message }
+  }
+  return { error: null }
+}
+
+// Blocked in the database for anything below Campus Partner — see
+// enforce_review_reply_tier in migration 014. The error message here is
+// what surfaces if that trigger rejects the update.
+export async function replyToBusinessReview(reviewId: string, reply: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('business_reviews')
+    .update({ reply: reply.trim() })
+    .eq('id', reviewId)
+  if (error) {
+    if (error.message.includes('Campus Partner')) return { error: 'Replying to reviews requires the Campus Partner plan.' }
+    return { error: error.message }
+  }
+  return { error: null }
 }
