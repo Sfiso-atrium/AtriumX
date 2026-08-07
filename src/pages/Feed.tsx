@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getResidences } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getResidences } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
@@ -31,9 +31,12 @@ stroke="#0D9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
 export default function Feed() {
 const { activeCategory } = useApp()
   const navigate = useNavigate()
+  const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
+  const [businessListings, setBusinessListings] = useState<Listing[]>([])
+  const [businessLoading, setBusinessLoading] = useState(true)
 
   // Filters are hidden by default so the feed doesn't look cluttered — the
   // "Filters" link below the search bar reveals this row on demand.
@@ -57,6 +60,12 @@ useEffect(() => {
         setFetchError(true)
       })
     getResidences().then(setResidenceOptions)
+    getBusinessListings()
+      .then(data => {
+        setBusinessListings(data)
+        setBusinessLoading(false)
+      })
+      .catch(() => setBusinessLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -81,6 +90,31 @@ useEffect(() => {
         <Navbar />
 
         <div className="max-w-4xl mx-auto">
+          <div className="px-4 pt-4 flex gap-2">
+            <button
+              onClick={() => setFeedTab('marketplace')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                feedTab === 'marketplace'
+                  ? 'bg-teal-primary border-teal-light text-cream'
+                  : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+              }`}
+            >
+              Marketplace
+            </button>
+            <button
+              onClick={() => setFeedTab('business')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                feedTab === 'business'
+                  ? 'bg-teal-primary border-teal-light text-cream'
+                  : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+              }`}
+            >
+              Business
+            </button>
+          </div>
+
+          {feedTab === 'marketplace' && (
+          <>
           <div className="px-4 pt-4 pb-2 relative">
             <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-cream-muted" />
             <input
@@ -179,6 +213,27 @@ useEffect(() => {
               {filtered.map(listing => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
+            </div>
+          )}
+          </>
+          )}
+
+          {feedTab === 'business' && (
+            <div className="px-4 pt-4">
+              <p className="text-cream-muted text-xs pb-2">
+                {businessLoading ? 'Loading...' : `${businessListings.length} business${businessListings.length !== 1 ? 'es' : ''} found`}
+              </p>
+              {businessListings.length === 0 ? (
+                <EmptyState
+                  message={businessLoading ? 'Loading businesses...' : 'No businesses listed yet.'}
+                />
+              ) : (
+                <div className="pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {businessListings.map(listing => (
+                    <ListingCard key={listing.id} listing={listing} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
