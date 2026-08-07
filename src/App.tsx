@@ -12,6 +12,7 @@ import AdminPanel from './pages/AdminPanel'
 import ChatPage from './pages/ChatPage'
 import EditProfile from './pages/EditProfile'
 import RetailerSignup from './pages/RetailerSignup'
+import BusinessPostListing from './pages/BusinessPostListing'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />
+          <Route path="/business/post" element={<BusinessPostListing />} />
         </Routes>
 
       </HashRouter>
