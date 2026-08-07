@@ -19,7 +19,8 @@ const navigate = useNavigate()
   const contactCount = listing.contact_count ?? listing.contactCount ?? 0
 
   const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
-  const isFeatured = listing.plan_tier === 'unmissable'
+  const isCampusPartner = listing.plan_tier === 'campus_partner'
+  const isFeatured = listing.plan_tier === 'unmissable' || isCampusPartner
 
   return (
     <div
@@ -33,7 +34,7 @@ const navigate = useNavigate()
       {isFeatured && (
         <div className="bg-gold text-slate-deep text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
           <Star size={12} className="fill-slate-deep" />
-          Featured
+          {isCampusPartner ? 'Campus Partner' : 'Featured'}
         </div>
       )}
 <div className="p-4 flex flex-col gap-2">
