@@ -5,6 +5,8 @@ import { useApp } from '../context/AppContext'
 import {
   Listing,
   Report,
+  BusinessProfile,
+  Profile,
   getPendingListings,
   getAllListingsAdmin,
   getEditedListings,
@@ -14,10 +16,13 @@ import {
   suspendListingById,
   clearReports,
   acknowledgeListingEdit,
+  getPendingBusinesses,
+  approveBusinessById,
+  rejectBusinessById,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
 
-type Tab = 'pending' | 'all' | 'edited' | 'reports'
+type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'businesses'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
@@ -30,6 +35,7 @@ const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
+  const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
 
@@ -38,11 +44,12 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings()])
-      .then(([pending, all, edited]) => {
+Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses()])
+      .then(([pending, all, edited, businesses]) => {
         setPendingListings(pending)
         setAllListings(all)
         setEditedListings(edited)
+        setPendingBusinesses(businesses)
         const reported = all.filter(l => l.report_count > 0)
         setReportedListings(reported)
         setLoading(false)
@@ -118,6 +125,24 @@ const handleClearReports = async (id: string) => {
     showToast('Listing suspended.', 'success')
   }
 
+  const handleApproveBusiness = async (id: string) => {
+    setActionId(id)
+    const { error } = await approveBusinessById(id)
+    setActionId(null)
+    if (error) { showToast(error, 'error'); return }
+    setPendingBusinesses(prev => prev.filter(b => b.id !== id))
+    showToast('Business approved.', 'success')
+  }
+
+  const handleRejectBusiness = async (id: string) => {
+    setActionId(id)
+    const { error } = await rejectBusinessById(id)
+    setActionId(null)
+    if (error) { showToast(error, 'error'); return }
+    setPendingBusinesses(prev => prev.filter(b => b.id !== id))
+    showToast('Business rejected.', 'success')
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -128,6 +153,7 @@ const activeList =
     tab === 'pending' ? pendingListings :
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
+    tab === 'businesses' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -179,6 +205,16 @@ const activeList =
           >
             Reported ({reportedListings.length})
           </button>
+          <button
+            onClick={() => setTab('businesses')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              tab === 'businesses'
+                ? 'bg-teal-primary border-teal-light text-cream'
+                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+            }`}
+          >
+            Businesses ({pendingBusinesses.length})
+          </button>
         </div>
         {tab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">
@@ -197,7 +233,47 @@ const activeList =
             ))}
           </div>
         )}
-{activeList.length === 0 ? (
+{tab === 'businesses' && (
+          pendingBusinesses.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-cream-muted text-sm">No pending business applications.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {pendingBusinesses.map(biz => {
+                const busy = actionId === biz.id
+                return (
+                  <div key={biz.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                    <p className="text-cream font-bold text-sm">{biz.business_name}</p>
+                    <p className="text-cream-muted text-xs mt-0.5">
+                      {biz.custom_business_type || biz.business_type} · {biz.profile?.email}
+                    </p>
+                    <p className="text-cream-muted text-xs mt-0.5">{biz.contact_number}</p>
+                    <div className="flex gap-2 flex-wrap mt-3">
+                      <button
+                        onClick={() => handleApproveBusiness(biz.id)}
+                        disabled={busy}
+                        className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                      >
+                        <CheckCircle size={13} />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectBusiness(biz.id)}
+                        disabled={busy}
+                        className="flex items-center gap-1.5 border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                      >
+                        <XCircle size={13} />
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        )}
+        {tab !== 'businesses' && (activeList.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'pending' ? 'No pending listings.' :
@@ -312,7 +388,7 @@ const activeList =
               )
             })}
           </div>
-        )}
+        ))}
       </div>
       <BottomNav />
     </div>
