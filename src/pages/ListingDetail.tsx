@@ -12,7 +12,8 @@ import {
   startConversation, markListingAsSold,
   renewListing, getRecentBuyers, sendRatingInvite,
   getConversationsForListing, getSellerRatings,
-  PLAN_TIERS, PlanKey
+  PLAN_TIERS, PlanKey,
+  BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview
 } from '../services/dataService'
 function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -76,6 +77,14 @@ const [showReportModal, setShowReportModal] = useState(false)
   const [recentBuyers, setRecentBuyers] = useState<RecentBuyer[]>([])
   const [selectedBuyerIds, setSelectedBuyerIds] = useState<string[]>([])
   const [sendingInvites, setSendingInvites] = useState(false)
+  const [businessReviews, setBusinessReviews] = useState<BusinessReview[]>([])
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewStars, setReviewStars] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+  const [submittingReplyId, setSubmittingReplyId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -98,6 +107,16 @@ const [showReportModal, setShowReportModal] = useState(false)
     getSellerRatings(listing.seller_id).then(setSellerRatings)
   }, [listing?.seller_id])
 
+  const seller = listing?.seller as Profile | undefined
+
+  const loadBusinessReviews = () => {
+    if (listing?.seller_id) getBusinessReviews(listing.seller_id).then(setBusinessReviews)
+  }
+
+  useEffect(() => {
+    if (seller?.account_type === 'business') loadBusinessReviews()
+  }, [listing?.seller_id, seller?.account_type])
+
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -110,7 +129,6 @@ const [showReportModal, setShowReportModal] = useState(false)
     </div>
   )
 
-  const seller = listing.seller as Profile | undefined
   const isSeller = currentUser?.id === listing.seller_id
   const plan = listing.plan_tier as PlanKey
   const tierConfig = PLAN_TIERS[plan]
@@ -209,6 +227,33 @@ const expiry = timeLeft(listing.expires_at)
       )
     }
     closeSoldFlow()
+  }
+
+  const handleSubmitReview = async () => {
+    if (!currentUser) { setAuthPromptOpen(true); return }
+    if (!listing) return
+    setReviewError('')
+    setSubmittingReview(true)
+    const { error } = await submitBusinessReview(listing.seller_id, currentUser.id, reviewStars, reviewComment)
+    setSubmittingReview(false)
+    if (error) { setReviewError(error); return }
+    setReviewComment('')
+    setReviewStars(5)
+    setShowReviewForm(false)
+    loadBusinessReviews()
+    showToast('Review posted.', 'success')
+  }
+
+  const handleSubmitReply = async (reviewId: string) => {
+    const reply = (replyDrafts[reviewId] || '').trim()
+    if (!reply) return
+    setSubmittingReplyId(reviewId)
+    const { error } = await replyToBusinessReview(reviewId, reply)
+    setSubmittingReplyId(null)
+    if (error) { showToast(error, 'error'); return }
+    setReplyDrafts(prev => ({ ...prev, [reviewId]: '' }))
+    loadBusinessReviews()
+    showToast('Reply posted.', 'success')
   }
 
   return (
@@ -435,6 +480,7 @@ const expiry = timeLeft(listing.expires_at)
             )}
 
             <hr className="border-slate-border" />
+            {seller?.account_type !== 'business' && (
             <div>
               <p className="text-gold font-bold text-sm mb-0.5">What Students Are Saying</p>
               <p className="text-cream-muted text-xs mb-3">Real reviews from other students who bought from this seller.</p>
@@ -468,6 +514,112 @@ const expiry = timeLeft(listing.expires_at)
                 </p>
               )}
             </div>
+            )}
+
+            {seller?.account_type === 'business' && (
+            <div>
+              <div className="flex items-center justify-between mb-0.5">
+                <p className="text-gold font-bold text-sm">Reviews</p>
+                {!isSeller && currentUser && !businessReviews.some(r => r.student_id === currentUser.id) && (
+                  <button
+                    onClick={() => setShowReviewForm(v => !v)}
+                    className="text-teal-light text-xs font-semibold hover:underline"
+                  >
+                    Leave a Review
+                  </button>
+                )}
+              </div>
+              <p className="text-cream-muted text-xs mb-3">
+                {businessReviews.length > 0
+                  ? `${(businessReviews.reduce((s, r) => s + r.stars, 0) / businessReviews.length).toFixed(1)} average from ${businessReviews.length} review${businessReviews.length !== 1 ? 's' : ''}`
+                  : 'No reviews yet for this business.'}
+              </p>
+
+              {showReviewForm && (
+                <div className="bg-slate-card border border-slate-border rounded-xl p-4 mb-3">
+                  <div className="flex items-center gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setReviewStars(n)}>
+                        <Star size={20} className={n <= reviewStars ? 'text-gold fill-gold' : 'text-slate-border'} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                    placeholder="Share your experience with this business (optional)"
+                    rows={3}
+                    className="w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none"
+                  />
+                  {reviewError && <p className="text-red-400 text-xs mt-1.5">{reviewError}</p>}
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview}
+                    className="mt-2 bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+                  >
+                    {submittingReview ? 'Posting...' : 'Post Review'}
+                  </button>
+                </div>
+              )}
+
+              {businessReviews.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {businessReviews.map(r => (
+                    <div key={r.id} className="bg-slate-card border border-slate-border rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <span className="text-cream text-sm font-medium truncate">
+                          {r.student?.full_name || 'Anonymous'}
+                        </span>
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <Star key={n} size={12} className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'} />
+                          ))}
+                        </div>
+                      </div>
+                      {r.comment && <p className="text-cream-muted text-xs leading-relaxed">{r.comment}</p>}
+
+                      {r.reply && (
+                        <div className="mt-2 ml-3 pl-3 border-l-2 border-teal-primary">
+                          <p className="text-teal-light text-xs font-semibold mb-0.5">Business Reply</p>
+                          <p className="text-cream-muted text-xs leading-relaxed">{r.reply}</p>
+                        </div>
+                      )}
+
+                      {isSeller && !r.reply && plan === 'campus_partner' && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="text"
+                            value={replyDrafts[r.id] || ''}
+                            onChange={e => setReplyDrafts(prev => ({ ...prev, [r.id]: e.target.value }))}
+                            placeholder="Reply to this review"
+                            className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                          />
+                          <button
+                            onClick={() => handleSubmitReply(r.id)}
+                            disabled={submittingReplyId === r.id}
+                            className="bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      )}
+                      {isSeller && !r.reply && plan !== 'campus_partner' && (
+                        <div className="mt-2 flex items-center justify-between gap-2 bg-slate-deep rounded-xl px-3 py-2">
+                          <p className="text-cream-muted text-xs">Replying requires Campus Partner.</p>
+                          <button
+                            onClick={() => navigate('/retailer')}
+                            className="flex-shrink-0 bg-gold text-slate-deep text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-gold/90 transition-colors"
+                          >
+                            Upgrade
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            )}
           </div>
           </div>
         </div>
