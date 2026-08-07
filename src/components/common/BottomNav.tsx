@@ -30,8 +30,8 @@ const tabs = [
     {
       label: 'Post',
       icon: PlusCircle,
-      path: '/plan-select',
-      onClick: () => handleProtected('/plan-select'),
+      path: currentUser?.account_type === 'business' ? '/business/post' : '/plan-select',
+      onClick: () => handleProtected(currentUser?.account_type === 'business' ? '/business/post' : '/plan-select'),
     },
     ...(currentUser ? [
       {
