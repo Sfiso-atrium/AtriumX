@@ -283,14 +283,15 @@ const expiry = timeLeft(listing.expires_at)
 <div className="max-w-5xl mx-auto pb-24 md:px-6 lg:px-8 md:pt-6">
           {/* Hero placeholder: image/video, title, and badges live together */}
           <div className="w-full bg-slate-card border border-slate-border rounded-2xl overflow-hidden md:flex md:gap-6 md:items-stretch">
-          {listing.video_url ? (
+{listing.video_url ? (
             <video
               src={listing.video_url}
               controls
-className="w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 object-cover bg-black"
+              className="w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 object-cover bg-black"
               poster={listing.image_urls?.[0] || undefined}
             />
-<div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-teal-faint overflow-hidden">
+          ) : (
+            <div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-teal-faint overflow-hidden">
               {listing.image_urls?.length > 0 ? (
                 <img
                   src={listing.image_urls[activeImage]}
@@ -494,7 +495,7 @@ className="w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 obj
                   </p>
                 )}
                 {businessProfile.website && (
-                  
+                  <a
                     href={/^https?:\/\//i.test(businessProfile.website) ? businessProfile.website : `https://${businessProfile.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
