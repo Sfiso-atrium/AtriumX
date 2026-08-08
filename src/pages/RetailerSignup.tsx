@@ -24,7 +24,7 @@ export default function RetailerSignup() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-blue-400 transition-colors"
+  const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-sapphire-light transition-colors"
 
   const handleSubmit = async () => {
     setError('')
@@ -125,7 +125,7 @@ export default function RetailerSignup() {
 
           <button
             onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-            className="text-blue-400 text-sm text-center underline mt-1"
+            className="text-sapphire-light text-sm text-center underline mt-1"
           >
             {mode === 'login' ? "Don't have a business account? Register" : 'Already registered? Sign in'}
           </button>
