@@ -8,22 +8,7 @@ import {
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
-
-function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl)
-      reject(new Error('unreadable'))
-    }
-    img.src = objectUrl
-  })
-}
+import ImageCropModal from '../components/common/ImageCropModal'
 
 export default function BusinessPostListing() {
   const navigate = useNavigate()
@@ -39,8 +24,9 @@ export default function BusinessPostListing() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
-  const [imageUrls, setImageUrls] = useState<string[]>([])
+const [imageUrls, setImageUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -134,34 +120,28 @@ export default function BusinessPostListing() {
   const maxPhotos = tierConfig.maxPhotos
   const canUploadPhoto = maxPhotos > 0
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (imageUrls.length >= maxPhotos) return
+    setCropSrc(URL.createObjectURL(file))
+  }
 
-    try {
-      const { width, height } = await getImageDimensions(file)
-      const ratio = width / height
-      const targetRatio = 16 / 9
-      const tolerance = 0.15
-      if (Math.abs(ratio - targetRatio) / targetRatio > tolerance) {
-        showToast(
-          'That photo is too far from a 16:9 landscape shape — it would get cropped in the listing. Please crop it closer to 16:9 first.',
-          'error'
-        )
-        if (fileRef.current) fileRef.current.value = ''
-        return
-      }
-    } catch {
-      showToast('Could not read that image. Try a different file.', 'error')
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-
-    setUploading(true)
-    const { url, error: uploadError } = await uploadListingImage(file, currentUser.id)
-    setUploading(false)
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (fileRef.current) fileRef.current.value = ''
+
+    const croppedFile = new File([blob], 'listing-photo.jpg', { type: 'image/jpeg' })
+    setUploading(true)
+    const { url, error: uploadError } = await uploadListingImage(croppedFile, currentUser.id)
+    setUploading(false)
     if (uploadError) { showToast(uploadError, 'error'); return }
     if (url) setImageUrls(prev => [...prev, url])
   }
@@ -326,7 +306,14 @@ export default function BusinessPostListing() {
             )}
           </div>
         </div>
-      </div>
+   </div>
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
       <BottomNav />
     </>
   )
