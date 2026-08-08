@@ -16,6 +16,15 @@ export default function NotificationBell() {
   const [ratingBuyerId, setRatingBuyerId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Fetch unread notifications as soon as we know who the user is, so the
+  // badge count is correct even if they never open the dropdown. (Used to
+  // only fetch on bell click, which meant the badge stayed silent forever
+  // unless the user happened to click a bell showing no number.)
+  useEffect(() => {
+    if (!currentUser) { setNotifications([]); return }
+    getUnreadNotifications(currentUser.id).then(setNotifications)
+  }, [currentUser])
+
   useEffect(() => {
     if (!currentUser) return
 
@@ -51,8 +60,8 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  // getUnreadNotifications() is only called on bell click, never on mount,
-  // per spec 4.8.
+// Re-fetch on open too, as a cheap freshness check in case something
+  // was missed between the mount fetch and now.
   const handleBellClick = async () => {
     if (!open && currentUser) {
       const fetched = await getUnreadNotifications(currentUser.id)
