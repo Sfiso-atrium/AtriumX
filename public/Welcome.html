@@ -37,9 +37,11 @@
     max-width:1000px;margin:0 auto;padding:22px 20px 0;
     display:flex;align-items:center;justify-content:space-between;
   }
-  .brand{display:flex;align-items:center;gap:10px;}
-  .brand img{height:30px;width:auto;}
-  .brand span{font-family:'DM Serif Display',Georgia,serif;font-size:1.3rem;color:var(--cream);}
+.brand{display:flex;align-items:center;gap:0;}
+  .brand img{height:44px;width:auto;margin-right:-10px;}
+  .brand span{font-family:'DM Serif Display',Georgia,serif;font-size:1.3rem;font-weight:700;}
+  .brand .b-cream{color:var(--cream);}
+  .brand .b-gold{color:var(--ember);}
   .nav-actions{display:flex;align-items:center;gap:10px;}
   .btn{
     display:inline-block;font-family:'DM Sans',system-ui,sans-serif;font-weight:700;
@@ -49,8 +51,8 @@
   .btn-sm{padding:9px 18px;font-size:0.85rem;}
   .btn-signin{background:transparent;color:var(--cream);border:1px solid var(--slate-border);}
   .btn-signin:hover{border-color:var(--teal-light);color:var(--teal-light);}
-  .btn-primary{background:var(--gold);color:#111;}
-  .btn-primary:hover{opacity:.87;}
+.btn-primary{background:var(--gold);color:#111;}
+  .btn-primary:hover{opacity:.87;color:#111;}
   .btn-lg{padding:15px 30px;font-size:0.98rem;border-radius:12px;}
   .btn-outline{background:transparent;color:var(--cream);border:1px solid var(--slate-border);}
   .btn-outline:hover{border-color:var(--teal-light);color:var(--teal-light);}
@@ -94,9 +96,9 @@
 <body>
 
 <nav class="topnav">
-  <div class="brand">
-    <img src="/logo.png" alt="AtriumX">
-    <span>AtriumX</span>
+<div class="brand">
+    <img src="/logo.png" alt="A">
+    <span class="b-cream">trium</span><span class="b-gold">X</span>
   </div>
   <div class="nav-actions">
     <a class="btn btn-sm btn-signin" href="/#/student">Sign In</a>
