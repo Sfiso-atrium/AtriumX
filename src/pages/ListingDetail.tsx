@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle, Star,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag,
+  MapPin, Globe
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
@@ -13,7 +14,8 @@ import {
   renewListing, getRecentBuyers, sendRatingInvite,
   getConversationsForListing, getSellerRatings,
   PLAN_TIERS, PlanKey,
-  BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview
+  BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview,
+  BusinessProfile, getBusinessProfile
 } from '../services/dataService'
 function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -83,9 +85,9 @@ const [showReportModal, setShowReportModal] = useState(false)
   const [reviewComment, setReviewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewError, setReviewError] = useState('')
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [submittingReplyId, setSubmittingReplyId] = useState<string | null>(null)
-
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
   useEffect(() => {
     if (!id) return
     getListingById(id, currentUser?.id)
@@ -107,7 +109,7 @@ const [showReportModal, setShowReportModal] = useState(false)
     getSellerRatings(listing.seller_id).then(setSellerRatings)
   }, [listing?.seller_id])
 
-  const seller = listing?.seller as Profile | undefined
+const seller = listing?.seller as Profile | undefined
 
   const loadBusinessReviews = () => {
     if (listing?.seller_id) getBusinessReviews(listing.seller_id).then(setBusinessReviews)
@@ -117,6 +119,11 @@ const [showReportModal, setShowReportModal] = useState(false)
     if (seller?.account_type === 'business') loadBusinessReviews()
   }, [listing?.seller_id, seller?.account_type])
 
+  useEffect(() => {
+    if (seller?.account_type === 'business' && listing?.seller_id) {
+      getBusinessProfile(listing.seller_id).then(setBusinessProfile)
+    }
+  }, [listing?.seller_id, seller?.account_type])
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -467,7 +474,7 @@ const expiry = timeLeft(listing.expires_at)
               )}
             </div>
 
-            {seller && (
+{seller && (
               <p className="text-cream-muted text-xs">
                 Sold by{' '}
                 <button
@@ -477,6 +484,29 @@ const expiry = timeLeft(listing.expires_at)
                   {seller.full_name}
                 </button>
               </p>
+            )}
+
+            {seller?.account_type === 'business' && (businessProfile?.physical_address || businessProfile?.website) && (
+              <div className="flex flex-col gap-1.5 text-sm">
+                {businessProfile.physical_address && (
+                  <p className="text-cream-muted flex items-center gap-2">
+                    <MapPin size={14} className="text-teal-light flex-shrink-0" />
+                    {businessProfile.physical_address}
+                  </p>
+                )}
+                {businessProfile.website && (
+                  
+                    href={/^https?:\/\//i.test(businessProfile.website) ? businessProfile.website : `https://${businessProfile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-teal-light flex items-center gap-2 hover:underline w-fit"
+                  >
+                    <Globe size={14} className="flex-shrink-0" />
+                    {businessProfile.website}
+                  </a>
+                )}
+              </div>
             )}
 
             <hr className="border-slate-border" />
