@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome - AtriumX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate-deep:#0A0F1E;
+    --slate-card:#111827;
+    --slate-border:#1F2D3D;
+    --teal-primary:#0D9488;
+    --teal-light:#14B8A6;
+    --teal-faint:#0D948822;
+    --cream:#F0F4F8;
+    --cream-muted:#8B949E;
+    --gold:#D4A017;
+    --gold-muted:#A6790F;
+    --ember:#D4A017;
+    --ember-dark:#A6790F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background-color:var(--slate-deep);color:var(--cream);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;line-height:1.5;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:var(--slate-deep);}
+  ::-webkit-scrollbar-thumb{background:var(--slate-border);border-radius:2px;}
+
+  a{color:var(--teal-light);text-decoration:none;}
+  a:hover{color:var(--gold);}
+
+  /* TOP NAV */
+  .topnav{
+    max-width:1000px;margin:0 auto;padding:22px 20px 0;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand img{height:30px;width:auto;}
+  .brand span{font-family:'DM Serif Display',Georgia,serif;font-size:1.3rem;color:var(--cream);}
+  .nav-actions{display:flex;align-items:center;gap:10px;}
+  .btn{
+    display:inline-block;font-family:'DM Sans',system-ui,sans-serif;font-weight:700;
+    border-radius:10px;cursor:pointer;text-align:center;border:none;text-decoration:none;
+    transition:opacity .15s ease,background-color .15s ease,border-color .15s ease;
+  }
+  .btn-sm{padding:9px 18px;font-size:0.85rem;}
+  .btn-signin{background:transparent;color:var(--cream);border:1px solid var(--slate-border);}
+  .btn-signin:hover{border-color:var(--teal-light);color:var(--teal-light);}
+  .btn-primary{background:var(--gold);color:#111;}
+  .btn-primary:hover{opacity:.87;}
+  .btn-lg{padding:15px 30px;font-size:0.98rem;border-radius:12px;}
+  .btn-outline{background:transparent;color:var(--cream);border:1px solid var(--slate-border);}
+  .btn-outline:hover{border-color:var(--teal-light);color:var(--teal-light);}
+
+  /* HERO */
+  .page{max-width:800px;margin:0 auto;padding:56px 20px 0;}
+  .top-accent{height:3px;width:64px;border-radius:2px;background:linear-gradient(90deg,var(--teal-light),var(--gold),var(--ember));margin:40px 0 28px;}
+  .eyebrow{color:var(--teal-light);font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;}
+  h1.hero-title{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:2.6rem;color:var(--cream);letter-spacing:-0.01em;line-height:1.15;margin-bottom:16px;}
+  p.hero-body{color:var(--cream-muted);font-size:1.02rem;line-height:1.75;max-width:560px;margin-bottom:36px;}
+
+  .cta-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:56px;}
+  .cta-card{flex:1;min-width:230px;background:var(--slate-card);border:1px solid var(--slate-border);border-radius:16px;padding:22px;}
+  .cta-card .btn{width:100%;margin-bottom:10px;}
+  .cta-card p{color:var(--cream-muted);font-size:0.85rem;line-height:1.5;}
+
+  /* FEATURE STRIP */
+  h2.group-title{color:var(--teal-light);font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 16px;}
+  .features{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:48px;}
+  .feature{flex:1;min-width:180px;background:var(--slate-card);border:1px solid var(--slate-border);border-radius:14px;padding:16px 18px;}
+  .feature .f-title{color:var(--cream);font-weight:700;font-size:0.92rem;margin-bottom:4px;}
+  .feature .f-body{color:var(--cream-muted);font-size:0.82rem;line-height:1.5;}
+
+  /* ENCOURAGEMENT NOTE */
+  .encourage-note{background:var(--teal-faint);border:1px solid var(--teal-primary);border-radius:14px;padding:18px 20px;margin-bottom:48px;}
+  .encourage-note p{color:var(--cream);font-size:0.88rem;line-height:1.6;font-weight:500;}
+
+  footer.doc-footer{max-width:800px;margin:0 auto;padding:0 20px 60px;text-align:center;}
+  footer.doc-footer .foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-bottom:14px;}
+  footer.doc-footer .foot-links a{color:var(--cream-muted);font-size:0.8rem;border-bottom:1px solid transparent;}
+  footer.doc-footer .foot-links a:hover{color:var(--teal-light);}
+  footer.doc-footer p.copy{color:var(--cream-muted);font-size:0.8rem;}
+
+  @media (max-width:520px){
+    h1.hero-title{font-size:2.1rem;}
+    .topnav{padding-top:18px;}
+    .brand span{font-size:1.1rem;}
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <img src="/logo.png" alt="AtriumX">
+    <span>AtriumX</span>
+  </div>
+  <div class="nav-actions">
+    <a class="btn btn-sm btn-signin" href="/#/student">Sign In</a>
+    <a class="btn btn-sm btn-primary" href="/#/student?mode=register">Get Started</a>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="top-accent"></div>
+
+  <p class="eyebrow">Campus Marketplace</p>
+  <h1 class="hero-title">Students buying from students. That's Atrium.</h1>
+  <p class="hero-body">
+    Every res has a hustle — yours starts here. List what you're selling, chat directly
+    with buyers, and get seen by students right where you live.
+  </p>
+
+  <div class="cta-row">
+    <div class="cta-card">
+      <a class="btn btn-lg btn-primary" href="/#/student?mode=register">Get Started</a>
+      <p>Create your account and start listing or chatting with sellers.</p>
+    </div>
+    <div class="cta-card">
+      <a class="btn btn-lg btn-outline" href="/#/feed">Enter the Feed</a>
+      <p>Skip signup for now and see what's already for sale.</p>
+    </div>
+  </div>
+
+  <h2 class="group-title">Why Students Use It</h2>
+  <div class="features">
+    <div class="feature">
+      <p class="f-title">Buy & Sell</p>
+      <p class="f-body">Post in minutes, browse listings from students near you.</p>
+    </div>
+    <div class="feature">
+      <p class="f-title">Chat Directly</p>
+      <p class="f-body">Message sellers in-app — no need to share your number.</p>
+    </div>
+    <div class="feature">
+      <p class="f-title">Stay in Your Res</p>
+      <p class="f-body">See what's for sale in your own residence, first.</p>
+    </div>
+  </div>
+
+  <div class="encourage-note">
+    <p>
+      🎓 Whatever you're selling — start small, learn as you go, grow your hustle.
+      Everyone on Atrium started with one listing.
+    </p>
+  </div>
+</main>
+
+<footer class="doc-footer">
+  <div class="foot-links">
+    <a href="/How-it-works.html">How It Works</a>
+    <a href="/Faq.html">FAQ</a>
+    <a href="/safety.html">Safety Tips</a>
+    <a href="/Terms.html">Terms of Service</a>
+    <a href="/Privacy.html">Privacy Policy</a>
+  </div>
+  <p class="copy">&copy; AtriumX | Built for campus communities</p>
+</footer>
+
+</body>
+</html>
