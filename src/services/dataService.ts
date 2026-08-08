@@ -258,6 +258,21 @@ export async function getUserById(id: string): Promise<Profile | null> {
   return { ...data, watched_residences: data.watched_residences ?? [] } as Profile
 }
 
+// For viewing someone's PUBLIC profile page (yours or another user's) — goes
+// through profiles_public so email never comes along for the ride. Keep
+// using getUserById() above only where the id is guaranteed to be the
+// caller's own (session bootstrap, login, refreshing your own plan) — those
+// still need the full row and still work, since profiles_select_own now
+// only matches when auth.uid() = id anyway.
+export async function getPublicProfile(id: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles_public')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !data) return null
+  return { ...data, email: '', watched_residences: data.watched_residences ?? [] } as Profile
+}
 export async function updateProfile(
   id: string,
   fields: Partial<Pick<Profile, 'full_name' | 'residence' | 'avatar_color' | 'watched_residences'>>
@@ -307,7 +322,7 @@ export async function getListings(filters: {
 } = {}): Promise<Listing[]> {
   let query = supabase
     .from('listings')
-    .select('*, seller:profiles!inner(*)')
+.select('*, seller:profiles_public!inner(*)')
     .eq('status', 'active')
     .eq('seller.account_type', 'student')
     .order('created_at', { ascending: false })
@@ -337,7 +352,7 @@ const { data, error } = await query
 export async function getBusinessListings(): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
-    .select('*, seller:profiles!inner(*)')
+.select('*, seller:profiles_public!inner(*)')
     .eq('status', 'active')
     .eq('seller.account_type', 'business')
     .order('created_at', { ascending: false })
@@ -354,7 +369,7 @@ export async function getBusinessListings(): Promise<Listing[]> {
 export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
   const { data, error } = await supabase
     .from('listings')
-    .select('*, seller:profiles(*)')
+    .select('*, seller:profiles_public(*)')
     .eq('id', id)
     .single()
   if (error || !data) return null
