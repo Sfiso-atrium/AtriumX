@@ -287,11 +287,10 @@ const expiry = timeLeft(listing.expires_at)
             <video
               src={listing.video_url}
               controls
-              className="w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 object-cover bg-black"
+className="w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 object-cover bg-black"
               poster={listing.image_urls?.[0] || undefined}
             />
-          ) : (
-            <div className="relative w-full aspect-video md:w-[420px] md:aspect-square md:flex-shrink-0 bg-teal-faint overflow-hidden">
+<div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-teal-faint overflow-hidden">
               {listing.image_urls?.length > 0 ? (
                 <img
                   src={listing.image_urls[activeImage]}
