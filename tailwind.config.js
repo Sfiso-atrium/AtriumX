@@ -15,6 +15,10 @@ colors: {
           light: '#14B8A6',
           faint: '#0D948822',
         },
+        sapphire: {
+          primary: '#16305C',
+          light: '#3C5F94',
+        },
         cream: {
           DEFAULT: '#F0F4F8',
           muted: '#8B949E',
