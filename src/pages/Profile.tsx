@@ -96,7 +96,7 @@ export default function Profile() {
                   {business.physical_address}
                 </p>
               )}
-              {business.website && (
+{business.website && (
                 
                   href={/^https?:\/\//i.test(business.website) ? business.website : `https://${business.website}`}
                   target="_blank"
