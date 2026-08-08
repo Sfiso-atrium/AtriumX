@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Globe } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { Profile as ProfileType, Listing, Rating, getUserById, getUserListings, getSellerRatings, logout } from '../services/dataService'
+import {
+  Profile as ProfileType, Listing, Rating, getUserById, getUserListings, getSellerRatings, logout,
+  BusinessProfile, getBusinessProfile
+} from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 
@@ -11,6 +14,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const { currentUser, setCurrentUser } = useApp()
   const [profile, setProfile] = useState<ProfileType | null>(null)
+  const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [ratings, setRatings] = useState<Rating[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,6 +29,7 @@ export default function Profile() {
         setListings(l)
         setRatings(r)
         setLoading(false)
+        if (p?.account_type === 'business') getBusinessProfile(userId).then(setBusiness)
       }
     )
   }, [userId])
@@ -81,7 +86,30 @@ export default function Profile() {
                 {new Date(profile.joined_date).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
               </p>
             </div>
-          </div>
+</div>
+
+          {profile.account_type === 'business' && (business?.physical_address || business?.website) && (
+            <div className="flex flex-col gap-1.5 mb-6 text-sm">
+              {business.physical_address && (
+                <p className="text-cream-muted flex items-center gap-2">
+                  <MapPin size={14} className="text-teal-light flex-shrink-0" />
+                  {business.physical_address}
+                </p>
+              )}
+              {business.website && (
+                
+                  href={/^https?:\/\//i.test(business.website) ? business.website : `https://${business.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-light flex items-center gap-2 hover:underline w-fit"
+                >
+                  <Globe size={14} className="flex-shrink-0" />
+                  {business.website}
+                </a>
+              )}
+            </div>
+          )}
+
           {isOwn && pendingListings.length > 0 && (
 <p className="text-gold text-sm mb-4">
               {pendingListings.length} listing{pendingListings.length !== 1 ? 's' : ''} awaiting admin approval
