@@ -924,6 +924,8 @@ export interface BusinessProfile {
   business_type: string
   custom_business_type: string | null
   contact_number: string
+  physical_address: string | null
+  website: string | null
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
 }
