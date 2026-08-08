@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Star, Pencil } from 'lucide-react'
-import { Listing, Profile, PLAN_TIERS, PlanKey } from '../../services/dataService'
+import { Listing, Profile, PLAN_TIERS, PlanKey, BUSINESS_PLAN_ORDER } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 interface ListingCardProps {
   listing: Listing | any
@@ -84,11 +84,12 @@ const navigate = useNavigate()
             <span className="text-cream-muted text-xs">{contactCount} interested</span>
             <div className="flex items-center gap-3">
               {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
-              {listing.status !== 'sold' && (
+ {listing.status !== 'sold' && (
                 <button
                   onClick={e => {
                     e.stopPropagation()
-                    navigate('/post', { state: { plan: listing.plan_tier, editListing: listing } })
+                    const editPath = BUSINESS_PLAN_ORDER.includes(listing.plan_tier as PlanKey) ? '/business/post' : '/post'
+                    navigate(editPath, { state: { plan: listing.plan_tier, editListing: listing } })
                   }}
                   className="flex items-center gap-1 text-cream-muted hover:text-gold text-xs font-medium transition-colors"
                 >
