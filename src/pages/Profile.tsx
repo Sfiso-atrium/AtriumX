@@ -97,7 +97,7 @@ export default function Profile() {
                 </p>
               )}
 {business.website && (
-                
+                <a
                   href={/^https?:\/\//i.test(business.website) ? business.website : `https://${business.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
