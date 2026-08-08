@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  createListing, uploadListingImage, getUserListings, getBusinessProfile,
-  PLAN_TIERS, PlanKey, BusinessProfile
+  createListing, updateListing, uploadListingImage, getUserListings, getBusinessProfile,
+  PLAN_TIERS, PlanKey, BusinessProfile, Listing
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
@@ -13,10 +13,9 @@ import ImageCropModal from '../components/common/ImageCropModal'
 export default function BusinessPostListing() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, isLoadingAuth, showToast } = useApp()
-  const { plan: statePlan } = (location.state as { plan?: PlanKey } | null) || {}
-  const plan = statePlan || (currentUser?.plan as PlanKey | undefined)
-
+const { currentUser, isLoadingAuth, showToast } = useApp()
+  const { plan: statePlan, editListing } = (location.state as { plan?: PlanKey; editListing?: Listing } | null) || {}
+  const plan = (editListing?.plan_tier as PlanKey | undefined) || statePlan || (currentUser?.plan as PlanKey | undefined)
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
   const [atLimit, setAtLimit] = useState(false)
@@ -29,8 +28,16 @@ const [imageUrls, setImageUrls] = useState<string[]>([])
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+const [submitted, setSubmitted] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editListing) return
+    setTitle(editListing.title)
+    setDescription(editListing.description)
+    setPrice(String(editListing.price))
+    setImageUrls(editListing.image_urls || [])
+  }, [editListing])
 
   useEffect(() => {
     if (isLoadingAuth) return
@@ -43,12 +50,17 @@ const [imageUrls, setImageUrls] = useState<string[]>([])
       setCheckingBusiness(false)
     })
 
-    getUserListings(currentUser.id).then(listings => {
-      const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
-      const max = PLAN_TIERS[plan].maxListings
-      if (active >= max) setAtLimit(true)
-    })
-  }, [currentUser, isLoadingAuth, navigate, plan])
+// Editing doesn't add a new listing, so it shouldn't be blocked by
+    // (or count toward) the active-listing limit — same reasoning as
+    // the student PostListing flow.
+    if (!editListing) {
+      getUserListings(currentUser.id).then(listings => {
+        const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+        const max = PLAN_TIERS[plan].maxListings
+        if (active >= max) setAtLimit(true)
+      })
+    }
+  }, [currentUser, isLoadingAuth, navigate, plan, editListing])
 
   if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
 
@@ -65,24 +77,27 @@ const [imageUrls, setImageUrls] = useState<string[]>([])
     </div>
   )
 
-  if (submitted) return (
+if (submitted) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
         <span className="text-3xl">✓</span>
       </div>
-      <h2 className="text-cream font-bold text-2xl mb-2">Listing Submitted</h2>
+      <h2 className="text-cream font-bold text-2xl mb-2">
+        {editListing ? 'Listing Updated' : 'Listing Submitted'}
+      </h2>
       <p className="text-cream-muted text-sm max-w-sm mb-6">
-        Your listing is under review. Once approved, it will appear on the Business tab of the feed.
+        {editListing
+          ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
+          : 'Your listing is under review. Once approved, it will appear on the Business tab of the feed.'}
       </p>
       <button
-        onClick={() => navigate('/feed')}
+        onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
         className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-8 rounded-xl transition-colors"
       >
-        Back to Feed
+        {editListing ? 'Back to My Listings' : 'Back to Feed'}
       </button>
     </div>
   )
-
   if (atLimit) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
@@ -153,19 +168,31 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!title.trim()) return setError('Give your listing a name.')
     if (description.trim().length < 20) return setError('Description needs at least 20 characters.')
 
-    setLoading(true)
-    const { error: err } = await createListing({
-      sellerId: currentUser.id,
+setLoading(true)
+    const sharedFields = {
       title: title.trim(),
       description: description.trim(),
       price: Number(price) || 0,
-      category: business?.business_type || 'other',
+      category: editListing?.category || business?.business_type || 'other',
       imageUrls,
       residence: '',
-      listingType: 'ongoing',
+      listingType: 'ongoing' as const,
       isNegotiable: false,
-      planTier: plan,
       variants: [],
+    }
+
+    if (editListing) {
+      const { error: err } = await updateListing(editListing.id, sharedFields)
+      setLoading(false)
+      if (err) { setError(err); return }
+      setSubmitted(true)
+      return
+    }
+
+    const { error: err } = await createListing({
+      sellerId: currentUser.id,
+      ...sharedFields,
+      planTier: plan,
     })
     setLoading(false)
     if (err) { setError(err); return }
@@ -179,7 +206,7 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
-          <h1 className="font-serif text-2xl text-cream mb-1">New Business Listing</h1>
+<h1 className="font-serif text-2xl text-cream mb-1">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
           <p className="text-cream-muted text-sm mb-6">
             Posting on the {tierConfig.label} plan — {maxPhotos === 0 ? 'text only, no photos' : `up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''}`}.
           </p>
@@ -285,14 +312,13 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
-            <button
+<button
               onClick={handleSubmit}
               disabled={loading || uploading || !title || description.length < 20}
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {loading ? 'Submitting...' : 'Post Listing'}
+              {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
             </button>
-
             {/* Nothing ranks above Campus Partner, so there's nothing to
                 upgrade to — hide the button entirely rather than show a dead end. */}
             {plan !== 'campus_partner' && (
