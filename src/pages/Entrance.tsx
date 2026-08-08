@@ -25,8 +25,8 @@ export default function Entrance() {
           <p className="text-cream-muted text-sm mb-5">
             Browse listings and buy from your neighbours.
           </p>
-          <button
-            onClick={() => navigate('/feed')}
+<button
+            onClick={() => { window.location.href = '/Welcome.html' }}
             className="w-full bg-gold hover:opacity-85 text-black font-bold py-3 rounded-xl transition-opacity"
           >
             Enter the Marketplace
