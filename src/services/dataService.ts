@@ -940,7 +940,9 @@ export async function registerBusinessWithEmail(
   businessName: string,
   businessType: string,
   customBusinessType: string | undefined,
-  contactNumber: string
+  contactNumber: string,
+  physicalAddress: string | undefined,
+  website: string | undefined
 ): Promise<{ user: Profile | null; error: string | null }> {
   const initials = businessName
     .split(' ')
@@ -977,12 +979,14 @@ export async function registerBusinessWithEmail(
   }
   if (!profile) return { user: null, error: 'Account created but profile is missing. Contact support.' }
 
-  const { error: bizError } = await supabase.from('business_profiles').insert({
+const { error: bizError } = await supabase.from('business_profiles').insert({
     id: data.user.id,
     business_name: businessName,
     business_type: businessType,
     custom_business_type: businessType === 'Other' ? customBusinessType || null : null,
     contact_number: contactNumber,
+    physical_address: physicalAddress?.trim() || null,
+    website: website?.trim() || null,
   })
   if (bizError) return { user: null, error: bizError.message }
 
