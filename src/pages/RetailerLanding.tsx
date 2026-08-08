@@ -51,7 +51,7 @@ function PricingCard({
       <ul className="flex flex-col gap-2">
         {features.map(f => (
           <li key={f} className="flex items-start gap-2">
-            <CheckCircle size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />
+            <CheckCircle size={14} className="text-sapphire-light mt-0.5 flex-shrink-0" />
             <span className="text-cream text-sm">{f}</span>
           </li>
         ))}
@@ -61,7 +61,7 @@ function PricingCard({
         className={`w-full py-3 rounded-xl font-bold text-sm transition-colors mt-auto ${
           highlighted
             ? 'bg-ember hover:bg-ember-dark text-white'
-            : 'bg-blue-700 hover:bg-blue-500 text-cream'
+            : 'bg-sapphire-primary hover:bg-sapphire-light text-cream'
         }`}
       >
         Get Started
@@ -83,7 +83,7 @@ export default function RetailerLanding() {
 
       {/* HERO */}
       <section className="px-6 py-20 text-center max-w-2xl mx-auto">
-        <p className="text-blue-400 text-xs font-bold tracking-widest uppercase mb-4">
+        <p className="text-sapphire-light text-xs font-bold tracking-widest uppercase mb-4">
           Campus Advertising · Johannesburg
         </p>
         <h1 className="font-serif text-4xl text-cream leading-tight mb-4">
@@ -101,7 +101,7 @@ export default function RetailerLanding() {
       </section>
 
       {/* STATS */}
-      <section className="bg-blue-700 py-12 px-6">
+      <section className="bg-sapphire-primary py-12 px-6">
         <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-around gap-8">
           <StatCard value="500+" label="Active Students" />
           <StatCard value="4" label="Residences Covered" />
@@ -123,7 +123,7 @@ export default function RetailerLanding() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="px-6 py-16 bg-blue-700">
+      <section id="pricing" className="px-6 py-16 bg-sapphire-primary">
         <h2 className="text-cream font-bold text-2xl text-center mb-2">Simple, Transparent Pricing</h2>
         <p className="text-cream-muted text-sm text-center mb-10">No contracts. No surprises. Cancel anytime.</p>
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
