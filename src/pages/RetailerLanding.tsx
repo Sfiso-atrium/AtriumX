@@ -89,8 +89,8 @@ export default function RetailerLanding() {
         <h1 className="font-serif text-4xl text-cream leading-tight mb-4">
           Reach students where they live.
         </h1>
-        <p className="text-cream-muted text-base mb-8">
-          Atrium puts your business in front of hundreds of students inside their residences — right when they need what you offer.
+<p className="text-cream-muted text-base mb-8">
+          Atrium puts your business in front of hundreds of students across campus, in the same app they already use to buy and sell with each other.
         </p>
         <button
           onClick={() => handlePackageSelect('featured')}
@@ -116,9 +116,9 @@ export default function RetailerLanding() {
       <section className="px-6 py-16 max-w-4xl mx-auto">
         <h2 className="text-cream font-bold text-2xl text-center mb-10">How It Works</h2>
         <div className="flex flex-col md:flex-row gap-4">
-          <StepCard number="01" title="Apply" body="Fill in your business details and choose an advertising package that fits your budget." />
-          <StepCard number="02" title="We Review" body="Our team reviews your application within 48 hours to ensure it fits the student community." />
-          <StepCard number="03" title="Go Live" body="Your listing goes live inside the Atrium feed and reaches students immediately in their residences." />
+<StepCard number="01" title="Apply" body="Register your business for free — every account starts on the Noticeboard plan, so there's no cost or card needed to get listed." />
+          <StepCard number="02" title="We Review" body="Our team reviews your business account, usually within 48 hours, before you're able to post." />
+          <StepCard number="03" title="Go Live" body="Post your first listing and, once it's approved, it appears in the Business tab of the Atrium feed for every student to see." />
         </div>
       </section>
 
@@ -127,46 +127,39 @@ export default function RetailerLanding() {
         <h2 className="text-cream font-bold text-2xl text-center mb-2">Simple, Transparent Pricing</h2>
         <p className="text-cream-muted text-sm text-center mb-10">No contracts. No surprises. Cancel anytime.</p>
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          <PricingCard
-            name="Noticeboard"
-            price="Free"
-            period="/ 7 days"
-            packageId="noticeboard"
+<PricingCard
+            name="Noticeboard" price="Free" period="/ 7 days" packageId="noticeboard"
             onSelect={handlePackageSelect}
             features={[
-              'Text listing in the student feed',
-              'Listed in your category',
+              'Text-only listing (no photos)',
+              '1 active listing at a time',
+              "Can't message students directly",
               '7-day active window',
-              'Basic view count',
             ]}
           />
           <PricingCard
-            name="Featured"
-            price="R350"
-            period="/ week"
-            packageId="featured"
-            highlighted
+            name="Featured" price="R350" period="/ 14 days" packageId="featured" highlighted
             onSelect={handlePackageSelect}
             features={[
-              'Pinned to top of your category',
-              'Gold Sponsored badge',
+              '1 photo per listing',
+              'Up to 3 active listings',
+              'Unlimited messaging with students',
+              'Gold "Sponsored" badge on your listings',
+              'Push notification when a student messages you',
               '14-day active window',
-              'Full analytics dashboard',
-              'Priority support',
             ]}
           />
           <PricingCard
-            name="Campus Partner"
-            price="R800"
-            period="/ month"
-            packageId="campus_partner"
+            name="Campus Partner" price="R800" period="/ 30 days" packageId="campus_partner"
             onSelect={handlePackageSelect}
             features={[
-              'Permanent listing in Business section',
-              'Category sponsorship naming rights',
-              'Monthly analytics report',
-              'Logo on welcome screen',
-              'Featured in weekly digest',
+              'Up to 3 photos per listing',
+              'Up to 6 active listings',
+              'Unlimited messaging with students',
+              'Reply to student reviews',
+              '"Campus Partner" badge on your listings',
+              'Search ranking boost',
+              '30-day active window',
             ]}
           />
         </div>
