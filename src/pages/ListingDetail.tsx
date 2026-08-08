@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle, Star,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag, Plus
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag, Plus,
   MapPin, Globe
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
