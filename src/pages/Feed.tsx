@@ -3,10 +3,17 @@ import { Search, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Listing, getListings, getBusinessListings, getResidences } from '../services/dataService'
+import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
+
+const APPLICATION_LINK = 'https://atriumx.co.za/retailer'
+const BUSINESS_CATEGORIES = [
+  { id: 'all', label: 'All' },
+  ...BUSINESS_TYPES.map(t => ({ id: t, label: t })),
+]
 function EmptyState({ message, actionLabel, onAction }: { message: string; actionLabel?: string; onAction?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
@@ -29,7 +36,7 @@ stroke="#0D9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
 }
 
 export default function Feed() {
-const { activeCategory } = useApp()
+const { activeCategory, showToast } = useApp()
   const navigate = useNavigate()
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
   const [localSearch, setLocalSearch] = useState('')
@@ -47,8 +54,17 @@ const { activeCategory } = useApp()
   const [maxPrice, setMaxPrice] = useState('')
   const [negotiableOnly, setNegotiableOnly] = useState(false)
 
-const [fetchError, setFetchError] = useState(false)
+  // Businesses tab gets its own search/category/filters state — separate
+  // from the marketplace tab's, since business listings have no residence
+  // or negotiable flag, and their categories are business types, not the
+  // student CATEGORIES list.
+  const [bizSearch, setBizSearch] = useState('')
+  const [bizCategory, setBizCategory] = useState('all')
+  const [bizFiltersOpen, setBizFiltersOpen] = useState(false)
+  const [bizMinPrice, setBizMinPrice] = useState('')
+  const [bizMaxPrice, setBizMaxPrice] = useState('')
 
+const [fetchError, setFetchError] = useState(false)
 useEffect(() => {
     getListings()
       .then(data => {
@@ -82,8 +98,27 @@ useEffect(() => {
       const matchNegotiable = !negotiableOnly || listing.is_negotiable
       return matchCat && matchSearch && matchResidence && matchPrice && matchNegotiable
     })
-  }, [listings, activeCategory, localSearch, residenceFilter, minPrice, maxPrice, negotiableOnly])
+ }, [listings, activeCategory, localSearch, residenceFilter, minPrice, maxPrice, negotiableOnly])
 
+  const filteredBusiness = useMemo(() => {
+    return businessListings.filter(listing => {
+      const matchCat = bizCategory === 'all' || listing.category === bizCategory
+      const q = bizSearch.trim().toLowerCase()
+      const matchSearch = !q ||
+        listing.title.toLowerCase().includes(q) ||
+        listing.description.toLowerCase().includes(q)
+      const min = bizMinPrice ? Number(bizMinPrice) : null
+      const max = bizMaxPrice ? Number(bizMaxPrice) : null
+      const matchPrice = (min === null || listing.price >= min) && (max === null || listing.price <= max)
+      return matchCat && matchSearch && matchPrice
+    })
+  }, [businessListings, bizCategory, bizSearch, bizMinPrice, bizMaxPrice])
+
+  const handleCopyApplicationLink = () => {
+    navigator.clipboard.writeText(APPLICATION_LINK)
+      .then(() => showToast('Application link copied — send it their way.', 'success'))
+      .catch(() => showToast('Could not copy the link. Try again.', 'error'))
+  }
   return (
     <>
       <div className="min-h-screen bg-slate-deep">
@@ -99,7 +134,7 @@ useEffect(() => {
                   : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
               }`}
             >
-              Marketplace
+              Students
             </button>
             <button
               onClick={() => setFeedTab('business')}
@@ -109,7 +144,7 @@ useEffect(() => {
                   : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
               }`}
             >
-              Business
+              Businesses
             </button>
           </div>
 
@@ -218,23 +253,81 @@ useEffect(() => {
           </>
           )}
 
-          {feedTab === 'business' && (
-            <div className="px-4 pt-4">
-              <p className="text-cream-muted text-xs pb-2">
-                {businessLoading ? 'Loading...' : `${businessListings.length} business${businessListings.length !== 1 ? 'es' : ''} found`}
-              </p>
-              {businessListings.length === 0 ? (
-                <EmptyState
-                  message={businessLoading ? 'Loading businesses...' : 'No businesses listed yet.'}
-                />
-              ) : (
-                <div className="pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {businessListings.map(listing => (
-                    <ListingCard key={listing.id} listing={listing} />
-                  ))}
-                </div>
+{feedTab === 'business' && (
+            <>
+            <div className="px-4 pt-4 pb-2 relative">
+              <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-cream-muted" />
+              <input
+                type="text"
+                value={bizSearch}
+                onChange={e => setBizSearch(e.target.value)}
+                placeholder="Search businesses..."
+                className="w-full bg-slate-card border border-slate-border rounded-xl pl-9 pr-10 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+              />
+              {bizSearch && (
+                <button
+                  onClick={() => setBizSearch('')}
+                  className="absolute right-7 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                >
+                  <X size={14} />
+                </button>
               )}
             </div>
+
+            <CategoryChips categories={BUSINESS_CATEGORIES} active={bizCategory} onSelect={setBizCategory} />
+
+            <div className="px-4 pb-2">
+              <button
+                onClick={() => setBizFiltersOpen(o => !o)}
+                className="text-blue-400 hover:text-blue-300 text-xs underline underline-offset-2 transition-colors"
+              >
+                {bizFiltersOpen ? 'Hide filters' : 'Filters'}
+              </button>
+            </div>
+
+            {bizFiltersOpen && (
+              <div className="px-4 pb-3 flex flex-wrap items-center gap-2">
+                <input
+                  type="number" inputMode="numeric" min={0}
+                  value={bizMinPrice} onChange={e => setBizMinPrice(e.target.value)}
+                  placeholder="Min R"
+                  className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                />
+                <input
+                  type="number" inputMode="numeric" min={0}
+                  value={bizMaxPrice} onChange={e => setBizMaxPrice(e.target.value)}
+                  placeholder="Max R"
+                  className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                />
+              </div>
+            )}
+
+            <div className="px-4 pb-2">
+              <p className="text-cream-muted text-xs">
+                {businessLoading ? 'Loading...' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
+              </p>
+            </div>
+
+            {filteredBusiness.length === 0 ? (
+              <EmptyState
+                message={
+                  businessLoading
+                    ? 'Loading businesses...'
+                    : businessListings.length === 0
+                    ? 'No businesses listed yet. Know one that should be here?'
+                    : 'No businesses match your search.'
+                }
+                actionLabel={businessLoading || businessListings.length > 0 ? undefined : 'Copy Application Link'}
+                onAction={handleCopyApplicationLink}
+              />
+            ) : (
+              <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredBusiness.map(listing => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            )}
+            </>
           )}
         </div>
     </div>
