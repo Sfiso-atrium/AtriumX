@@ -34,7 +34,7 @@ const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
 
 const PLAN_COLORS: Record<BusinessPlanKey, string> = {
   noticeboard: 'border-slate-border',
-  featured: 'border-blue-400',
+  featured: 'border-sapphire-light',
   campus_partner: 'border-gold',
 }
 
@@ -169,7 +169,7 @@ export default function BusinessPlanSelect() {
                   className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                     isLowerThanCurrent ? 'opacity-40 cursor-not-allowed' : ''
                   } ${
-                    isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-blue-400'
+                    isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-sapphire-light'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -181,7 +181,7 @@ export default function BusinessPlanSelect() {
                       </div>
                       <span className="text-cream font-bold text-lg">{tier.label}</span>
                       {isCurrent && (
-                        <span className="text-xs bg-blue-400/10 text-blue-400 px-2 py-0.5 rounded-full font-medium">
+                        <span className="text-xs bg-sapphire-light/10 text-sapphire-light px-2 py-0.5 rounded-full font-medium">
                           Current
                         </span>
                       )}
@@ -194,7 +194,7 @@ export default function BusinessPlanSelect() {
                   <ul className="flex flex-col gap-1 ml-8">
                     {PLAN_FEATURES[key].map(f => (
                       <li key={f} className="flex items-start gap-2">
-                        <Check size={12} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                        <Check size={12} className="text-sapphire-light mt-0.5 flex-shrink-0" />
                         <span className="text-cream-muted text-xs">{f}</span>
                       </li>
                     ))}
