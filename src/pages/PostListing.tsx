@@ -8,25 +8,7 @@ import {
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
-// The listing detail page displays photos in a 16:9 box with object-cover,
-// so a photo whose own shape is far from 16:9 gets aggressively cropped —
-// potentially cutting off the actual item. This reads the file's real pixel
-// dimensions client-side, before it's ever uploaded, so we can catch that.
-function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl)
-      reject(new Error('unreadable'))
-    }
-    img.src = objectUrl
-  })
-}
+import ImageCropModal from '../components/common/ImageCropModal'
 
 const CATEGORIES_LIST = [
   { id: 'textbooks', label: 'Textbooks' },
@@ -53,8 +35,9 @@ const { currentUser, setCurrentUser, showToast, isLoadingAuth } = useApp()
   const [residence, setResidence] = useState(currentUser?.residence || '')
   const [listingType, setListingType] = useState<'single' | 'ongoing'>('single')
   const [isNegotiable, setIsNegotiable] = useState(false)
-  const [imageUrls, setImageUrls] = useState<string[]>([])
+const [imageUrls, setImageUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [variants, setVariants] = useState<{ name: string; price: string }[]>([])
 const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -156,38 +139,31 @@ if (atLimit) return (
   const maxPhotos = tierConfig.maxPhotos
   const maxVariants = tierConfig.maxVariants
 
-const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (imageUrls.length >= maxPhotos) return
+    setCropSrc(URL.createObjectURL(file))
+  }
 
-    try {
-      const { width, height } = await getImageDimensions(file)
-      const ratio = width / height
-      const targetRatio = 16 / 9
-      const tolerance = 0.15 // 15% wiggle room either side of 16:9
-      if (Math.abs(ratio - targetRatio) / targetRatio > tolerance) {
-        showToast(
-          'That photo is too far from a 16:9 landscape shape — it would get cropped and cut off in the listing. Please crop it closer to 16:9 first.',
-          'error'
-        )
-        if (fileRef.current) fileRef.current.value = ''
-        return
-      }
-    } catch {
-      showToast('Could not read that image. Try a different file.', 'error')
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-
-    setUploading(true)
-   const { url, error: uploadError } = await uploadListingImage(file, currentUser.id)
-    setUploading(false)
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (fileRef.current) fileRef.current.value = ''
+
+    const croppedFile = new File([blob], 'listing-photo.jpg', { type: 'image/jpeg' })
+    setUploading(true)
+    const { url, error: uploadError } = await uploadListingImage(croppedFile, currentUser.id)
+    setUploading(false)
     if (uploadError) { showToast(uploadError, 'error'); return }
     if (url) setImageUrls(prev => [...prev, url])
   }
-
   const removeImage = (idx: number) => {
     setImageUrls(prev => prev.filter((_, i) => i !== idx))
   }
@@ -549,7 +525,14 @@ setLoading(true)
             )}
           </div>
         </div>
-     </div>
+    </div>
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
       <BottomNav />
     </>
   )
