@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
@@ -27,7 +27,10 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
 
 export default function BusinessPostListing() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, isLoadingAuth, showToast } = useApp()
+  const { plan: statePlan } = (location.state as { plan?: PlanKey } | null) || {}
+  const plan = statePlan || (currentUser?.plan as PlanKey | undefined)
 
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
@@ -47,6 +50,7 @@ export default function BusinessPostListing() {
     if (isLoadingAuth) return
     if (!currentUser) { navigate('/retailer/signup'); return }
     if (currentUser.account_type !== 'business') { navigate('/plan-select'); return }
+    if (!plan) { navigate('/business/plan-select'); return }
 
     getBusinessProfile(currentUser.id).then(biz => {
       setBusiness(biz)
@@ -55,12 +59,12 @@ export default function BusinessPostListing() {
 
     getUserListings(currentUser.id).then(listings => {
       const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
-      const max = PLAN_TIERS[currentUser.plan as PlanKey].maxListings
+      const max = PLAN_TIERS[plan].maxListings
       if (active >= max) setAtLimit(true)
     })
-  }, [currentUser, isLoadingAuth, navigate])
+  }, [currentUser, isLoadingAuth, navigate, plan])
 
-  if (isLoadingAuth || checkingBusiness || !currentUser) return null
+  if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
 
   if (business?.status !== 'approved') return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
@@ -96,19 +100,37 @@ export default function BusinessPostListing() {
   if (atLimit) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <p className="text-cream font-bold text-xl mb-2">Listing Limit Reached</p>
-      <p className="text-cream-muted text-sm mb-6">
-        Your {PLAN_TIERS[currentUser.plan as PlanKey].label} plan allows {PLAN_TIERS[currentUser.plan as PlanKey].maxListings} active listing{PLAN_TIERS[currentUser.plan as PlanKey].maxListings !== 1 ? 's' : ''}.
-      </p>
-      <button
-        onClick={() => navigate('/retailer')}
-        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
-      >
-        See Plans
-      </button>
+      {plan === 'campus_partner' ? (
+        <>
+          <p className="text-cream-muted text-sm mb-6 max-w-sm">
+            You're already on our top plan, Campus Partner, which allows up to {PLAN_TIERS.campus_partner.maxListings} active
+            listings — and you've used all of them. To post something new, mark one of your current listings as sold first.
+          </p>
+          <button
+            onClick={() => navigate(`/profile/${currentUser.id}`)}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Go to My Listings
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-cream-muted text-sm mb-6">
+            Your {PLAN_TIERS[plan].label} plan allows {PLAN_TIERS[plan].maxListings} active listing{PLAN_TIERS[plan].maxListings !== 1 ? 's' : ''}.
+            Upgrade to post more at the same time.
+          </p>
+          <button
+            onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            Upgrade Plan
+          </button>
+        </>
+      )}
     </div>
   )
 
-  const tierConfig = PLAN_TIERS[currentUser.plan as PlanKey]
+  const tierConfig = PLAN_TIERS[plan]
   const maxPhotos = tierConfig.maxPhotos
   const canUploadPhoto = maxPhotos > 0
 
@@ -162,7 +184,7 @@ export default function BusinessPostListing() {
       residence: '',
       listingType: 'ongoing',
       isNegotiable: false,
-      planTier: currentUser.plan as PlanKey,
+      planTier: plan,
       variants: [],
     })
     setLoading(false)
@@ -189,9 +211,18 @@ export default function BusinessPostListing() {
                 Photos ({imageUrls.length}/{maxPhotos})
               </label>
               {!canUploadPhoto ? (
-                <p className="text-cream-muted text-xs bg-slate-card border border-slate-border rounded-xl px-4 py-3">
-                  Photos aren't included on the Noticeboard plan. Upgrade to Featured or Campus Partner to add photos.
-                </p>
+                <div className="bg-slate-card border border-slate-border rounded-xl px-4 py-3 flex items-center gap-3">
+                  <ImagePlus size={18} className="text-cream-muted flex-shrink-0" />
+                  <div>
+                    <p className="text-cream-muted text-sm">Photos aren't included on the Noticeboard plan</p>
+                    <button
+                      onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
+                      className="text-blue-400 text-xs underline"
+                    >
+                      Upgrade to add photos
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex gap-2 flex-wrap">
                   {imageUrls.map((url, idx) => (
@@ -281,6 +312,18 @@ export default function BusinessPostListing() {
             >
               {loading ? 'Submitting...' : 'Post Listing'}
             </button>
+
+            {/* Nothing ranks above Campus Partner, so there's nothing to
+                upgrade to — hide the button entirely rather than show a dead end. */}
+            {plan !== 'campus_partner' && (
+              <button
+                type="button"
+                onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
+                className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-3 rounded-xl transition-colors"
+              >
+                Upgrade Plan
+              </button>
+            )}
           </div>
         </div>
       </div>
