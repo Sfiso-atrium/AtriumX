@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { registerBusinessWithEmail, loginWithEmail } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 
-const BUSINESS_TYPES = [
+export const BUSINESS_TYPES = [
   'Restaurant', 'Clothing', 'Electronics',
   'Tutoring', 'Printing', 'Salon', 'Other'
 ]
