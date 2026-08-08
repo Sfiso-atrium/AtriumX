@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Flag, Users, RefreshCw, CircleCheck as CheckCircle, Star,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Repeat, Wrench, Tag, Plus
   MapPin, Globe
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -547,14 +547,18 @@ className="w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 obj
 
             {seller?.account_type === 'business' && (
             <div>
-              <div className="flex items-center justify-between mb-0.5">
+<div className="flex items-center justify-between mb-0.5">
                 <p className="text-gold font-bold text-sm">Reviews</p>
-                {!isSeller && currentUser && !businessReviews.some(r => r.student_id === currentUser.id) && (
+                {!isSeller && (!currentUser || !businessReviews.some(r => r.student_id === currentUser.id)) && (
                   <button
-                    onClick={() => setShowReviewForm(v => !v)}
-                    className="text-teal-light text-xs font-semibold hover:underline"
+                    onClick={() => {
+                      if (!currentUser) { setAuthPromptOpen(true); return }
+                      setShowReviewForm(v => !v)
+                    }}
+                    aria-label="Write a review"
+                    className="w-8 h-8 rounded-full bg-gold hover:bg-gold/90 text-slate-deep flex items-center justify-center transition-colors flex-shrink-0"
                   >
-                    Leave a Review
+                    <Plus size={16} strokeWidth={2.5} />
                   </button>
                 )}
               </div>
