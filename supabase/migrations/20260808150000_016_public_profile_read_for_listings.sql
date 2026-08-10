@@ -17,3 +17,24 @@
 -- that needs a separate follow-up (a public view exposing only safe
 -- columns) -- flagging it here rather than folding it into this fix.
 CREATE POLICY "profiles_select_public" ON profiles FOR SELECT TO anon USING (true);
+-- Fixes "infinite recursion detected in policy for relation profiles",
+-- caused by profiles_select_admin querying profiles from within its own
+-- policy on profiles. Moves the admin check into a SECURITY DEFINER
+-- function, which runs with the function owner's privileges and so bypasses
+-- RLS for this one internal lookup -- it never re-enters profiles' own
+-- policies, which is what removes the recursion.
+CREATE OR REPLACE FUNCTION is_admin(uid uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT COALESCE((SELECT p.is_admin FROM profiles p WHERE p.id = uid), false);
+$$;
+
+GRANT EXECUTE ON FUNCTION is_admin(uuid) TO anon, authenticated;
+
+DROP POLICY IF EXISTS "profiles_select_admin" ON profiles;
+CREATE POLICY "profiles_select_admin" ON profiles FOR SELECT TO authenticated
+  USING (is_admin(auth.uid()));
