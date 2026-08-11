@@ -62,8 +62,13 @@ export default function PlanSelect() {
   const planIsActive = !!currentPlan && currentPlan !== 'ghost' &&
     !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
 
-  useEffect(() => {
+useEffect(() => {
     if (isLoadingAuth || !currentUser) return
+
+    if (currentUser.account_type === 'business') {
+      navigate('/business/plan-select', { replace: true })
+      return
+    }
 
     // Came here explicitly wanting to see plan options (e.g. "Upgrade to
     // add photos") — skip the under-limit shortcut entirely, or this would
