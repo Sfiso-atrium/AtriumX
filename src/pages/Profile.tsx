@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin, Globe } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { Profile as ProfileType, Listing, Rating, getPublicProfile, getUserListings, getSellerRatings, logout } from '../services/dataService'
+import { Profile as ProfileType, Listing, Rating, BusinessProfile, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile, logout } from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 
