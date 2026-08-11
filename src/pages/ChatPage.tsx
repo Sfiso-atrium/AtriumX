@@ -120,8 +120,13 @@ conversations.map(conv => {
                           : <ShoppingBag size={11} className="text-white" />}
                       </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-cream font-bold text-sm truncate">{other?.full_name || 'Unknown'}</p>
+<div className="flex-1 min-w-0">
+                      <p className="text-cream font-bold text-sm truncate">
+                        {other?.full_name || 'Unknown'}{' '}
+                        <span className="text-cream-muted font-normal">
+                          ({iAmSeller ? 'Buying' : 'Selling'})
+                        </span>
+                      </p>
                       <p className="text-cream-muted text-xs truncate">{conv.listing?.title}</p>
                     </div>
                     {conv.is_resolved && (
