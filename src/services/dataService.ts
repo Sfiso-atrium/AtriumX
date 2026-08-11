@@ -9,7 +9,7 @@ export interface Profile {
   residence: string | null
   avatar_initials: string
   avatar_color: string
-  plan: 'ghost' | 'flash' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' | 'campus_partner'
+plan: 'ghost' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' | 'campus_partner'
   plan_expires_at: string | null
   account_type: 'student' | 'business'
   avg_rating: number
