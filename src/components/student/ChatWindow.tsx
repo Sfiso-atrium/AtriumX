@@ -162,8 +162,13 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
                 : <ShoppingBag size={9} className="text-white" />}
             </span>
           </div>
-          <div>
-            <p className="text-cream font-bold text-sm">{otherParty.full_name}</p>
+<div>
+            <p className="text-cream font-bold text-sm">
+              {otherParty.full_name}{' '}
+              <span className="text-cream-muted font-normal">
+                ({isSeller ? 'Buying' : 'Selling'})
+              </span>
+            </p>
             <p className="text-cream-muted text-xs truncate max-w-[180px]">
               {conversation.listing?.title}
             </p>
