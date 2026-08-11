@@ -609,8 +609,9 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
-      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
-      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
+      buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
+      seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
+
       messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
@@ -640,7 +641,7 @@ export async function getConversationsForListing(
     .from('conversations')
     .select(`
       *,
-      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan)
+buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan)
     `)
     .eq('listing_id', listingId)
     .eq('seller_id', sellerId)
@@ -746,7 +747,7 @@ export async function getSellerRatings(sellerId: string): Promise<Rating[]> {
     .select(`
       *,
       listing:listings(id, title),
-      buyer:profiles!ratings_buyer_id_fkey(full_name, avatar_initials, avatar_color)
+   buyer:profiles_public!buyer_id(full_name, avatar_initials, avatar_color)
     `)
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false })
@@ -890,7 +891,7 @@ export async function getReportsForListings(listingIds: string[]): Promise<Repor
   if (listingIds.length === 0) return []
   const { data, error } = await supabase
     .from('reports')
-    .select('*, reporter:public_profiles(full_name)')
+    .select('*, reporter:profiles_public(full_name)')
     .in('listing_id', listingIds)
     .order('created_at', { ascending: false })
   if (error || !data) return []
@@ -1059,7 +1060,7 @@ export interface BusinessReview {
 export async function getBusinessReviews(businessId: string): Promise<BusinessReview[]> {
   const { data, error } = await supabase
     .from('business_reviews')
-    .select('*, student:profiles(full_name, avatar_initials, avatar_color)')
+    .select('*, student:profiles_public!student_id(full_name, avatar_initials, avatar_color)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
   if (error || !data) return []
