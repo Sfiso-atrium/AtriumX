@@ -689,9 +689,8 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
-      buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
-      seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
-
+      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
+      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
@@ -702,11 +701,25 @@ export async function getConversationsForUser(
 
   const conversations = data as unknown as (Conversation & { messages?: Message[] })[]
 
+  const convIds = conversations.map(c => c.id)
+  const unreadCounts: Record<string, number> = {}
+  if (convIds.length > 0) {
+    const { data: unread } = await supabase
+      .from('messages')
+      .select('conversation_id')
+      .in('conversation_id', convIds)
+      .eq('read', false)
+      .neq('sender_id', userId)
+    unread?.forEach(m => {
+      unreadCounts[m.conversation_id] = (unreadCounts[m.conversation_id] || 0) + 1
+    })
+  }
+
   // Latest activity = the conversation's most recent message. If nobody has
   // sent a message yet, fall back to when the conversation itself was
   // created so brand-new chats still slot in correctly.
   return conversations
-    .map(c => ({ ...c, last_message: c.messages?.[0] }))
+    .map(c => ({ ...c, last_message: c.messages?.[0], unread_count: unreadCounts[c.id] || 0 }))
     .sort((a, b) => {
       const aTime = new Date(a.last_message?.sent_at ?? a.created_at).getTime()
       const bTime = new Date(b.last_message?.sent_at ?? b.created_at).getTime()
