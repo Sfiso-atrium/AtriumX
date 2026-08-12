@@ -92,6 +92,13 @@ conversations.map(conv => {
                 const other = currentUser?.id === conv.buyer_id ? conv.seller : conv.buyer
                 const isActive = active?.id === conv.id
                 const iAmSeller = currentUser?.id === conv.seller_id
+                const unread = conv.unread_count || 0
+                const lastMsg = conv.last_message
+                const preview = lastMsg
+                  ? `${lastMsg.sender_id === currentUser?.id ? 'You: ' : ''}${
+                      lastMsg.content.length > 40 ? lastMsg.content.slice(0, 40) + '...' : lastMsg.content
+                    }`
+                  : conv.listing?.title
                 return (
                   <button
                     key={conv.id}
@@ -119,15 +126,20 @@ conversations.map(conv => {
                           ? <Tag size={11} className="text-white" />
                           : <ShoppingBag size={11} className="text-white" />}
                       </span>
+                      {unread > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-deep">
+                          {unread > 9 ? '9+' : unread}
+                        </span>
+                      )}
                     </div>
-<div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
                       <p className="text-cream font-bold text-sm truncate">
                         {other?.full_name || 'Unknown'}{' '}
                         <span className="text-cream-muted font-normal">
                           ({iAmSeller ? 'Buying' : 'Selling'})
                         </span>
                       </p>
-                      <p className="text-cream-muted text-xs truncate">{conv.listing?.title}</p>
+                      <p className="text-cream-muted text-xs truncate">{preview}</p>
                     </div>
                     {conv.is_resolved && (
                       <span className="text-teal-light text-[10px] border border-teal-primary px-1.5 py-0.5 rounded-full flex-shrink-0">
