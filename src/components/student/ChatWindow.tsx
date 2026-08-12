@@ -45,6 +45,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const [resolving, setResolving] = useState(false)
   const [showResolvePrompt, setShowResolvePrompt] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [titleExpanded, setTitleExpanded] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
@@ -150,13 +151,13 @@ if (conversation.is_closed_by_admin) {
     )
   }
 
-  return (
+return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className={`flex items-center justify-between px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 ${
+      <div className={`flex items-center px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 gap-2 ${
         isSeller ? 'border-t-teal-primary' : 'border-t-ember'
       }`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div className="relative flex-shrink-0">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -175,18 +176,33 @@ if (conversation.is_closed_by_admin) {
                 : <ShoppingBag size={9} className="text-white" />}
             </span>
           </div>
-          <div>
-            <p className="text-cream font-bold text-sm">
-              {otherParty.full_name}{' '}
-              <span className="text-cream-muted font-normal">
-                ({isSeller ? 'Buying' : 'Selling'})
-              </span>
-            </p>
-            <p className="text-cream-muted text-xs truncate max-w-[180px]">
-              {conversation.listing?.title}
-            </p>
-          </div>
+          <p className="text-cream font-bold text-sm whitespace-nowrap">
+            {otherParty.full_name}{' '}
+            <span className="text-cream-muted font-normal">
+              ({isSeller ? 'Buying' : 'Selling'})
+            </span>
+          </p>
         </div>
+
+        <div className="flex-1 min-w-0 flex justify-center px-1">
+          {titleExpanded ? (
+            <div
+              onClick={() => setTitleExpanded(false)}
+              className="max-w-[150px] overflow-x-auto whitespace-nowrap text-cream-muted text-xs cursor-pointer"
+            >
+              {conversation.listing?.title}
+            </div>
+          ) : (
+            <button
+              onClick={() => setTitleExpanded(true)}
+              title={conversation.listing?.title}
+              className="text-cream-muted text-xs truncate max-w-[150px]"
+            >
+              {conversation.listing?.title}
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center gap-2 flex-shrink-0">
           {isSeller && !conversation.is_resolved && (
             <button
