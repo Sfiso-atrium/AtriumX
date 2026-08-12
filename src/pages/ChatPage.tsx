@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Tag, ShoppingBag } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { Conversation, Profile, getConversationsForUser } from '../services/dataService'
+import { Conversation, Message, Profile, getConversationsForUser } from '../services/dataService'
+import { supabase } from '../services/supabaseClient'
 import ChatWindow from '../components/student/ChatWindow'
 import BottomNav from '../components/common/BottomNav'
 
@@ -37,7 +38,7 @@ export default function ChatPage() {
   // currentUser starts out null while the session is still restoring and
   // this would bounce a logged-in user out to /student before their
   // profile has a chance to load.
-  useEffect(() => {
+useEffect(() => {
     if (isLoadingAuth) return
     if (!currentUser) { navigate('/student'); return }
     getConversationsForUser(currentUser.id).then(data => {
@@ -52,6 +53,47 @@ export default function ChatPage() {
       setLoading(false)
     })
   }, [currentUser, isLoadingAuth, navigate, convId])
+
+  // Without this, the preview text and unread badge on each conversation
+  // card only ever changed after a manual page refresh — the fetch above
+  // only runs once on mount. This keeps the list itself live.
+  const activeRef = useRef<FullConversation | null>(null)
+  useEffect(() => { activeRef.current = active }, [active])
+
+  useEffect(() => {
+    if (!currentUser) return
+    const channel = supabase
+      .channel(`chat-list:${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        payload => {
+          const msg = payload.new as Message
+          setConversations(prev => {
+            const idx = prev.findIndex(c => c.id === msg.conversation_id)
+            if (idx === -1) return prev
+            const isMine = msg.sender_id === currentUser.id
+            const isOpenNow = activeRef.current?.id === msg.conversation_id
+            const updated = [...prev]
+            updated[idx] = {
+              ...updated[idx],
+              last_message: msg,
+              unread_count: isMine || isOpenNow
+                ? updated[idx].unread_count
+                : (updated[idx].unread_count || 0) + 1,
+            }
+            return updated.sort((a, b) => {
+              const aTime = new Date(a.last_message?.sent_at ?? a.created_at).getTime()
+              const bTime = new Date(b.last_message?.sent_at ?? b.created_at).getTime()
+              return bTime - aTime
+            })
+          })
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [currentUser])
 
   if (isLoadingAuth || loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
@@ -99,10 +141,15 @@ conversations.map(conv => {
                       lastMsg.content.length > 40 ? lastMsg.content.slice(0, 40) + '...' : lastMsg.content
                     }`
                   : conv.listing?.title
-                return (
+return (
                   <button
                     key={conv.id}
-                    onClick={() => setActive(conv)}
+                    onClick={() => {
+                      setActive(conv)
+                      setConversations(prev =>
+                        prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c)
+                      )
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 border-b border-b-slate-border border-l-4 text-left transition-colors ${
                       iAmSeller ? 'border-l-teal-primary' : 'border-l-ember'
                     } ${
