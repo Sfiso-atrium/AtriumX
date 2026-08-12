@@ -15,8 +15,9 @@ plan: 'ghost' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' |
   avg_rating: number
   total_ratings: number
   total_listings: number
-  is_verified: boolean
+is_verified: boolean
   is_admin: boolean
+  is_blocked: boolean
   watched_residences: string[]
   joined_date: string
   created_at: string
@@ -54,6 +55,8 @@ export interface Conversation {
   buyer_id: string
   seller_id: string
   is_resolved: boolean
+  is_closed_by_admin: boolean
+  closed_at: string | null
   created_at: string
   listing?: Listing
   other_party?: Profile
@@ -97,10 +100,22 @@ export interface Rating {
 export interface Report {
   id: string
   listing_id: string
+  conversation_id: string | null
   reporter_id: string
   reason: string
+  status: 'open' | 'reviewed'
   created_at: string
   reporter?: { full_name: string }
+}
+
+export interface ChatReport extends Report {
+  conversation?: {
+    id: string
+    is_closed_by_admin: boolean
+    listing?: { title: string }
+    buyer?: Profile
+    seller?: Profile
+  }
 }
 // ── PLAN CONSTANTS ─────────────────────────────────────────────────────────
 
@@ -230,8 +245,16 @@ export async function loginWithEmail(
 
   if (!data.user) return { user: null, error: 'Login failed. Please try again.' }
 
-  const profile = await getUserById(data.user.id)
+const profile = await getUserById(data.user.id)
   if (!profile) return { user: null, error: 'Account found but profile is missing. Contact support.' }
+
+  if (profile.is_blocked) {
+    await supabase.auth.signOut()
+    return {
+      user: null,
+      error: 'Your account has been suspended due to a violation of our community guidelines. If you believe this was a mistake, please contact support.',
+    }
+  }
 
   return { user: profile, error: null }
 }
@@ -243,7 +266,12 @@ export async function logout(): Promise<void> {
 export async function restoreSession(): Promise<Profile | null> {
   const { data } = await supabase.auth.getUser()
   if (!data.user) return null
-  return getUserById(data.user.id)
+  const profile = await getUserById(data.user.id)
+  if (profile?.is_blocked) {
+    await supabase.auth.signOut()
+    return null
+  }
+  return profile
 }
 
 // ── PROFILES ───────────────────────────────────────────────────────────────
@@ -545,6 +573,58 @@ export async function reportListing(
     const { error: rpcError } = await supabase.rpc('increment_report_count', { listing_id: listingId })
     if (rpcError) console.error('Report count increment failed:', rpcError.message)
   }
+  return { error: error ? error.message : null }
+}
+
+export async function reportConversation(
+  conversationId: string,
+  listingId: string,
+  reporterId: string,
+  reason: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('reports')
+    .insert({ conversation_id: conversationId, listing_id: listingId, reporter_id: reporterId, reason })
+  return { error: error ? error.message : null }
+}
+
+export async function getChatReports(): Promise<ChatReport[]> {
+  const { data, error } = await supabase
+    .from('reports')
+    .select(`
+      *,
+      reporter:profiles_public!reporter_id(full_name),
+      conversation:conversations(
+        id, is_closed_by_admin,
+        listing:listings(title),
+        buyer:profiles!buyer_id(id, full_name, email, is_blocked),
+        seller:profiles!seller_id(id, full_name, email, is_blocked)
+      )
+    `)
+    .not('conversation_id', 'is', null)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as ChatReport[]
+}
+
+export async function setUserBlocked(
+  userId: string,
+  blocked: boolean
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_blocked: blocked })
+    .eq('id', userId)
+  return { error: error ? error.message : null }
+}
+
+export async function endConversationByAdmin(
+  conversationId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('conversations')
+    .update({ is_closed_by_admin: true, closed_at: new Date().toISOString() })
+    .eq('id', conversationId)
   return { error: error ? error.message : null }
 }
 
