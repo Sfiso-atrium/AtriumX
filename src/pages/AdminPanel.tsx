@@ -5,12 +5,14 @@ import { useApp } from '../context/AppContext'
 import {
   Listing,
   Report,
+  ChatReport,
   BusinessProfile,
   Profile,
   getPendingListings,
   getAllListingsAdmin,
   getEditedListings,
   getReportsForListings,
+  getChatReports,
   approveListingById,
   rejectListingById,
   suspendListingById,
@@ -21,8 +23,9 @@ import {
   rejectBusinessById,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
+import ChatReportCard from '../components/admin/ChatReportCard'
 
-type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'businesses'
+type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'businesses'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
@@ -35,7 +38,8 @@ const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
-  const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
+const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
+  const [chatReports, setChatReports] = useState<ChatReport[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
 
@@ -44,12 +48,13 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses()])
-      .then(([pending, all, edited, businesses]) => {
+Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports()])
+      .then(([pending, all, edited, businesses, chatReps]) => {
         setPendingListings(pending)
         setAllListings(all)
         setEditedListings(edited)
         setPendingBusinesses(businesses)
+        setChatReports(chatReps)
         const reported = all.filter(l => l.report_count > 0)
         setReportedListings(reported)
         setLoading(false)
@@ -68,6 +73,15 @@ Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), g
         setLoading(false)
       })
   }, [currentUser, isLoadingAuth, navigate, showToast])
+
+  const handleChatEnded = (conversationId: string) => {
+    setChatReports(prev => prev.map(r =>
+      r.conversation?.id === conversationId
+        ? { ...r, conversation: { ...r.conversation!, is_closed_by_admin: true } }
+        : r
+    ))
+    showToast('Conversation ended.', 'success')
+  }
 
   const handleApprove = async (id: string) => {
     setActionId(id)
@@ -205,7 +219,7 @@ const activeList =
           >
             Reported ({reportedListings.length})
           </button>
-          <button
+<button
             onClick={() => setTab('businesses')}
             className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
               tab === 'businesses'
@@ -214,6 +228,16 @@ const activeList =
             }`}
           >
             Businesses ({pendingBusinesses.length})
+          </button>
+          <button
+            onClick={() => setTab('chatReports')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              tab === 'chatReports'
+                ? 'bg-teal-primary border-teal-light text-cream'
+                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+            }`}
+          >
+            Chat Reports ({chatReports.length})
           </button>
         </div>
         {tab === 'all' && (
@@ -232,6 +256,19 @@ const activeList =
               </button>
             ))}
           </div>
+        )}
+{tab === 'chatReports' && (
+          chatReports.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-cream-muted text-sm">No chat reports.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {chatReports.map(report => (
+                <ChatReportCard key={report.id} report={report} onEnded={handleChatEnded} />
+              ))}
+            </div>
+          )
         )}
 {tab === 'businesses' && (
           pendingBusinesses.length === 0 ? (
@@ -273,7 +310,7 @@ const activeList =
             </div>
           )
         )}
-        {tab !== 'businesses' && (activeList.length === 0 ? (
+{tab !== 'businesses' && tab !== 'chatReports' && (activeList.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'pending' ? 'No pending listings.' :
