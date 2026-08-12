@@ -689,8 +689,8 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
-      buyer:profiles!conversations_buyer_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
-      seller:profiles!conversations_seller_id_fkey(id, full_name, avatar_initials, avatar_color, plan, account_type),
+buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
+      seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
