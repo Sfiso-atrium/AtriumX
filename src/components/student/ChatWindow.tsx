@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Tag, ShoppingBag } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag, Flag } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
@@ -11,6 +11,7 @@ import {
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
+import ChatReportModal from './ChatReportModal'
 
 interface Props {
   conversation: Conversation & {
@@ -43,6 +44,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const [ownMsgCount, setOwnMsgCount] = useState(0)
   const [resolving, setResolving] = useState(false)
   const [showResolvePrompt, setShowResolvePrompt] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
@@ -137,6 +139,17 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
+if (conversation.is_closed_by_admin) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center px-6 text-center">
+        <p className="text-cream font-bold text-sm mb-2">This conversation is no longer available.</p>
+        <p className="text-cream-muted text-xs">
+          If you have questions about this, please contact support.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -162,7 +175,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
                 : <ShoppingBag size={9} className="text-white" />}
             </span>
           </div>
-<div>
+          <div>
             <p className="text-cream font-bold text-sm">
               {otherParty.full_name}{' '}
               <span className="text-cream-muted font-normal">
@@ -174,21 +187,30 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
             </p>
           </div>
         </div>
-        {isSeller && !conversation.is_resolved && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isSeller && !conversation.is_resolved && (
+            <button
+              onClick={handleResolve}
+              disabled={resolving}
+              className="flex items-center gap-1.5 text-xs font-bold text-teal-light border border-teal-primary hover:bg-teal-faint px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40"
+            >
+              <CheckCircle size={13} />
+              Resolve
+            </button>
+          )}
+          {conversation.is_resolved && (
+            <span className="text-xs text-teal-light border border-teal-primary px-2 py-1 rounded-xl">
+              Resolved
+            </span>
+          )}
           <button
-            onClick={handleResolve}
-            disabled={resolving}
-            className="flex items-center gap-1.5 text-xs font-bold text-teal-light border border-teal-primary hover:bg-teal-faint px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40"
+            onClick={() => setShowReportModal(true)}
+            title="Report this conversation"
+            className="text-cream-muted hover:text-red-400 p-1.5 rounded-lg transition-colors"
           >
-            <CheckCircle size={13} />
-            Resolve
+            <Flag size={15} />
           </button>
-        )}
-        {conversation.is_resolved && (
-          <span className="text-xs text-teal-light border border-teal-primary px-2 py-1 rounded-xl">
-            Resolved
-          </span>
-        )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -215,6 +237,14 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
         })}
         <div ref={bottomRef} />
       </div>
+
+{showReportModal && (
+        <ChatReportModal
+          conversationId={conversation.id}
+          listingId={conversation.listing_id}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
 
       {/* Input */}
       {!conversation.is_resolved && sellerLocked && (
