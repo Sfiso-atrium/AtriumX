@@ -494,7 +494,7 @@ const expiry = timeLeft(listing.expires_at)
                     {businessProfile.physical_address}
                   </p>
                 ) : (
-                  
+                  <a
                     href={/^https?:\/\//i.test(businessProfile.website!) ? businessProfile.website! : `https://${businessProfile.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
