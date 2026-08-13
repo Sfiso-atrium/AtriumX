@@ -194,8 +194,15 @@ export default function BusinessPlanSelect() {
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
-                      <span className="text-gold font-bold text-xl">{tier.price}</span>
+<div className="text-right">
+                      {tier.priceNum > 0 ? (
+                        <>
+                          <span className="text-cream-muted text-xs line-through mr-1.5">{tier.price}</span>
+                          <span className="text-gold font-bold text-xl">Free</span>
+                        </>
+                      ) : (
+                        <span className="text-gold font-bold text-xl">{tier.price}</span>
+                      )}
                       <span className="text-cream-muted text-xs ml-1 block md:inline">/ {tier.days}d</span>
                     </div>
                   </div>
