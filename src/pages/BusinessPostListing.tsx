@@ -20,9 +20,10 @@ const { currentUser, isLoadingAuth, showToast } = useApp()
   const [checkingBusiness, setCheckingBusiness] = useState(true)
   const [atLimit, setAtLimit] = useState(false)
 
-  const [title, setTitle] = useState('')
+const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
+  const [isNegotiable, setIsNegotiable] = useState(false)
 const [imageUrls, setImageUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -31,14 +32,14 @@ const [imageUrls, setImageUrls] = useState<string[]>([])
 const [submitted, setSubmitted] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+useEffect(() => {
     if (!editListing) return
     setTitle(editListing.title)
     setDescription(editListing.description)
     setPrice(String(editListing.price))
+    setIsNegotiable(editListing.is_negotiable)
     setImageUrls(editListing.image_urls || [])
   }, [editListing])
-
   useEffect(() => {
     if (isLoadingAuth) return
     if (!currentUser) { navigate('/retailer/signup'); return }
@@ -169,7 +170,7 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (description.trim().length < 20) return setError('Description needs at least 20 characters.')
 
 setLoading(true)
-    const sharedFields = {
+const sharedFields = {
       title: title.trim(),
       description: description.trim(),
       price: Number(price) || 0,
@@ -177,7 +178,7 @@ setLoading(true)
       imageUrls,
       residence: '',
       listingType: 'ongoing' as const,
-      isNegotiable: false,
+      isNegotiable,
       variants: [],
     }
 
@@ -278,7 +279,7 @@ setLoading(true)
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cream-muted text-sm font-bold">R</span>
-                <input
+<input
                   type="number"
                   placeholder="0"
                   min="0"
@@ -287,8 +288,18 @@ setLoading(true)
                   className={inputClass + ' pl-8'}
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => setIsNegotiable(v => !v)}
+                className={`mt-2 text-xs px-3 py-2 rounded-xl border transition-colors ${
+                  isNegotiable
+                    ? 'bg-gold/10 text-gold border-gold/40'
+                    : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-light'
+                }`}
+              >
+                {isNegotiable ? '✓ Open to offers' : 'Mark as open to offers'}
+              </button>
             </div>
-
             {/* DESCRIPTION */}
             <div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
