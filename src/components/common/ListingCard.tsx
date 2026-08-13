@@ -66,9 +66,13 @@ const navigate = useNavigate()
           </div>
         )}
 
-    {listing.residence && (
+{listing.residence ? (
           <p className="text-cream-muted text-xs">{listing.residence}</p>
-        )}
+        ) : (listing.business_address || listing.business_website) ? (
+          <p className="text-cream-muted text-xs truncate">
+            {listing.business_address || listing.business_website}
+          </p>
+        ) : null}
 
         <div className="flex items-center gap-2 flex-wrap pt-1">
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
