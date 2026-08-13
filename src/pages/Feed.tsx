@@ -58,11 +58,12 @@ const { activeCategory, showToast } = useApp()
   // from the marketplace tab's, since business listings have no residence
   // or negotiable flag, and their categories are business types, not the
   // student CATEGORIES list.
-  const [bizSearch, setBizSearch] = useState('')
+const [bizSearch, setBizSearch] = useState('')
   const [bizCategory, setBizCategory] = useState('all')
   const [bizFiltersOpen, setBizFiltersOpen] = useState(false)
   const [bizMinPrice, setBizMinPrice] = useState('')
   const [bizMaxPrice, setBizMaxPrice] = useState('')
+  const [bizNegotiableOnly, setBizNegotiableOnly] = useState(false)
 
 const [fetchError, setFetchError] = useState(false)
 useEffect(() => {
@@ -100,7 +101,7 @@ useEffect(() => {
     })
  }, [listings, activeCategory, localSearch, residenceFilter, minPrice, maxPrice, negotiableOnly])
 
-  const filteredBusiness = useMemo(() => {
+const filteredBusiness = useMemo(() => {
     return businessListings.filter(listing => {
       const matchCat = bizCategory === 'all' || listing.category === bizCategory
       const q = bizSearch.trim().toLowerCase()
@@ -109,10 +110,12 @@ useEffect(() => {
         listing.description.toLowerCase().includes(q)
       const min = bizMinPrice ? Number(bizMinPrice) : null
       const max = bizMaxPrice ? Number(bizMaxPrice) : null
-      const matchPrice = (min === null || listing.price >= min) && (max === null || listing.price <= max)
-      return matchCat && matchSearch && matchPrice
+      const matchPrice = listing.is_negotiable ||
+        ((min === null || listing.price >= min) && (max === null || listing.price <= max))
+      const matchNegotiable = !bizNegotiableOnly || listing.is_negotiable
+      return matchCat && matchSearch && matchPrice && matchNegotiable
     })
-  }, [businessListings, bizCategory, bizSearch, bizMinPrice, bizMaxPrice])
+  }, [businessListings, bizCategory, bizSearch, bizMinPrice, bizMaxPrice, bizNegotiableOnly])
 
   const handleCopyApplicationLink = () => {
     navigator.clipboard.writeText(APPLICATION_LINK)
@@ -293,15 +296,25 @@ useEffect(() => {
                   placeholder="Min R"
                   className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
                 />
-                <input
+             
+<input
                   type="number" inputMode="numeric" min={0}
                   value={bizMaxPrice} onChange={e => setBizMaxPrice(e.target.value)}
                   placeholder="Max R"
                   className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
                 />
+                <button
+                  onClick={() => setBizNegotiableOnly(v => !v)}
+                  className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
+                    bizNegotiableOnly
+                      ? 'bg-gold/10 text-gold border-gold/40'
+                      : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-light'
+                  }`}
+                >
+                  Open to offers
+                </button>
               </div>
             )}
-
             <div className="px-4 pb-2">
               <p className="text-cream-muted text-xs">
                 {businessLoading ? 'Loading...' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
