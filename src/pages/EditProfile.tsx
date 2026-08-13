@@ -38,6 +38,8 @@ export default function EditProfile() {
     .slice(0, 2)
     .join('')
 
+const isBusiness = currentUser.account_type === 'business'
+
   const handleSave = async () => {
     setError('')
 
@@ -45,29 +47,30 @@ export default function EditProfile() {
       setError('Full name is required.')
       return
     }
-    if (!residence.trim()) {
+    if (!isBusiness && !residence.trim()) {
       setError('Residence is required.')
       return
     }
 
     setLoading(true)
 
-    // Upsert into residences table so new residences are recorded
-    const { error: residenceErr } = await supabase
-      .from('residences')
-      .upsert({ name: residence.trim() }, { onConflict: 'name', ignoreDuplicates: true })
+    if (!isBusiness) {
+      // Upsert into residences table so new residences are recorded
+      const { error: residenceErr } = await supabase
+        .from('residences')
+        .upsert({ name: residence.trim() }, { onConflict: 'name', ignoreDuplicates: true })
 
-    if (residenceErr) {
-      // Non-fatal — residence upsert failing should not block profile save
-      console.warn('Residence upsert failed:', residenceErr.message)
+      if (residenceErr) {
+        // Non-fatal — residence upsert failing should not block profile save
+        console.warn('Residence upsert failed:', residenceErr.message)
+      }
     }
 
 const { user, error: updateErr } = await updateProfile(currentUser.id, {
       full_name: fullName.trim(),
-      residence: residence.trim(),
+      ...(isBusiness ? {} : { residence: residence.trim() }),
       avatar_color: avatarColor,
     })
-
     setLoading(false)
 
     if (updateErr) {
@@ -139,6 +142,7 @@ const { user, error: updateErr } = await updateProfile(currentUser.id, {
             className={inputClass}
           />
 
+  {!isBusiness && (
           <div>
             <input
               type="text"
@@ -151,6 +155,7 @@ const { user, error: updateErr } = await updateProfile(currentUser.id, {
               Type your residence name exactly as it appears on campus.
             </p>
           </div>
+          )}
 
           {error && (
             <p className="text-red-400 text-sm px-1">{error}</p>
