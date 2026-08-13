@@ -43,9 +43,11 @@ export interface Listing {
   variants: { name: string; price: number }[]
   expires_at: string
   created_at: string
-  has_pending_edit: boolean
+has_pending_edit: boolean
   edited_at: string | null
   seller?: Profile
+  business_address?: string | null
+  business_website?: string | null
 }
 
 
@@ -393,14 +395,31 @@ export async function getBusinessListings(): Promise<Listing[]> {
     .order('created_at', { ascending: false })
   if (error || !data) return []
 
+  const sellerIds = [...new Set(data.map((l: any) => l.seller_id))]
+  const addressMap: Record<string, { address: string | null; website: string | null }> = {}
+  if (sellerIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('business_profiles')
+      .select('id, physical_address, website')
+      .in('id', sellerIds)
+    profiles?.forEach(p => {
+      addressMap[p.id] = { address: p.physical_address, website: p.website }
+    })
+  }
+
+  const withAddress = data.map((l: any) => ({
+    ...l,
+    business_address: addressMap[l.seller_id]?.address ?? null,
+    business_website: addressMap[l.seller_id]?.website ?? null,
+  }))
+
   const BUSINESS_PLAN_RANK: Record<string, number> = { campus_partner: 3, featured: 2, noticeboard: 1 }
-  const sorted = [...data].sort(
+  const sorted = withAddress.sort(
     (a, b) => (BUSINESS_PLAN_RANK[b.plan_tier] || 0) - (BUSINESS_PLAN_RANK[a.plan_tier] || 0)
   )
 
   return sorted as Listing[]
 }
-
 export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
   const { data, error } = await supabase
     .from('listings')
