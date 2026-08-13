@@ -189,6 +189,13 @@ export async function registerWithEmail(
   const colors = ['#0F6E56', '#185FA5', '#993C1D', '#993556', '#534AB7', '#3B6D11']
   const avatarColor = colors[Math.floor(Math.random() * colors.length)]
 
+await supabase
+    .from('residences')
+    .upsert({ name: residence.trim() }, { onConflict: 'name', ignoreDuplicates: true })
+    .then(({ error: resErr }) => {
+      if (resErr) console.warn('Residence upsert failed:', resErr.message)
+    })
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
