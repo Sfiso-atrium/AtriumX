@@ -486,17 +486,16 @@ const expiry = timeLeft(listing.expires_at)
               </p>
             )}
 
-            {seller?.account_type === 'business' && (businessProfile?.physical_address || businessProfile?.website) && (
+{seller?.account_type === 'business' && (businessProfile?.physical_address || businessProfile?.website) && (
               <div className="flex flex-col gap-1.5 text-sm">
-                {businessProfile.physical_address && (
+                {businessProfile.physical_address ? (
                   <p className="text-cream-muted flex items-center gap-2">
                     <MapPin size={14} className="text-teal-light flex-shrink-0" />
                     {businessProfile.physical_address}
                   </p>
-                )}
-                {businessProfile.website && (
-                  <a
-                    href={/^https?:\/\//i.test(businessProfile.website) ? businessProfile.website : `https://${businessProfile.website}`}
+                ) : (
+                  
+                    href={/^https?:\/\//i.test(businessProfile.website!) ? businessProfile.website! : `https://${businessProfile.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
@@ -508,7 +507,6 @@ const expiry = timeLeft(listing.expires_at)
                 )}
               </div>
             )}
-
             <hr className="border-slate-border" />
             {seller?.account_type !== 'business' && (
             <div>
