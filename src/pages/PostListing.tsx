@@ -134,15 +134,16 @@ if (atLimit) return (
       )}
     </div>
   )
-  const tierConfig = PLAN_TIERS[plan]
+const tierConfig = PLAN_TIERS[plan]
   const canUploadPhoto = tierConfig.maxPhotos > 0
   const maxPhotos = tierConfig.maxPhotos
+  const effectiveMaxPhotos = posterMode ? Math.min(1, maxPhotos) : maxPhotos
   const maxVariants = tierConfig.maxVariants
 
 const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (imageUrls.length >= maxPhotos) return
+    if (imageUrls.length >= effectiveMaxPhotos) return
     setCropSrc(URL.createObjectURL(file))
   }
 
@@ -183,11 +184,11 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const handleSubmit = async () => {
     setError('')
-if (posterMode) {
+if (!title.trim()) return setError('Title is required.')
+    if (posterMode) {
       if (imageUrls.length === 0) return setError('Upload a poster image first.')
       if (!residence.trim()) return setError('Residence is required.')
     } else {
-      if (!title.trim()) return setError('Title is required.')
       if (!category) return setError('Category is required.')
       if (category === 'other' && !customCategory.trim()) return setError('Please specify the category.')
       if (!price || Number(price) < 0) return setError('Enter a valid price.')
@@ -197,7 +198,7 @@ if (posterMode) {
 setLoading(true)
 
     const sharedFields = {
-      title: posterMode ? 'Poster listing' : title.trim(),
+      title: title.trim(),
       description: posterMode ? '' : description.trim(),
       price: posterMode ? 0 : Number(price),
       category: posterMode ? 'other' : category,
@@ -264,8 +265,11 @@ setLoading(true)
                 >
                   Fill in manually
                 </button>
-                <button
-                  onClick={() => setPosterMode(true)}
+    <button
+                  onClick={() => {
+                    setPosterMode(true)
+                    setImageUrls(prev => prev.slice(0, 1))
+                  }}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
                     posterMode ? 'bg-teal-primary border-teal-light text-cream' : 'bg-slate-card border-slate-border text-cream-muted'
                   }`}
@@ -278,8 +282,8 @@ setLoading(true)
             {/* PHOTO UPLOAD */}
             {canUploadPhoto ? (
               <div>
-                <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                  Photos ({imageUrls.length}/{maxPhotos})
+<label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                  Photos ({imageUrls.length}/{effectiveMaxPhotos})
                 </label>
                 <div className="flex flex-wrap gap-3">
                   {imageUrls.map((url, idx) => (
@@ -293,7 +297,7 @@ setLoading(true)
                       </button>
                     </div>
                   ))}
-                  {imageUrls.length < maxPhotos && (
+{imageUrls.length < effectiveMaxPhotos && (
                     <button
                       onClick={() => fileRef.current?.click()}
                       disabled={uploading}
@@ -320,12 +324,12 @@ setLoading(true)
 
 {posterMode && imageUrls.length > 0 && (
               <p className="text-teal-light text-xs text-center">
-                Poster uploaded. Hit Post Listing — title and description will be set automatically.
+                Poster uploaded — it'll be shown as-is, buyers will read the details straight off it. Just add a title below.
               </p>
             )}
 
-            {/* TITLE */}
-            {!posterMode && <div>
+{/* TITLE */}
+            <div>
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Title <span className="text-red-400">*</span>
               </label>
@@ -338,7 +342,7 @@ setLoading(true)
                 className={inputClass}
               />
 <p className="text-cream-muted text-xs text-right mt-1">{title.length}/80</p>
-            </div>}
+            </div>
 
             {/* CATEGORY */}
             <div>
@@ -503,9 +507,9 @@ setLoading(true)
 
 {error && <p className="text-red-400 text-sm">{error}</p>}
 
-            <button
+<button
               onClick={handleSubmit}
-            disabled={loading || uploading || (!posterMode && (!title || !category || !price || description.length < 20)) || !residence}
+            disabled={loading || uploading || !title || (!posterMode && (!category || !price || description.length < 20)) || !residence}
               
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
