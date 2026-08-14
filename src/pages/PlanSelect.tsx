@@ -8,14 +8,14 @@ import BottomNav from '../components/common/BottomNav'
 type StudentPlanKey = 'ghost' | 'visible' | 'loud' | 'unmissable'
 const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
   ghost: [
-    'Text-only listing',
+    '1 photo per listing',
     '1 active listing',
     '3 messages per conversation',
     '3-day visibility',
   ],
   visible: [
     '1 photo per listing',
-    'Up to 2 active listings',
+    '1 active listing',
     '10 messages per conversation',
     '"Spotted" badge on your listings',
     'Push notification on interest',
@@ -23,8 +23,8 @@ const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
     'Listing renewal (once)',
   ],
   loud: [
-    'Up to 3 photos per listing',
-    'Up to 3 active listings',
+    'Up to 2 photos per listing',
+    'Up to 2 active listings',
     'Unlimited messaging',
     'Boosted feed placement',
     '"Verified" badge on your listings',
@@ -32,8 +32,8 @@ const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
     '14-day visibility',
   ],
   unmissable: [
-    'Up to 5 photos + video',
-    'Up to 6 active listings',
+    'Up to 3 photos + video',
+    'Up to 3 active listings',
     'Pinned to top of category',
     'Search ranking boost',
     'Gold "★ Featured" banner on your listing cards',
