@@ -10,20 +10,20 @@ type BusinessPlanKey = 'noticeboard' | 'featured' | 'campus_partner'
 
 const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
   noticeboard: [
-    'Text-only listing',
+    '1 photo per listing',
     '1 active listing',
     '7-day visibility',
   ],
   featured: [
-    '1 photo per listing',
-    'Up to 3 active listings',
+    'Up to 2 photos per listing',
+    'Up to 2 active listings',
     'Reply to student messages',
     '"Sponsored" badge on your listings',
     '14-day visibility',
   ],
   campus_partner: [
     'Up to 3 photos per listing',
-    'Up to 6 active listings',
+    'Up to 3 active listings',
     'Reply to student messages',
     'Reply to reviews',
     'Pinned to top of the Business tab',
