@@ -122,18 +122,18 @@ export interface ChatReport extends Report {
 // ── PLAN CONSTANTS ─────────────────────────────────────────────────────────
 
 export const PLAN_TIERS = {
-  ghost:       { label: 'Ghost',       price: 'Free', priceNum: 0,   days: 3,  maxListings: 1, maxPhotos: 0, maxVariants: 0,   maxMsgs: 3,   canChat: true, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0,   searchBoost: false, badge: null },
-  visible:     { label: 'Visible',     price: 'R29',  priceNum: 29,  days: 7,  maxListings: 2, maxPhotos: 1, maxVariants: 3,   maxMsgs: 10,  canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 0,   searchBoost: false, badge: 'Spotted' },
-  loud:        { label: 'Loud',        price: 'R79',  priceNum: 79,  days: 14, maxListings: 3, maxPhotos: 3, maxVariants: 8,   maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 3,   searchBoost: false, badge: 'Verified' },
-  unmissable:  { label: 'Unmissable',  price: 'R149', priceNum: 149, days: 30, maxListings: 6, maxPhotos: 5, maxVariants: 999, maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 999, searchBoost: true,  badge: 'Featured' },
+  ghost:       { label: 'Ghost',       price: 'Free', priceNum: 0,   days: 3,  maxListings: 1, maxPhotos: 1, maxVariants: 0,   maxMsgs: 3,   canChat: true, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0,   searchBoost: false, badge: null },
+  visible:     { label: 'Visible',     price: 'R29',  priceNum: 29,  days: 7,  maxListings: 1, maxPhotos: 1, maxVariants: 3,   maxMsgs: 10,  canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 0,   searchBoost: false, badge: 'Spotted' },
+  loud:        { label: 'Loud',        price: 'R79',  priceNum: 79,  days: 14, maxListings: 2, maxPhotos: 2, maxVariants: 8,   maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 3,   searchBoost: false, badge: 'Verified' },
+  unmissable:  { label: 'Unmissable',  price: 'R149', priceNum: 149, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 999, maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 999, searchBoost: true,  badge: 'Featured' },
   // Business tiers. No payment infrastructure exists yet, so every business
   // account currently lives on 'noticeboard' regardless of what's shown
   // here — these values are what the tier grants once upgrades are wired
   // up, and are also what the reply/chat gates (migration 014) check
   // against right now.
-  noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
-  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 3, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
-  campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 6, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner' },
+noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 1, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
+  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 2, maxPhotos: 2, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
+  campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner' },
 } as const
 
 export type PlanKey = keyof typeof PLAN_TIERS
