@@ -8,3 +8,12 @@
 
 -- Manual trigger (safe to run anytime):
 -- SELECT expire_listings();
+
+-- Run send_deadline_reminders() every hour to notify users of deadlines due
+-- within 24 hours (see migration 023_personal_space.sql).
+
+-- Example cron job (run in SQL editor after enabling pg_cron):
+-- SELECT cron.schedule('deadline-reminders', '0 * * * *', $$SELECT send_deadline_reminders();$$);
+
+-- Manual trigger (safe to run anytime):
+-- SELECT send_deadline_reminders();
