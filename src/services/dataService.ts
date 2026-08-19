@@ -79,7 +79,8 @@ export interface Notification {
   id: string
   user_id: string
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
-        'review' | 'review_locked' | 'business_approved' | 'business_rejected'
+        'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
+        'deadline_reminder' | 'watchlist_match'
   message: string
   listing_id: string | null
   conversation_id: string | null
@@ -1218,4 +1219,159 @@ export async function replyToBusinessReview(reviewId: string, reply: string): Pr
     return { error: error.message }
   }
   return { error: null }
+}
+
+// ── PERSONAL SPACE (deadlines, schedule, budget, study log, watchlists) ─────
+
+export interface Deadline {
+  id: string
+  user_id: string
+  title: string
+  due_at: string
+  notes: string | null
+  reminded: boolean
+  created_at: string
+}
+
+export async function getDeadlines(userId: string): Promise<Deadline[]> {
+  const { data, error } = await supabase
+    .from('deadlines')
+    .select('*')
+    .eq('user_id', userId)
+    .order('due_at', { ascending: true })
+  if (error || !data) return []
+  return data as Deadline[]
+}
+
+export async function createDeadline(
+  userId: string, title: string, dueAt: string, notes: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('deadlines').insert({
+    user_id: userId, title, due_at: dueAt, notes: notes.trim() || null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteDeadline(id: string): Promise<void> {
+  await supabase.from('deadlines').delete().eq('id', id)
+}
+
+export interface ScheduleEntry {
+  id: string
+  user_id: string
+  day_of_week: number
+  start_time: string
+  module: string
+  room: string | null
+  created_at: string
+}
+
+export async function getScheduleEntries(userId: string): Promise<ScheduleEntry[]> {
+  const { data, error } = await supabase
+    .from('schedule_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true })
+  if (error || !data) return []
+  return data as ScheduleEntry[]
+}
+
+export async function createScheduleEntry(
+  userId: string, dayOfWeek: number, startTime: string, module: string, room: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('schedule_entries').insert({
+    user_id: userId, day_of_week: dayOfWeek, start_time: startTime, module, room: room.trim() || null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteScheduleEntry(id: string): Promise<void> {
+  await supabase.from('schedule_entries').delete().eq('id', id)
+}
+
+export interface BudgetEntry {
+  id: string
+  user_id: string
+  amount: number
+  direction: 'in' | 'out'
+  note: string | null
+  created_at: string
+}
+
+export async function getBudgetEntries(userId: string): Promise<BudgetEntry[]> {
+  const { data, error } = await supabase
+    .from('budget_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as BudgetEntry[]
+}
+
+export async function createBudgetEntry(
+  userId: string, amount: number, direction: 'in' | 'out', note: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('budget_entries').insert({
+    user_id: userId, amount, direction, note: note.trim() || null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteBudgetEntry(id: string): Promise<void> {
+  await supabase.from('budget_entries').delete().eq('id', id)
+}
+
+export async function getTodayStudyMinutes(userId: string): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data } = await supabase
+    .from('study_log')
+    .select('minutes')
+    .eq('user_id', userId)
+    .eq('log_date', today)
+    .maybeSingle()
+  return data?.minutes ?? 0
+}
+
+export async function addStudyMinutes(userId: string, minutes: number): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+  const current = await getTodayStudyMinutes(userId)
+  await supabase.from('study_log').upsert({
+    user_id: userId, log_date: today, minutes: current + minutes,
+  })
+}
+
+export interface Watchlist {
+  id: string
+  user_id: string
+  keyword: string | null
+  category: string | null
+  max_price: number | null
+  created_at: string
+}
+
+export async function getWatchlists(userId: string): Promise<Watchlist[]> {
+  const { data, error } = await supabase
+    .from('watchlists')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as Watchlist[]
+}
+
+export async function createWatchlist(
+  userId: string, keyword: string, category: string, maxPrice: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('watchlists').insert({
+    user_id: userId,
+    keyword: keyword.trim() || null,
+    category: category === 'all' ? null : category || null,
+    max_price: maxPrice ? Number(maxPrice) : null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteWatchlist(id: string): Promise<void> {
+  await supabase.from('watchlists').delete().eq('id', id)
 }
