@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle } from 'lucide-react'
+import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
@@ -29,6 +29,18 @@ const TAB_INTRO: Record<Tab, string> = {
   Watchlist: "Tell us what you're after and we'll ping you the moment it turns up. No more refreshing the feed.",
 }
 
+// Each tab gets its own icon + accent, pulled from AtriumX's existing color
+// tokens (sapphire was defined in the theme but unused elsewhere in the
+// app — a natural fit for the newest feature, Timetable).
+const TAB_META: Record<Tab, { icon: typeof CalendarClock; active: string; iconWrap: string; iconColor: string }> = {
+  Deadlines: { icon: CalendarClock, active: 'bg-ember border-ember', iconWrap: 'bg-ember/15 border-ember/30', iconColor: 'text-ember' },
+  Timetable: { icon: BookOpen, active: 'bg-sapphire-light border-sapphire-light', iconWrap: 'bg-sapphire-light/15 border-sapphire-light/30', iconColor: 'text-sapphire-light' },
+  Schedule: { icon: Clock, active: 'bg-teal-primary border-teal-primary', iconWrap: 'bg-teal-faint border-teal-light/30', iconColor: 'text-teal-light' },
+  Budget: { icon: Wallet, active: 'bg-gold border-gold', iconWrap: 'bg-gold/15 border-gold/30', iconColor: 'text-gold' },
+  Pomodoro: { icon: Timer, active: 'bg-gold border-gold', iconWrap: 'bg-gold/15 border-gold/30', iconColor: 'text-gold' },
+  Watchlist: { icon: Eye, active: 'bg-teal-primary border-teal-primary', iconWrap: 'bg-teal-faint border-teal-light/30', iconColor: 'text-teal-light' },
+}
+
 function SectionCard({ children }: { children: React.ReactNode }) {
   return <div className="bg-slate-card border border-slate-border rounded-2xl p-4">{children}</div>
 }
@@ -42,8 +54,15 @@ function DeleteBtn({ onClick }: { onClick: () => void }) {
 }
 
 function TabIntro({ tab }: { tab: Tab }) {
+  const meta = TAB_META[tab]
+  const Icon = meta.icon
   return (
-    <p className="text-cream-muted text-sm mb-3 leading-snug">{TAB_INTRO[tab]}</p>
+    <div className="flex items-start gap-2.5 mb-1">
+      <div className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${meta.iconWrap}`}>
+        <Icon size={14} className={meta.iconColor} />
+      </div>
+      <p className="text-cream-muted text-sm leading-snug pt-0.5">{TAB_INTRO[tab]}</p>
+    </div>
   )
 }
 
@@ -59,8 +78,8 @@ function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
             <X size={18} />
           </button>
         </div>
-        <div className="w-12 h-12 rounded-full bg-teal-faint border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
-          <Sparkles size={22} className="text-teal-light" />
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-primary/40 to-sapphire-light/40 border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
+          <Sparkles size={24} className="text-teal-light" />
         </div>
         <h2 className="font-serif text-xl text-cream mb-2">Welcome to My Space!</h2>
         <p className="text-cream-muted text-sm mb-5 leading-relaxed">
@@ -123,14 +142,17 @@ function DeadlinesSection({ userId }: { userId: string }) {
       </SectionCard>
 
       {!loading && items.length === 0 && (
-        <p className="text-cream-muted text-sm text-center py-6">No deadlines yet — add your first one above.</p>
+        <div className="flex flex-col items-center gap-2 py-8">
+          <PartyPopper size={28} className="text-cream-muted" />
+          <p className="text-cream-muted text-sm text-center">No deadlines yet — add your first one above.</p>
+        </div>
       )}
 
       {items.map(d => {
         const due = new Date(d.due_at)
         const soon = due.getTime() - Date.now() < 24 * 60 * 60 * 1000
         return (
-          <SectionCard key={d.id}>
+          <div key={d.id} className={`bg-slate-card border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-ember' : 'border-slate-border border-l-teal-light/40'}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-cream font-bold text-sm truncate">{d.title}</p>
@@ -141,7 +163,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
               </div>
               <DeleteBtn onClick={() => handleDelete(d.id)} />
             </div>
-          </SectionCard>
+          </div>
         )
       })}
     </div>
@@ -669,7 +691,7 @@ function TimetableSection({ userId }: { userId: string }) {
           <SectionCard key={dayIdx}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-cream font-bold text-sm">{dayName}</p>
-              {totalMinutes > 0 && <span className="text-teal-light text-xs font-bold">{totalMinutes} min planned</span>}
+              {totalMinutes > 0 && <span className="text-sapphire-light text-xs font-bold bg-sapphire-light/10 border border-sapphire-light/30 px-2 py-0.5 rounded-full">{totalMinutes} min planned</span>}
             </div>
 
             {dayCourses.length === 0 && (
@@ -769,6 +791,64 @@ function TimetableSection({ userId }: { userId: string }) {
   )
 }
 
+// The one "signature" moment for My Space: a quiet gradient panel (built
+// entirely from colors already in the app's palette — no new tokens) that
+// greets the student with a glanceable snapshot instead of dropping them
+// straight into a flat tab bar. Pulls light reads from tables the tabs
+// already use — no new data model, just a summarized view of it.
+function TodaySnapshot({ userId }: { userId: string }) {
+  const { currentUser } = useApp()
+  const [nextDeadline, setNextDeadline] = useState<Deadline | null>(null)
+  const [todayMinutes, setTodayMinutes] = useState(0)
+  const [balance, setBalance] = useState(0)
+  const [watchCount, setWatchCount] = useState(0)
+
+  useEffect(() => {
+    getDeadlines(userId).then(items => {
+      const upcoming = items.filter(d => new Date(d.due_at).getTime() > Date.now())
+      setNextDeadline(upcoming[0] ?? null)
+    })
+    getTodayStudyMinutes(userId).then(setTodayMinutes)
+    getBudgetEntries(userId).then(entries => {
+      setBalance(entries.reduce((s, e) => s + (e.direction === 'in' ? e.amount : -e.amount), 0))
+    })
+    getWatchlists(userId).then(w => setWatchCount(w.length))
+  }, [userId])
+
+  const firstName = currentUser?.full_name?.split(' ')[0] || 'there'
+  const daysUntil = nextDeadline ? Math.max(0, Math.ceil((new Date(nextDeadline.due_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : null
+
+  return (
+    <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-3xl p-5 mx-4 mt-3">
+      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-sapphire-light/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full bg-teal-primary/20 blur-3xl pointer-events-none" />
+      <div className="relative">
+        <p className="text-cream font-serif text-lg mb-3">Hey {firstName} 👋</p>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 bg-ember/10 border border-ember/25 rounded-xl px-3 py-1.5">
+            <CalendarClock size={14} className="text-ember flex-shrink-0" />
+            <span className="text-cream text-xs font-medium">
+              {nextDeadline ? `${nextDeadline.title} in ${daysUntil}d` : 'No deadlines'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-gold/10 border border-gold/25 rounded-xl px-3 py-1.5">
+            <Timer size={14} className="text-gold flex-shrink-0" />
+            <span className="text-cream text-xs font-medium">{todayMinutes} min focused today</span>
+          </div>
+          <div className="flex items-center gap-2 bg-teal-faint border border-teal-light/25 rounded-xl px-3 py-1.5">
+            <Wallet size={14} className="text-teal-light flex-shrink-0" />
+            <span className="text-cream text-xs font-medium">R{balance.toFixed(0)} left</span>
+          </div>
+          <div className="flex items-center gap-2 bg-sapphire-light/10 border border-sapphire-light/25 rounded-xl px-3 py-1.5">
+            <Eye size={14} className="text-sapphire-light flex-shrink-0" />
+            <span className="text-cream text-xs font-medium">{watchCount} watching</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MySpace() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
@@ -800,21 +880,29 @@ export default function MySpace() {
         <span className="text-cream font-bold">My Space</span>
       </div>
 
+      <TodaySnapshot userId={currentUser.id} />
+
       <div className="overflow-x-auto scrollbar-hide px-4 py-3">
         <div className="flex gap-2 w-max">
-          {TABS.map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-                tab === t
-                  ? 'bg-ember text-white border-ember'
-                  : 'bg-transparent text-cream-muted border-slate-border hover:border-teal-light'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const meta = TAB_META[t]
+            const Icon = meta.icon
+            const isActive = tab === t
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                  isActive
+                    ? `${meta.active} text-white`
+                    : 'bg-transparent text-cream-muted border-slate-border hover:border-teal-light'
+                }`}
+              >
+                <Icon size={14} className={isActive ? 'text-white' : 'text-cream-muted'} />
+                {t}
+              </button>
+            )
+          })}
         </div>
       </div>
 
