@@ -1399,3 +1399,77 @@ export async function createWatchlist(
 export async function deleteWatchlist(id: string): Promise<void> {
   await supabase.from('watchlists').delete().eq('id', id)
 }
+
+// ── STUDY TIMETABLE (weekly courses + per-course lecture prep notes) ────────
+
+export interface StudyCourse {
+  id: string
+  user_id: string
+  day_of_week: number
+  course_name: string
+  minutes: number
+  prepped: boolean
+  created_at: string
+}
+
+export async function getStudyCourses(userId: string): Promise<StudyCourse[]> {
+  const { data, error } = await supabase
+    .from('study_timetable_courses')
+    .select('*')
+    .eq('user_id', userId)
+    .order('day_of_week', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error || !data) return []
+  return data as StudyCourse[]
+}
+
+export async function createStudyCourse(
+  userId: string, dayOfWeek: number, courseName: string, minutes: number
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_timetable_courses').insert({
+    user_id: userId, day_of_week: dayOfWeek, course_name: courseName, minutes,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteStudyCourse(id: string): Promise<void> {
+  await supabase.from('study_timetable_courses').delete().eq('id', id)
+}
+
+export interface StudyPrepNote {
+  id: string
+  course_id: string
+  user_id: string
+  focus_topic: string
+  resource: string
+  goal: string
+  clarification_question: string | null
+  clarified: boolean
+  created_at: string
+}
+
+export async function getStudyPrepNotes(userId: string): Promise<StudyPrepNote[]> {
+  const { data, error } = await supabase
+    .from('study_prep_notes')
+    .select('*')
+    .eq('user_id', userId)
+  if (error || !data) return []
+  return data as StudyPrepNote[]
+}
+
+export async function createStudyPrepNote(
+  userId: string, courseId: string, focusTopic: string, resource: string, goal: string, clarificationQuestion: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_prep_notes').insert({
+    user_id: userId, course_id: courseId,
+    focus_topic: focusTopic.trim(), resource: resource.trim(), goal: goal.trim(),
+    clarification_question: clarificationQuestion.trim() || null,
+  })
+  if (error) return { error: error.message }
+  await supabase.from('study_timetable_courses').update({ prepped: true }).eq('id', courseId)
+  return { error: null }
+}
+
+export async function setStudyPrepClarified(id: string, clarified: boolean): Promise<void> {
+  await supabase.from('study_prep_notes').update({ clarified }).eq('id', id)
+}
