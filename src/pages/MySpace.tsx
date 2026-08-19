@@ -7,7 +7,7 @@ import {
   Deadline, getDeadlines, createDeadline, deleteDeadline,
   ScheduleEntry, getScheduleEntries, createScheduleEntry, deleteScheduleEntry,
   BudgetEntry, getBudgetEntries, createBudgetEntry, deleteBudgetEntry,
-  getTodayStudyMinutes, addStudyMinutes,
+  getTodayStudyMinutes, getYesterdayStudyMinutes, addStudyMinutes,
   Watchlist, getWatchlists, createWatchlist, deleteWatchlist,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
@@ -259,14 +259,97 @@ function BudgetSection({ userId }: { userId: string }) {
   )
 }
 
+const FOCUS_PRESETS = [15, 25, 45, 60]
+
+const AHEAD_MESSAGES = [
+  "Already past yesterday's number — nice.",
+  "You're outpacing yesterday-you today.",
+  'New high for the week, keep it up.',
+  'More focused time than yesterday. Solid.',
+  "Yesterday's you would be impressed.",
+  'Beat your own record today.',
+  'More minutes than yesterday — the trend is real.',
+  'You showed up more than yesterday. That counts.',
+  "Today's you is winning against yesterday's you.",
+  "Ahead of yesterday's pace — don't stop now.",
+]
+const BEHIND_MESSAGES = [
+  'A bit less focus time than yesterday so far.',
+  "Below yesterday's number right now — still time to close the gap.",
+  'Slower start than yesterday, no rush to catch up.',
+  "Today's a little lighter than yesterday's session.",
+  "Not quite at yesterday's total yet.",
+  'Yesterday edges ahead for now.',
+  'A shorter stretch than yesterday today.',
+  "Trailing yesterday's minutes a little.",
+  "Today's tally is under yesterday's, so far.",
+  'Less time logged than yesterday — still counts.',
+]
+
+function pickMessage(pool: string[], storageKey: string): string {
+  const lastIndex = Number(localStorage.getItem(storageKey) ?? '-1')
+  let idx = Math.floor(Math.random() * pool.length)
+  if (pool.length > 1) {
+    while (idx === lastIndex) idx = Math.floor(Math.random() * pool.length)
+  }
+  localStorage.setItem(storageKey, String(idx))
+  return pool[idx]
+}
+
+function GoldPaperFall() {
+  const pieces = Array.from({ length: 28 })
+  return (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 999 }}>
+      <style>{`@keyframes goldFall { to { top: 100vh; transform: translateY(0) rotate(720deg); } }`}</style>
+      {pieces.map((_, i) => {
+        const left = Math.random() * 100
+        const delay = (Math.random() * 0.6).toFixed(2)
+        const duration = (2.2 + Math.random() * 1.2).toFixed(2)
+        const rotate = Math.round(Math.random() * 360)
+        return (
+          <span
+            key={i}
+            style={{
+              position: 'absolute', top: '-24px', left: `${left}vw`,
+              width: '7px', height: '14px', background: '#F2B84B',
+              transform: `rotate(${rotate}deg)`,
+              animation: `goldFall ${duration}s linear ${delay}s forwards`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 function PomodoroSection({ userId }: { userId: string }) {
-  const FOCUS_SECONDS = 25 * 60
-  const [secondsLeft, setSecondsLeft] = useState(FOCUS_SECONDS)
+  const [focusMinutes, setFocusMinutes] = useState(() => {
+    const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
+    return saved > 0 ? saved : 25
+  })
+  const [secondsLeft, setSecondsLeft] = useState(focusMinutes * 60)
   const [running, setRunning] = useState(false)
   const [todayMinutes, setTodayMinutes] = useState(0)
+  const [celebrate, setCelebrate] = useState(false)
+  const [dayMessage, setDayMessage] = useState<{ text: string; ahead: boolean } | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
+  useEffect(() => { if (!running) setSecondsLeft(focusMinutes * 60) }, [focusMinutes, running])
+
+  const handleSessionComplete = async () => {
+    const newTotal = await addStudyMinutes(userId, focusMinutes)
+    setTodayMinutes(newTotal)
+    const yesterday = await getYesterdayStudyMinutes(userId)
+    if (newTotal > yesterday) {
+      setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
+      setCelebrate(true)
+      setTimeout(() => setCelebrate(false), 4200)
+    } else {
+      setDayMessage({ text: pickMessage(BEHIND_MESSAGES, 'pomodoro_last_behind_msg'), ahead: false })
+    }
+    setTimeout(() => setDayMessage(null), 6000)
+  }
 
   useEffect(() => {
     if (running) {
@@ -274,8 +357,8 @@ function PomodoroSection({ userId }: { userId: string }) {
         setSecondsLeft(s => {
           if (s <= 1) {
             setRunning(false)
-            addStudyMinutes(userId, 25).then(() => setTodayMinutes(m => m + 25))
-            return FOCUS_SECONDS
+            handleSessionComplete()
+            return focusMinutes * 60
           }
           return s - 1
         })
@@ -284,13 +367,20 @@ function PomodoroSection({ userId }: { userId: string }) {
       clearInterval(intervalRef.current)
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running, userId])
+  }, [running, userId, focusMinutes])
+
+  const handlePreset = (m: number) => {
+    setFocusMinutes(m)
+    localStorage.setItem('pomodoro_focus_minutes', String(m))
+  }
 
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
   const secs = String(secondsLeft % 60).padStart(2, '0')
 
   return (
     <div className="flex flex-col gap-3">
+      {celebrate && <GoldPaperFall />}
+
       <SectionCard>
         <div className="flex flex-col items-center py-6">
           <p className="text-cream font-serif text-5xl font-bold mb-6">{mins}:{secs}</p>
@@ -299,7 +389,7 @@ function PomodoroSection({ userId }: { userId: string }) {
               className="bg-ember hover:bg-ember-dark text-white font-bold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
               {running ? <><Pause size={16} /> Pause</> : <><Play size={16} /> Start</>}
             </button>
-            <button onClick={() => { setRunning(false); setSecondsLeft(FOCUS_SECONDS) }}
+            <button onClick={() => { setRunning(false); setSecondsLeft(focusMinutes * 60) }}
               className="bg-slate-deep border border-slate-border text-cream-muted font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
               <RotateCcw size={16} />
             </button>
@@ -308,13 +398,37 @@ function PomodoroSection({ userId }: { userId: string }) {
       </SectionCard>
 
       <SectionCard>
+        <p className="text-cream-muted text-xs mb-2">Focus length</p>
+        <div className="flex flex-wrap gap-2 items-center">
+          {FOCUS_PRESETS.map(m => (
+            <button key={m} disabled={running} onClick={() => handlePreset(m)}
+              className={`px-3 py-1.5 rounded-xl text-sm font-bold border transition-colors disabled:opacity-40 ${
+                focusMinutes === m ? 'bg-teal-primary text-white border-teal-light' : 'bg-slate-deep text-cream-muted border-slate-border'
+              }`}>
+              {m}m
+            </button>
+          ))}
+          <input
+            type="number" min="1" max="180" disabled={running}
+            value={focusMinutes}
+            onChange={e => handlePreset(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
+            className="w-20 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-sm text-cream disabled:opacity-40 focus:outline-none focus:border-teal-light"
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard>
         <p className="text-cream-muted text-xs mb-1">Studied today</p>
         <p className="text-teal-light text-2xl font-serif font-bold">{todayMinutes} min</p>
+        {dayMessage && (
+          <p className={`text-sm mt-2 ${dayMessage.ahead ? 'text-gold' : 'text-cream-muted'}`}>
+            {dayMessage.text}
+          </p>
+        )}
       </SectionCard>
     </div>
   )
 }
-
 function WatchlistSection({ userId }: { userId: string }) {
   const { showToast } = useApp()
   const [items, setItems] = useState<Watchlist[]>([])
