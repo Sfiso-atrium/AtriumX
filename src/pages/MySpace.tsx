@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Play, Pause, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
@@ -9,12 +9,25 @@ import {
   BudgetEntry, getBudgetEntries, createBudgetEntry, deleteBudgetEntry,
   getTodayStudyMinutes, getYesterdayStudyMinutes, addStudyMinutes,
   Watchlist, getWatchlists, createWatchlist, deleteWatchlist,
+  StudyCourse, getStudyCourses, createStudyCourse, deleteStudyCourse,
+  StudyPrepNote, getStudyPrepNotes, createStudyPrepNote, setStudyPrepClarified,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const TABS = ['Deadlines', 'Schedule', 'Budget', 'Pomodoro', 'Watchlist'] as const
+const TABS = ['Deadlines', 'Timetable', 'Schedule', 'Budget', 'Pomodoro', 'Watchlist'] as const
 type Tab = typeof TABS[number]
+
+// Friendly, explanatory line shown at the top of every tab — what the tab
+// does, said in an encouraging voice rather than a dry feature description.
+const TAB_INTRO: Record<Tab, string> = {
+  Deadlines: "Every exam and assignment due date lives here, so nothing sneaks up on you. You've got this. 💪",
+  Timetable: "Plan your study week course by course — a few minutes now saves a scramble later.",
+  Schedule: "Enter your week once and this tab always knows what's next for you.",
+  Budget: "Log what comes in and what goes out, and always know what's left. Small habit, big peace of mind.",
+  Pomodoro: "Focus in short bursts, log your minutes, and watch your streak grow. One session at a time.",
+  Watchlist: "Tell us what you're after and we'll ping you the moment it turns up. No more refreshing the feed.",
+}
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return <div className="bg-slate-card border border-slate-border rounded-2xl p-4">{children}</div>
@@ -25,6 +38,44 @@ function DeleteBtn({ onClick }: { onClick: () => void }) {
     <button onClick={onClick} className="text-cream-muted hover:text-red-400 transition-colors flex-shrink-0">
       <Trash2 size={16} />
     </button>
+  )
+}
+
+function TabIntro({ tab }: { tab: Tab }) {
+  return (
+    <p className="text-cream-muted text-sm mb-3 leading-snug">{TAB_INTRO[tab]}</p>
+  )
+}
+
+// Shown once per user on their first visit to My Space, via a localStorage
+// flag (this is a real deployed app, not a Claude artifact, so localStorage
+// is fine here — it just needs to remember "seen" per browser).
+function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 text-center">
+        <div className="flex justify-end mb-1">
+          <button onClick={onClose} className="text-cream-muted hover:text-cream">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="w-12 h-12 rounded-full bg-teal-faint border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
+          <Sparkles size={22} className="text-teal-light" />
+        </div>
+        <h2 className="font-serif text-xl text-cream mb-2">Welcome to My Space!</h2>
+        <p className="text-cream-muted text-sm mb-5 leading-relaxed">
+          This is your own corner of AtriumX — separate from the marketplace and just for you. Track deadlines,
+          plan a study timetable, log your budget, run focus sessions, and watch your watchlist for you.
+          Every tab has a quick line at the top telling you what it's for. Let's get you organised. 🎓
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
+        >
+          Let's go
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -44,6 +95,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
     const { error } = await createDeadline(userId, title.trim(), new Date(dueAt).toISOString(), notes)
     if (error) { showToast(error, 'error'); return }
     setTitle(''); setDueAt(''); setNotes('')
+    showToast('Deadline added — you\'re on top of it.', 'success')
     load()
   }
 
@@ -54,6 +106,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <TabIntro tab="Deadlines" />
       <SectionCard>
         <p className="text-cream font-bold text-sm mb-3">Add a deadline</p>
         <div className="flex flex-col gap-2">
@@ -70,7 +123,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
       </SectionCard>
 
       {!loading && items.length === 0 && (
-        <p className="text-cream-muted text-sm text-center py-6">No deadlines yet.</p>
+        <p className="text-cream-muted text-sm text-center py-6">No deadlines yet — add your first one above.</p>
       )}
 
       {items.map(d => {
@@ -134,6 +187,7 @@ function ScheduleSection({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <TabIntro tab="Schedule" />
       {next && (
         <SectionCard>
           <p className="text-cream-muted text-xs mb-1">Next class</p>
@@ -212,6 +266,7 @@ function BudgetSection({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <TabIntro tab="Budget" />
       <SectionCard>
         <p className="text-cream-muted text-xs mb-1">Balance</p>
         <p className={`text-2xl font-serif font-bold ${balance >= 0 ? 'text-teal-light' : 'text-red-400'}`}>
@@ -380,7 +435,7 @@ function PomodoroSection({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
-
+      <TabIntro tab="Pomodoro" />
       <SectionCard>
         <div className="flex flex-col items-center py-6">
           <p className="text-cream font-serif text-5xl font-bold mb-6">{mins}:{secs}</p>
@@ -429,6 +484,7 @@ function PomodoroSection({ userId }: { userId: string }) {
     </div>
   )
 }
+
 function WatchlistSection({ userId }: { userId: string }) {
   const { showToast } = useApp()
   const [items, setItems] = useState<Watchlist[]>([])
@@ -456,6 +512,7 @@ function WatchlistSection({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <TabIntro tab="Watchlist" />
       <SectionCard>
         <p className="text-cream font-bold text-sm mb-3">New watchlist</p>
         <div className="flex flex-col gap-2">
@@ -489,10 +546,243 @@ function WatchlistSection({ userId }: { userId: string }) {
   )
 }
 
+// Pops up when the student checks an unprepped course. Three fixed,
+// specific prompts (never more) plus one optional free-text question for
+// the lecturer.
+function PrepModal({ course, onClose, onSubmitted }: { course: StudyCourse; onClose: () => void; onSubmitted: () => void }) {
+  const { currentUser, showToast } = useApp()
+  const [focusTopic, setFocusTopic] = useState('')
+  const [resource, setResource] = useState('')
+  const [goal, setGoal] = useState('')
+  const [clarification, setClarification] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!currentUser) return
+    if (!focusTopic.trim() || !resource.trim() || !goal.trim()) {
+      showToast('Please answer all three questions.', 'info'); return
+    }
+    setLoading(true)
+    const { error } = await createStudyPrepNote(currentUser.id, course.id, focusTopic, resource, goal, clarification)
+    setLoading(false)
+    if (error) { showToast(error, 'error'); return }
+    showToast('Locked in — go get it.', 'success')
+    onSubmitted()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-serif text-xl text-cream">Quick prep</h2>
+          <button onClick={onClose} className="text-cream-muted hover:text-cream">
+            <X size={18} />
+          </button>
+        </div>
+        <p className="text-cream-muted text-sm mb-5">
+          For <span className="text-cream">{course.course_name}</span> — three quick questions to walk in ready.
+        </p>
+
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">1. What will you focus on in this session?</label>
+            <input value={focusTopic} onChange={e => setFocusTopic(e.target.value)} placeholder="e.g. Chapter 4, past paper Q2"
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          </div>
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">2. What resource will you use?</label>
+            <input value={resource} onChange={e => setResource(e.target.value)} placeholder="e.g. lecture slides, textbook, YouTube"
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          </div>
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">3. What's your goal for this session?</label>
+            <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="e.g. Understand and solve 5 problems"
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          </div>
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">Anything you need clarified from your lecturer? (optional)</label>
+            <textarea value={clarification} onChange={e => setClarification(e.target.value)} placeholder="e.g. Not sure which formula applies here"
+              rows={2}
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none" />
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5"
+        >
+          {loading ? 'Saving...' : 'Save & get ready'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function TimetableSection({ userId }: { userId: string }) {
+  const { showToast } = useApp()
+  const [courses, setCourses] = useState<StudyCourse[]>([])
+  const [preps, setPreps] = useState<StudyPrepNote[]>([])
+  const [prepTarget, setPrepTarget] = useState<StudyCourse | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [openDayForm, setOpenDayForm] = useState<number | null>(null)
+  const [courseName, setCourseName] = useState('')
+  const [minutes, setMinutes] = useState('')
+
+  const load = () => {
+    getStudyCourses(userId).then(setCourses)
+    getStudyPrepNotes(userId).then(setPreps)
+  }
+  useEffect(() => { load() }, [userId])
+
+  const handleAddCourse = async (day: number) => {
+    const dayCount = courses.filter(c => c.day_of_week === day).length
+    if (dayCount >= 3) { showToast('Max 3 courses per day.', 'info'); return }
+    if (!courseName.trim() || !minutes || Number(minutes) <= 0) {
+      showToast('Add a course name and a study time.', 'error'); return
+    }
+    const { error } = await createStudyCourse(userId, day, courseName.trim(), Number(minutes))
+    if (error) { showToast(error, 'error'); return }
+    setCourseName(''); setMinutes(''); setOpenDayForm(null)
+    load()
+  }
+
+  const handleDeleteCourse = async (id: string) => {
+    await deleteStudyCourse(id)
+    setCourses(prev => prev.filter(c => c.id !== id))
+    setPreps(prev => prev.filter(p => p.course_id !== id))
+  }
+
+  const handleClarifiedToggle = async (note: StudyPrepNote) => {
+    await setStudyPrepClarified(note.id, !note.clarified)
+    setPreps(prev => prev.map(p => p.id === note.id ? { ...p, clarified: !p.clarified } : p))
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <TabIntro tab="Timetable" />
+
+      {DAYS.map((dayName, dayIdx) => {
+        const dayCourses = courses.filter(c => c.day_of_week === dayIdx)
+        const totalMinutes = dayCourses.reduce((s, c) => s + c.minutes, 0)
+        return (
+          <SectionCard key={dayIdx}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-cream font-bold text-sm">{dayName}</p>
+              {totalMinutes > 0 && <span className="text-teal-light text-xs font-bold">{totalMinutes} min planned</span>}
+            </div>
+
+            {dayCourses.length === 0 && (
+              <p className="text-cream-muted text-xs mb-2">No courses planned yet — small steps add up.</p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {dayCourses.map(course => {
+                const note = preps.find(p => p.course_id === course.id)
+                const isExpanded = expanded === course.id
+                return (
+                  <div key={course.id} className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => course.prepped ? setExpanded(isExpanded ? null : course.id) : setPrepTarget(course)}
+                        className="flex-shrink-0"
+                        aria-label={course.prepped ? 'View prep notes' : 'Prep for this session'}
+                      >
+                        {course.prepped
+                          ? <CheckCircle2 size={20} className="text-teal-light" />
+                          : <Circle size={20} className="text-cream-muted" />}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-cream text-sm font-bold truncate">{course.course_name}</p>
+                        <p className="text-cream-muted text-xs">{course.minutes} min</p>
+                      </div>
+                      {course.prepped && (
+                        <button onClick={() => setExpanded(isExpanded ? null : course.id)} className="text-cream-muted flex-shrink-0">
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      )}
+                      <DeleteBtn onClick={() => handleDeleteCourse(course.id)} />
+                    </div>
+
+                    {isExpanded && note && (
+                      <div className="mt-2.5 pt-2.5 border-t border-slate-border flex flex-col gap-1.5">
+                        <p className="text-xs"><span className="text-cream-muted">Focus: </span><span className="text-cream">{note.focus_topic}</span></p>
+                        <p className="text-xs"><span className="text-cream-muted">Resource: </span><span className="text-cream">{note.resource}</span></p>
+                        <p className="text-xs"><span className="text-cream-muted">Goal: </span><span className="text-cream">{note.goal}</span></p>
+                        {note.clarification_question && (
+                          <button
+                            onClick={() => handleClarifiedToggle(note)}
+                            className="flex items-start gap-2 mt-1.5 text-left"
+                          >
+                            {note.clarified
+                              ? <CheckCircle2 size={16} className="text-teal-light flex-shrink-0 mt-0.5" />
+                              : <Circle size={16} className="text-cream-muted flex-shrink-0 mt-0.5" />}
+                            <span className={`text-xs ${note.clarified ? 'text-cream-muted line-through' : 'text-cream'}`}>
+                              {note.clarification_question}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {dayCourses.length < 3 && (
+              openDayForm === dayIdx ? (
+                <div className="flex flex-col gap-2 mt-2.5 pt-2.5 border-t border-slate-border">
+                  <input value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Course name"
+                    className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                  <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Minutes to study"
+                    className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleAddCourse(dayIdx)} className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+                      Add
+                    </button>
+                    <button onClick={() => { setOpenDayForm(null); setCourseName(''); setMinutes('') }} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-sm transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setOpenDayForm(dayIdx)}
+                  className="w-full mt-2.5 border border-dashed border-slate-border text-cream-muted hover:text-teal-light hover:border-teal-light text-xs font-bold py-2 rounded-xl transition-colors"
+                >
+                  + Add course
+                </button>
+              )
+            )}
+          </SectionCard>
+        )
+      })}
+
+      {prepTarget && (
+        <PrepModal
+          course={prepTarget}
+          onClose={() => setPrepTarget(null)}
+          onSubmitted={() => { setPrepTarget(null); load() }}
+        />
+      )}
+    </div>
+  )
+}
+
 export default function MySpace() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
   const [tab, setTab] = useState<Tab>('Deadlines')
+  const [showIntro, setShowIntro] = useState(false)
+
+  useEffect(() => {
+    if (!currentUser) return
+    const flag = `atriumx_space_intro_seen_${currentUser.id}`
+    if (!localStorage.getItem(flag)) {
+      setShowIntro(true)
+      localStorage.setItem(flag, '1')
+    }
+  }, [currentUser])
 
   if (!currentUser) {
     navigate('/student')
@@ -501,6 +791,8 @@ export default function MySpace() {
 
   return (
     <div className="min-h-screen bg-slate-deep pb-24">
+      {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
+
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream">
           <ArrowLeft size={20} />
@@ -528,6 +820,7 @@ export default function MySpace() {
 
       <div className="px-4">
         {tab === 'Deadlines' && <DeadlinesSection userId={currentUser.id} />}
+        {tab === 'Timetable' && <TimetableSection userId={currentUser.id} />}
         {tab === 'Schedule' && <ScheduleSection userId={currentUser.id} />}
         {tab === 'Budget' && <BudgetSection userId={currentUser.id} />}
         {tab === 'Pomodoro' && <PomodoroSection userId={currentUser.id} />}
