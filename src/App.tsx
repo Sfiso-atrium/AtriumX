@@ -14,6 +14,7 @@ import EditProfile from './pages/EditProfile'
 import RetailerSignup from './pages/RetailerSignup'
 import BusinessPostListing from './pages/BusinessPostListing'
 import BusinessPlanSelect from './pages/BusinessPlanSelect'
+import MySpace from './pages/MySpace'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/space" element={<MySpace />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />
