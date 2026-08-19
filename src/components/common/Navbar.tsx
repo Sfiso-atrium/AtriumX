@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, ListChecks } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 
@@ -26,6 +26,14 @@ return (
       <div className="flex items-center gap-4">
         {currentUser ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/space')}
+              className="flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
+              aria-label="My Space"
+              title="My Space"
+            >
+              <ListChecks size={20} />
+            </button>
             <NotificationBell />
             <button
               onClick={() => navigate(`/profile/${currentUser.id}`)}
