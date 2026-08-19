@@ -1322,23 +1322,47 @@ export async function deleteBudgetEntry(id: string): Promise<void> {
   await supabase.from('budget_entries').delete().eq('id', id)
 }
 
-export async function getTodayStudyMinutes(userId: string): Promise<number> {
-  const today = new Date().toISOString().slice(0, 10)
+// toISOString() converts to UTC before slicing the date — for a South
+// African user (UTC+2), that silently shifts the "day" for 2 hours every
+// night. Studying at 00:30 local time would log against yesterday's date
+// instead of today's. This builds the date string from the browser's own
+// local year/month/day instead, so it matches what the clock on the wall
+// actually says.
+function localDateString(d: Date = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export async function getStudyMinutesForDate(userId: string, dateStr: string): Promise<number> {
   const { data } = await supabase
     .from('study_log')
     .select('minutes')
     .eq('user_id', userId)
-    .eq('log_date', today)
+    .eq('log_date', dateStr)
     .maybeSingle()
   return data?.minutes ?? 0
 }
 
-export async function addStudyMinutes(userId: string, minutes: number): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10)
+export async function getTodayStudyMinutes(userId: string): Promise<number> {
+  return getStudyMinutesForDate(userId, localDateString())
+}
+
+export async function getYesterdayStudyMinutes(userId: string): Promise<number> {
+  const y = new Date()
+  y.setDate(y.getDate() - 1)
+  return getStudyMinutesForDate(userId, localDateString(y))
+}
+
+export async function addStudyMinutes(userId: string, minutes: number): Promise<number> {
+  const today = localDateString()
   const current = await getTodayStudyMinutes(userId)
+  const newTotal = current + minutes
   await supabase.from('study_log').upsert({
-    user_id: userId, log_date: today, minutes: current + minutes,
+    user_id: userId, log_date: today, minutes: newTotal,
   })
+  return newTotal
 }
 
 export interface Watchlist {
