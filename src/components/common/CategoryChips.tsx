@@ -6,7 +6,7 @@ export interface CategoryOption {
   label: string
 }
 
-const STUDENT_CATEGORIES: CategoryOption[] = [
+export const STUDENT_CATEGORIES: CategoryOption[] = [
   { id: 'all', label: 'All' },
   { id: 'textbooks', label: 'Textbooks' },
   { id: 'electronics', label: 'Electronics' },
