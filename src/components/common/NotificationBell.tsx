@@ -97,6 +97,8 @@ export default function NotificationBell() {
       navigate(`/chat/${notif.conversation_id}`)
     } else if ((notif.type === 'review' || notif.type === 'review_locked' || notif.type === 'business_approved' || notif.type === 'business_rejected') && currentUser) {
       navigate(`/profile/${currentUser.id}`)
+    } else if (notif.type === 'deadline_reminder' || notif.type === 'watchlist_match') {
+      navigate('/space')
     }
   }
 
