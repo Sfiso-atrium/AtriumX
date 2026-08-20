@@ -80,7 +80,7 @@ export interface Notification {
   user_id: string
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
         'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
-        'deadline_reminder' | 'watchlist_match'
+        'deadline_reminder' | 'watchlist_match' | 'referral_listing'
   message: string
   listing_id: string | null
   conversation_id: string | null
@@ -176,7 +176,8 @@ export async function registerWithEmail(
   email: string,
   password: string,
   fullName: string,
-  residence: string
+  residence: string,
+  refCode?: string
 ): Promise<{ user: Profile | null; error: string | null }> {
   if (!isEligibleForRegistration(email)) {
     return { user: null, error: INELIGIBLE_EMAIL_MESSAGE }
@@ -209,6 +210,7 @@ await supabase
         avatar_initials: initials,
         avatar_color: avatarColor,
         email,
+        ref_code: refCode || null,
       },
     },
   })
@@ -1078,7 +1080,8 @@ export async function registerBusinessWithEmail(
   customBusinessType: string | undefined,
   contactNumber: string,
   physicalAddress: string | undefined,
-  website: string | undefined
+  website: string | undefined,
+  refCode?: string
 ): Promise<{ user: Profile | null; error: string | null }> {
   const initials = businessName
     .split(' ')
@@ -1100,6 +1103,7 @@ export async function registerBusinessWithEmail(
         avatar_color: avatarColor,
         account_type: 'business',
         email,
+        ref_code: refCode || null,
       },
     },
   })
@@ -1472,4 +1476,134 @@ export async function createStudyPrepNote(
 
 export async function setStudyPrepClarified(id: string, clarified: boolean): Promise<void> {
   await supabase.from('study_prep_notes').update({ clarified }).eq('id', id)
+}
+
+// ── REFERRAL PARTNER PROGRAM ─────────────────────────────────────────────
+// Naming note: unrelated to the 'campus_partner' plan tier in PLAN_TIERS —
+// see the migration comment. This is the referral/affiliate feature.
+
+export interface Partner {
+  user_id: string
+  referral_code: string
+  created_at: string
+}
+
+export interface ReferralEvent {
+  id: string
+  partner_id: string
+  referred_user_id: string
+  listing_id: string
+  plan_tier: PlanKey
+  amount: number
+  created_at: string
+  referred_user?: { full_name: string }
+  listing?: { title: string }
+}
+
+// Whether the current user is a partner, and their code if so. Called once
+// on login/session-restore (see AppContext) so the navbar check is free.
+export async function getPartnerStatus(userId: string): Promise<Partner | null> {
+  const { data } = await supabase.from('partners').select('*').eq('user_id', userId).maybeSingle()
+  return data as Partner | null
+}
+
+export async function getReferralCount(partnerId: string): Promise<number> {
+  const { count } = await supabase
+    .from('referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('partner_id', partnerId)
+  return count ?? 0
+}
+
+export async function getReferralEvents(partnerId: string): Promise<ReferralEvent[]> {
+  const { data, error } = await supabase
+    .from('referral_events')
+    .select('*, referred_user:profiles!referral_events_referred_user_id_fkey(full_name), listing:listings(title)')
+    .eq('partner_id', partnerId)
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as unknown as ReferralEvent[]
+}
+
+export function getEstimatedEarnings(events: ReferralEvent[]): number {
+  return events.reduce((sum, e) => sum + Number(e.amount), 0)
+}
+
+// ADMIN ONLY below this line — RLS backs every one of these up independently.
+
+export async function getAllPartnersAdmin(): Promise<(Partner & { profile: Profile | null; referredCount: number; totalEarnings: number })[]> {
+  const [{ data: partners }, { data: referrals }, { data: events }] = await Promise.all([
+    supabase.from('partners').select('*').order('created_at', { ascending: false }),
+    supabase.from('referrals').select('partner_id'),
+    supabase.from('referral_events').select('partner_id, amount'),
+  ])
+  if (!partners) return []
+
+  const profiles = await Promise.all(partners.map(p => getUserById(p.user_id)))
+
+  return partners.map((p, i) => ({
+    ...(p as Partner),
+    profile: profiles[i],
+    referredCount: (referrals || []).filter(r => r.partner_id === p.user_id).length,
+    totalEarnings: (events || []).filter(e => e.partner_id === p.user_id).reduce((s, e) => s + Number(e.amount), 0),
+  }))
+}
+
+function generateReferralCode(fullName: string): string {
+  const base = fullName.trim().split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '').slice(0, 8) || 'PARTNER'
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `${base}-${suffix}`
+}
+
+export async function createPartner(userId: string, fullName: string): Promise<{ code: string | null; error: string | null }> {
+  const code = generateReferralCode(fullName)
+  const { error } = await supabase.from('partners').insert({ user_id: userId, referral_code: code })
+  if (error) return { code: null, error: error.message }
+  return { code, error: null }
+}
+
+export async function removePartner(userId: string): Promise<void> {
+  await supabase.from('partners').delete().eq('user_id', userId)
+}
+
+export async function searchProfilesByName(query: string): Promise<Profile[]> {
+  if (!query.trim()) return []
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+    .limit(8)
+  if (error || !data) return []
+  return data as Profile[]
+}
+
+// ── SUGGESTION BOX (Entrance page, admin-only inbox) ─────────────────────
+
+export interface Suggestion {
+  id: string
+  user_id: string | null
+  message: string
+  is_read: boolean
+  created_at: string
+  user?: { full_name: string; email: string } | null
+}
+
+export async function submitSuggestion(message: string, userId: string | null): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('suggestions').insert({
+    message: message.trim(), user_id: userId,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function getSuggestionsAdmin(): Promise<Suggestion[]> {
+  const { data, error } = await supabase
+    .from('suggestions')
+    .select('*, user:profiles(full_name, email)')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as unknown as Suggestion[]
+}
+
+export async function markSuggestionRead(id: string): Promise<void> {
+  await supabase.from('suggestions').update({ is_read: true }).eq('id', id)
 }
