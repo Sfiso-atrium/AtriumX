@@ -6,8 +6,8 @@ import { Listing, getListings, getBusinessListings, getResidences } from '../ser
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
-import ListingCard from '../components/common/ListingCard
-  import BottomNav from '../components/common/BottomNav'
+import ListingCard from '../components/common/ListingCard'
+import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 const APPLICATION_LINK = 'https://atriumx.co.za/retailer'
 const BUSINESS_CATEGORIES = [
