@@ -23,6 +23,13 @@
     --ember:#D4A017;
     --ember-dark:#A6790F;
   }
+  html.bw-mode{
+    --slate-deep:#FFFFFF;
+    --slate-card:#F4F4F5;
+    --slate-border:#D4D4D8;
+    --cream:#0A0A0A;
+    --cream-muted:#52525B;
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{scroll-behavior:smooth;}
   body{background-color:var(--slate-deep);color:var(--cream);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;line-height:1.5;}
@@ -162,6 +169,13 @@
   </div>
   <p class="copy">&copy; AtriumX | Built for campus communities</p>
 </footer>
+
+<script>
+  (function () {
+    var isOn = localStorage.getItem('atriumx_bw') === '1';
+    document.documentElement.classList.toggle('bw-mode', isOn);
+  })();
+</script>
 
 </body>
 </html>
