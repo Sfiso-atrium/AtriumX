@@ -28,6 +28,8 @@ interface AppContextType {
   setRedirectAfterLogin: (path: string | null) => void
   isLoadingAuth: boolean
   partner: Partner | null
+  bwMode: boolean
+  toggleBwMode: () => void
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -42,6 +44,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
+  const [bwMode, setBwMode] = useState<boolean>(() => localStorage.getItem('atriumx_bw') === '1')
 
   const setCurrentUser = useCallback((user: Profile | null) => {
     setCurrentUserState(user)
@@ -80,6 +83,15 @@ useEffect(() => {
     }
   }, [setCurrentUser])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('grayscale', bwMode)
+    localStorage.setItem('atriumx_bw', bwMode ? '1' : '0')
+  }, [bwMode])
+
+  const toggleBwMode = useCallback(() => {
+    setBwMode(prev => !prev)
+  }, [])
+
   const showToast = useCallback((message: string, type: Toast['type']) => {
     const id = Date.now().toString()
     setToasts(prev => [...prev, { id, message, type }])
@@ -99,6 +111,7 @@ useEffect(() => {
       redirectAfterLogin, setRedirectAfterLogin,
       isLoadingAuth,
       partner,
+      bwMode, toggleBwMode,
     }}>
       {children}
     </AppContext.Provider>
