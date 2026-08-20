@@ -1,11 +1,11 @@
 // src/pages/Entrance.tsx
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Store, ListChecks, MessageCircle, MapPin, CalendarCheck } from 'lucide-react'
+import { GraduationCap, Store, ListChecks, MessageCircle, MapPin, CalendarCheck, Contrast } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 export default function Entrance() {
   const navigate = useNavigate()
-  const { currentUser, setRedirectAfterLogin } = useApp()
+  const { currentUser, setRedirectAfterLogin, bwMode, toggleBwMode } = useApp()
 
   const handleMySpace = () => {
     if (currentUser) {
@@ -27,6 +27,16 @@ export default function Entrance() {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={toggleBwMode}
+            aria-label="Toggle black and white mode"
+            title="Toggle black and white mode"
+            className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
+              bwMode ? 'border-gold text-gold' : 'border-slate-border text-cream-muted hover:text-cream'
+            }`}
+          >
+            <Contrast size={18} />
+          </button>
           <button
             onClick={() => navigate('/student')}
             className="border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-sm font-bold px-4 py-2 rounded-xl transition-colors"
