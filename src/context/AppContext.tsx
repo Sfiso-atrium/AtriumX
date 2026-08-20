@@ -2,7 +2,7 @@ import {
   createContext, useContext, useState,
   useEffect, useCallback, ReactNode
 } from 'react'
-import { Profile, restoreSession, getUnreadMessageCount } from '../services/dataService'
+import { Profile, restoreSession, getUnreadMessageCount, getPartnerStatus, Partner } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 
 interface Toast {
@@ -27,6 +27,7 @@ interface AppContextType {
   redirectAfterLogin: string | null
   setRedirectAfterLogin: (path: string | null) => void
   isLoadingAuth: boolean
+  partner: Partner | null
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -40,13 +41,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
+  const [partner, setPartner] = useState<Partner | null>(null)
 
   const setCurrentUser = useCallback((user: Profile | null) => {
     setCurrentUserState(user)
     if (user) {
       getUnreadMessageCount(user.id).then(setUnreadMessageCount)
+      getPartnerStatus(user.id).then(setPartner)
     } else {
       setUnreadMessageCount(0)
+      setPartner(null)
     }
   }, [])
 
@@ -94,6 +98,7 @@ useEffect(() => {
       authPromptOpen, setAuthPromptOpen,
       redirectAfterLogin, setRedirectAfterLogin,
       isLoadingAuth,
+      partner,
     }}>
       {children}
     </AppContext.Provider>
