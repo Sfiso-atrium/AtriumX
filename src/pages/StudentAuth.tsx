@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { loginWithEmail, registerWithEmail, savePushPreference } from '../services/dataService'
+import { loginWithEmail, registerWithEmail } from '../services/dataService'
+import { subscribeToPush } from '../services/push'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
 
@@ -45,11 +46,10 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (err) return setError(err)
       if (user) {
         setCurrentUser(user)
-        // Ask for push notification permission after registration
+        // Used to only save whether permission was granted - now actually
+        // subscribes through the service worker and saves the delivery details.
         if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission().then(permission => {
-            savePushPreference(user.id, permission === 'granted')
-          })
+          subscribeToPush(user.id)
         }
         const dest = redirectAfterLogin || '/feed'
         setRedirectAfterLogin(null)
