@@ -66,12 +66,14 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
     if (password !== confirmPassword) return setError('Passwords do not match.')
 
     setLoading(true)
+    const refCode = searchParams.get('ref') || undefined
     const { user, error: err } = await registerBusinessWithEmail(
       email, password, businessName.trim(), businessType,
       businessType === 'Other' ? customType.trim() : undefined,
       contactNumber.trim(),
       physicalAddress.trim() || undefined,
-      website.trim() || undefined
+      website.trim() || undefined,
+      refCode
     )
     setLoading(false)
 
