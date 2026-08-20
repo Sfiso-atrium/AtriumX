@@ -170,7 +170,7 @@ function isEligibleForRegistration(email: string): boolean {
 }
 
 const INELIGIBLE_EMAIL_MESSAGE =
-  'You have to be a student to create an account. If you believe your student email should be accepted, contact students@atriumx.co.za and we\'ll add your institution.'
+  'Sorry, we could not sign you in. AtriumX is only open to registered students, If you believe this is a mistake email us at students@atriumx.co.za and we\'ll sort it out.'
 
 export async function registerWithEmail(
   email: string,
