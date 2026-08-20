@@ -99,7 +99,10 @@ export default function Entrance() {
             >
               {currentUser ? 'Open My Space' : 'Sign In to Open My Space'}
             </button>
-            <p className="text-cream-muted text-xs leading-relaxed">Deadlines, timetable, budget and focus time, sorted.</p>
+            <p className="text-cream-muted text-xs leading-relaxed">
+              Your personal student dashboard — log assignment deadlines, add your class timetable,
+              track your monthly budget, and run focus sessions, all tied to your AtriumX account.
+            </p>
           </div>
         </div>
 
@@ -118,7 +121,10 @@ export default function Entrance() {
           <div className="flex-1 min-w-[190px] bg-slate-card border border-slate-border rounded-2xl p-4">
             <CalendarCheck size={16} className="text-sapphire-light mb-2" />
             <p className="text-cream font-bold text-sm mb-1">Study, Sorted</p>
-            <p className="text-cream-muted text-xs leading-relaxed">Deadlines, timetable and focus sessions, built right in.</p>
+            <p className="text-cream-muted text-xs leading-relaxed">
+              Log due dates, add your timetable and run timed focus sessions inside My Space —
+              so studying stays on track alongside your buying and selling.
+            </p>
           </div>
         </div>
 
