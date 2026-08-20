@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, X, ListChecks } from 'lucide-react'
+import { Menu, X, ListChecks, Handshake } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
 const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, partner } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
 
 return (
@@ -26,14 +26,22 @@ return (
       <div className="flex items-center gap-4">
         {currentUser ? (
           <div className="flex items-center gap-2">
-            {currentUser.account_type === 'student' && (
+            <button
+              onClick={() => navigate('/space')}
+              className="flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
+              aria-label="My Space"
+              title="My Space"
+            >
+              <ListChecks size={20} />
+            </button>
+            {partner && (
               <button
-                onClick={() => navigate('/space')}
+                onClick={() => navigate('/partner')}
                 className="flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
-                aria-label="My Space"
-                title="My Space"
+                aria-label="Partner Dashboard"
+                title="Partner Dashboard"
               >
-                <ListChecks size={20} />
+                <Handshake size={20} />
               </button>
             )}
             <NotificationBell />
