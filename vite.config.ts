@@ -24,8 +24,6 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precaches the built app shell so it opens even with no signal.
-        // Doesn't touch Supabase API calls - those still need real network.
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
       },
     }),
