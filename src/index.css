@@ -42,3 +42,35 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Black & white mode: white background, black text, borders lightened.
+   Accent classes (gold/ember/teal/sapphire buttons) are intentionally
+   left untouched so buttons keep their color. */
+html.bw-mode body {
+  background-color: #FFFFFF;
+  color: #0A0A0A;
+}
+
+.bw-mode .bg-slate-deep {
+  background-color: #FFFFFF !important;
+}
+
+.bw-mode .bg-slate-card {
+  background-color: #F4F4F5 !important;
+}
+
+.bw-mode .border-slate-border {
+  border-color: #D4D4D8 !important;
+}
+
+.bw-mode .border-slate-deep {
+  border-color: #FFFFFF !important;
+}
+
+.bw-mode .text-cream {
+  color: #0A0A0A !important;
+}
+
+.bw-mode .text-cream-muted {
+  color: #52525B !important;
+}
