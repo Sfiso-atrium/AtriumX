@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import { GraduationCap, Store, ListChecks, MessageCircle, MapPin, CalendarCheck, Contrast } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import InstallAppButton from '../components/common/InstallAppButton'
 
 export default function Entrance() {
   const navigate = useNavigate()
@@ -27,6 +28,7 @@ export default function Entrance() {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
+          <InstallAppButton />
           <button
             onClick={toggleBwMode}
             aria-label="Toggle black and white mode"
