@@ -161,7 +161,7 @@ if (user) {
             <div className="text-red-400 text-sm px-1">
               <p>{error}</p>
               {error.includes('could not sign you in') && (
-                
+                <a
                   href="mailto:students@atriumx.co.za?subject=Student%20email%20not%20recognised"
                   className="text-teal-light underline text-xs mt-1 inline-block"
                 >
