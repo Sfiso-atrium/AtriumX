@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Entrance from './pages/Entrance'
 import Feed from './pages/Feed'
@@ -15,6 +15,7 @@ import RetailerSignup from './pages/RetailerSignup'
 import BusinessPostListing from './pages/BusinessPostListing'
 import BusinessPlanSelect from './pages/BusinessPlanSelect'
 import MySpace from './pages/MySpace'
+import PartnerDashboard from './pages/Partnerdashboard'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -31,6 +32,23 @@ function ModalLayer() {
   const { authPromptOpen } = useApp()
   return authPromptOpen ? <AuthPromptModal /> : null
 }
+
+function NotFound() {
+  const navigate = useNavigate()
+  return (
+    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center gap-3 px-4 text-center">
+      <p className="text-cream font-serif text-xl">Page not found</p>
+      <p className="text-cream-muted text-sm">That link doesn't lead anywhere yet.</p>
+      <button
+        onClick={() => navigate('/')}
+        className="bg-gold hover:opacity-85 text-black text-sm font-bold px-4 py-2 rounded-lg transition-opacity"
+      >
+        Back to AtriumX
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <AppProvider>
@@ -55,6 +73,8 @@ export default function App() {
           <Route path="/retailer/signup" element={<RetailerSignup />} />
           <Route path="/business/post" element={<BusinessPostListing />} />
           <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
+          <Route path="/partner" element={<PartnerDashboard />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
 
       </HashRouter>
