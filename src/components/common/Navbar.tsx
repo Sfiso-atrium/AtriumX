@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, X, ListChecks, Handshake } from 'lucide-react'
+import { Menu, X, ListChecks, Handshake, Contrast } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
 const navigate = useNavigate()
-  const { currentUser, partner } = useApp()
+  const { currentUser, partner, bwMode, toggleBwMode } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
 
 return (
@@ -81,7 +81,17 @@ return (
           <X size={22} className="text-cream-muted" />
         </button>
       </div>
+      <button
+        onClick={toggleBwMode}
+        className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border transition-colors ${
+          bwMode ? 'text-gold' : 'text-cream-muted hover:text-teal-light'
+        }`}
+      >
+        <Contrast size={16} />
+        {bwMode ? 'Black & White: On' : 'Black & White: Off'}
+      </button>
 <a href="/How-it-works.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">How It Works</a>
+      
       <a href="/Faq.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">FAQ</a>
       <a href="/Safety.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Safety Tips</a>
       <a href="/Terms.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Terms of Service</a>
