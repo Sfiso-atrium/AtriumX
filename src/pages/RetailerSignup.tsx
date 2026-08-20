@@ -32,6 +32,8 @@ export default function RetailerSignup() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmedBusiness, setConfirmedBusiness] = useState(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-sapphire-light transition-colors"
 
   const handleSubmit = async () => {
@@ -64,6 +66,8 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
     if (!emailValid) return setError('Enter a valid email address.')
     if (password.length < 8) return setError('Password must be at least 8 characters.')
     if (password !== confirmPassword) return setError('Passwords do not match.')
+    if (!confirmedBusiness) return setError('Please confirm you are authorised to register this business on AtriumX.')
+    if (!acceptedPrivacy) return setError('Please accept the Privacy Policy to create an account.')
 
     setLoading(true)
     const refCode = searchParams.get('ref') || undefined
@@ -146,8 +150,36 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
             onChange={e => setPassword(e.target.value)} className={inputClass} />
 
           {mode === 'register' && (
-            <input type="password" placeholder="Confirm password" value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)} className={inputClass} />
+            <>
+              <input type="password" placeholder="Confirm password" value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)} className={inputClass} />
+
+              <div className="flex flex-col gap-2.5 px-1">
+                <label className="flex items-start gap-2.5 text-cream-muted text-xs leading-relaxed cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={confirmedBusiness}
+                    onChange={e => setConfirmedBusiness(e.target.checked)}
+                    className="mt-0.5 accent-sapphire-light"
+                  />
+                  <span>I confirm that I am authorised to register this business on AtriumX.</span>
+                </label>
+                <label className="flex items-start gap-2.5 text-cream-muted text-xs leading-relaxed cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedPrivacy}
+                    onChange={e => setAcceptedPrivacy(e.target.checked)}
+                    className="mt-0.5 accent-sapphire-light"
+                  />
+                  <span>
+                    I have read and accept the{' '}
+                    <a href="/Privacy.html" target="_blank" rel="noopener noreferrer" className="text-sapphire-light underline">
+                      Privacy Policy
+                    </a>.
+                  </span>
+                </label>
+              </div>
+            </>
           )}
 
           {error && <p className="text-red-400 text-sm px-1">{error}</p>}
