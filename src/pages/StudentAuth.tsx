@@ -33,7 +33,8 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (!residence.trim()) return setError('Residence is required.')
 
       setLoading(true)
-      const { user, error: err } = await registerWithEmail(email, password, fullName.trim(), residence.trim())
+      const refCode = searchParams.get('ref') || undefined
+      const { user, error: err } = await registerWithEmail(email, password, fullName.trim(), residence.trim(), refCode)
       setLoading(false)
 
       if (err) return setError(err)
