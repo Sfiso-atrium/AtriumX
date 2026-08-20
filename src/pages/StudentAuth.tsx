@@ -20,6 +20,8 @@ const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const [residence, setResidence] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmedStudent, setConfirmedStudent] = useState(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
 
   const handleSubmit = async () => {
     setError('')
@@ -31,6 +33,8 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (password.length < 8) return setError('Password must be at least 8 characters.')
       if (password !== confirmPassword) return setError('Passwords do not match.')
       if (!residence.trim()) return setError('Residence is required.')
+      if (!confirmedStudent) return setError('Please confirm that you are a currently enrolled student to continue.')
+      if (!acceptedPrivacy) return setError('Please accept the Privacy Policy to create an account.')
 
       setLoading(true)
       const refCode = searchParams.get('ref') || undefined
@@ -124,11 +128,47 @@ if (user) {
               <p className="text-cream-muted text-xs px-1">
                 Type your residence name exactly as it appears on campus. This helps students nearby find your listings.
               </p>
+
+              <div className="flex flex-col gap-2.5 px-1 mt-1">
+                <label className="flex items-start gap-2.5 text-cream-muted text-xs leading-relaxed cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={confirmedStudent}
+                    onChange={e => setConfirmedStudent(e.target.checked)}
+                    className="mt-0.5 accent-teal-light"
+                  />
+                  <span>I confirm that I am a currently enrolled student and will register using my student email address.</span>
+                </label>
+                <label className="flex items-start gap-2.5 text-cream-muted text-xs leading-relaxed cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedPrivacy}
+                    onChange={e => setAcceptedPrivacy(e.target.checked)}
+                    className="mt-0.5 accent-teal-light"
+                  />
+                  <span>
+                    I have read and accept the{' '}
+                    <a href="/Privacy.html" target="_blank" rel="noopener noreferrer" className="text-teal-light underline">
+                      Privacy Policy
+                    </a>.
+                  </span>
+                </label>
+              </div>
             </>
           )}
 
           {error && (
-            <p className="text-red-400 text-sm px-1">{error}</p>
+            <div className="text-red-400 text-sm px-1">
+              <p>{error}</p>
+              {error.includes('could not sign you in') && (
+                
+                  href="mailto:students@atriumx.co.za?subject=Student%20email%20not%20recognised"
+                  className="text-teal-light underline text-xs mt-1 inline-block"
+                >
+                  Email students@atriumx.co.za for help
+                </a>
+              )}
+            </div>
           )}
 
           <button
