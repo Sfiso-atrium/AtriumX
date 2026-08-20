@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { PlusCircle, ShieldCheck } from 'lucide-react'
+import { PlusCircle, ShieldCheck, Handshake } from 'lucide-react'
 import HomeIcon from './icons/HomeIcon'
 import ChatIcon from './icons/ChatIcon'
 import ListingsIcon from './icons/ListingsIcon'
@@ -8,7 +8,7 @@ import { useApp } from '../../context/AppContext'
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
+  const { currentUser, partner, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
 
   const isActive = (path: string) => location.pathname === path
   const handleProtected = (path: string) => {
@@ -53,6 +53,14 @@ const tabs = [
           icon: ShieldCheck,
           path: '/admin',
           onClick: () => navigate('/admin'),
+        },
+      ] : []),
+      ...(partner ? [
+        {
+          label: 'Partner',
+          icon: Handshake,
+          path: '/partner',
+          onClick: () => navigate('/partner'),
         },
       ] : []),
     ] : []),
