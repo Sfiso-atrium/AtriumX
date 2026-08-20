@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Circle as XCircle, Flag, ShieldOff, PencilLine, Eye } from 'lucide-react'
+import { CircleCheck as CheckCircle, Circle as XCircle, Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Listing,
@@ -8,6 +8,8 @@ import {
   ChatReport,
   BusinessProfile,
   Profile,
+  Partner,
+  Suggestion,
   getPendingListings,
   getAllListingsAdmin,
   getEditedListings,
@@ -21,11 +23,17 @@ import {
   getPendingBusinesses,
   approveBusinessById,
   rejectBusinessById,
+  getAllPartnersAdmin,
+  createPartner,
+  removePartner,
+  searchProfilesByName,
+  getSuggestionsAdmin,
+  markSuggestionRead,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
 
-type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'businesses'
+type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'businesses' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
@@ -40,6 +48,10 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
 const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
   const [chatReports, setChatReports] = useState<ChatReport[]>([])
+  const [partners, setPartners] = useState<Awaited<ReturnType<typeof getAllPartnersAdmin>>>([])
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [partnerSearch, setPartnerSearch] = useState('')
+  const [partnerSearchResults, setPartnerSearchResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
 
@@ -48,13 +60,15 @@ const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { 
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports()])
-      .then(([pending, all, edited, businesses, chatReps]) => {
+Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin()])
+      .then(([pending, all, edited, businesses, chatReps, partnerList, suggestionList]) => {
         setPendingListings(pending)
         setAllListings(all)
         setEditedListings(edited)
         setPendingBusinesses(businesses)
         setChatReports(chatReps)
+        setPartners(partnerList)
+        setSuggestions(suggestionList)
         const reported = all.filter(l => l.report_count > 0)
         setReportedListings(reported)
         setLoading(false)
@@ -157,6 +171,33 @@ const handleClearReports = async (id: string) => {
     showToast('Business rejected.', 'success')
   }
 
+  const handlePartnerSearch = async (q: string) => {
+    setPartnerSearch(q)
+    if (q.trim().length < 2) { setPartnerSearchResults([]); return }
+    const results = await searchProfilesByName(q)
+    setPartnerSearchResults(results.filter(r => !partners.some(p => p.user_id === r.id)))
+  }
+
+  const handleGrantPartner = async (profile: Profile) => {
+    const { code, error } = await createPartner(profile.id, profile.full_name)
+    if (error) { showToast(error, 'error'); return }
+    setPartners(prev => [{ user_id: profile.id, referral_code: code!, created_at: new Date().toISOString(), profile, referredCount: 0, totalEarnings: 0 }, ...prev])
+    setPartnerSearchResults(prev => prev.filter(r => r.id !== profile.id))
+    setPartnerSearch('')
+    showToast(`${profile.full_name} is now a partner.`, 'success')
+  }
+
+  const handleRevokePartner = async (userId: string) => {
+    await removePartner(userId)
+    setPartners(prev => prev.filter(p => p.user_id !== userId))
+    showToast('Partner status revoked.', 'success')
+  }
+
+  const handleMarkSuggestionRead = async (id: string) => {
+    await markSuggestionRead(id)
+    setSuggestions(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s))
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -167,7 +208,7 @@ const activeList =
     tab === 'pending' ? pendingListings :
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
-    tab === 'businesses' ? [] :
+    tab === 'businesses' || tab === 'partners' || tab === 'suggestions' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -238,6 +279,26 @@ const activeList =
             }`}
           >
             Chat Reports ({chatReports.length})
+          </button>
+          <button
+            onClick={() => setTab('partners')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              tab === 'partners'
+                ? 'bg-teal-primary border-teal-light text-cream'
+                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+            }`}
+          >
+            Partners ({partners.length})
+          </button>
+          <button
+            onClick={() => setTab('suggestions')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              tab === 'suggestions'
+                ? 'bg-teal-primary border-teal-light text-cream'
+                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+            }`}
+          >
+            Suggestions ({suggestions.filter(s => !s.is_read).length})
           </button>
         </div>
         {tab === 'all' && (
@@ -310,7 +371,105 @@ const activeList =
             </div>
           )
         )}
-{tab !== 'businesses' && tab !== 'chatReports' && (activeList.length === 0 ? (
+{tab === 'partners' && (
+          <div className="flex flex-col gap-5">
+            <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+              <p className="text-cream font-bold text-sm mb-3">Grant partner status</p>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
+                <input
+                  value={partnerSearch}
+                  onChange={e => handlePartnerSearch(e.target.value)}
+                  placeholder="Search by name or email"
+                  className="w-full bg-slate-deep border border-slate-border rounded-xl pl-9 pr-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                />
+              </div>
+              {partnerSearchResults.length > 0 && (
+                <div className="flex flex-col gap-1.5 mt-2.5">
+                  {partnerSearchResults.map(r => (
+                    <div key={r.id} className="flex items-center justify-between gap-3 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-cream text-sm font-medium truncate">{r.full_name}</p>
+                        <p className="text-cream-muted text-xs truncate">{r.email}</p>
+                      </div>
+                      <button
+                        onClick={() => handleGrantPartner(r)}
+                        className="flex items-center gap-1.5 bg-gold hover:opacity-85 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity flex-shrink-0"
+                      >
+                        <Handshake size={12} /> Make Partner
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {partners.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-cream-muted text-sm">No partners yet.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {partners.map(p => (
+                  <div key={p.user_id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-cream font-bold text-sm truncate">{p.profile?.full_name || 'Unknown'}</p>
+                        <p className="text-cream-muted text-xs truncate">{p.profile?.email}</p>
+                        <p className="text-teal-light text-xs font-mono mt-1">{p.referral_code}</p>
+                      </div>
+                      <button
+                        onClick={() => handleRevokePartner(p.user_id)}
+                        className="flex items-center gap-1 text-red-400 hover:bg-red-500/10 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        <Trash2 size={12} /> Revoke
+                      </button>
+                    </div>
+                    <div className="flex gap-4 mt-3 pt-3 border-t border-slate-border">
+                      <div>
+                        <p className="text-cream font-bold text-sm">{p.referredCount}</p>
+                        <p className="text-cream-muted text-xs">Referred</p>
+                      </div>
+                      <div>
+                        <p className="text-gold font-bold text-sm">R{p.totalEarnings.toFixed(2)}</p>
+                        <p className="text-cream-muted text-xs">Est. earnings</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+{tab === 'suggestions' && (
+          suggestions.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-cream-muted text-sm">No suggestions yet.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {suggestions.map(s => (
+                <div key={s.id} className={`bg-slate-card border rounded-2xl p-4 ${s.is_read ? 'border-slate-border' : 'border-gold/50'}`}>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="text-cream-muted text-xs">
+                      {s.user?.full_name || 'Anonymous'} · {new Date(s.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                    {!s.is_read && (
+                      <button
+                        onClick={() => handleMarkSuggestionRead(s.id)}
+                        className="flex items-center gap-1 bg-teal-primary hover:bg-teal-light text-cream text-xs font-bold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        <CheckCircle size={12} /> Mark Read
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-cream text-sm leading-relaxed">{s.message}</p>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+{tab !== 'businesses' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'pending' ? 'No pending listings.' :
