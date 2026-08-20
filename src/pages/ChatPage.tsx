@@ -6,6 +6,7 @@ import { Conversation, Message, Profile, getConversationsForUser } from '../serv
 import { supabase } from '../services/supabaseClient'
 import ChatWindow from '../components/student/ChatWindow'
 import BottomNav from '../components/common/BottomNav'
+import LegalFooter from '../components/common/LegalFooter'
 
 type FullConversation = Conversation & {
   buyer: Profile
@@ -197,6 +198,7 @@ return (
                 )
               })
             )}
+            <LegalFooter />
           </div>
 
           {/* Chat window */}
