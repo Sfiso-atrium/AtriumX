@@ -344,6 +344,7 @@ const filteredBusiness = useMemo(() => {
           )}
         </div>
     </div>
+      <LegalFooter />
       <BottomNav />
     </>
   )
