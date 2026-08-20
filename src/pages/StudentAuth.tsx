@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { loginWithEmail, registerWithEmail, savePushPreference } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
+import LegalFooter from '../components/common/LegalFooter'
 
 export default function StudentAuth() {
   const navigate = useNavigate()
@@ -187,6 +188,8 @@ if (user) {
           </button>
         </div>
       </div>
+
+      <LegalFooter />
     </div>
   )
 }
