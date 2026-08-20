@@ -84,7 +84,7 @@ useEffect(() => {
   }, [setCurrentUser])
 
   useEffect(() => {
-    document.documentElement.classList.toggle('grayscale', bwMode)
+    document.documentElement.classList.toggle('bw-mode', bwMode)
     localStorage.setItem('atriumx_bw', bwMode ? '1' : '0')
   }, [bwMode])
 
