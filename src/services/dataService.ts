@@ -1478,7 +1478,120 @@ export async function setStudyPrepClarified(id: string, clarified: boolean): Pro
   await supabase.from('study_prep_notes').update({ clarified }).eq('id', id)
 }
 
-// ── REFERRAL PARTNER PROGRAM ─────────────────────────────────────────────
+// ── STUDY GROUPS ─────────────────────────────────────────────────────────
+// Group chat + a group-scoped deadlines/timetable/schedule set. Separate
+// tables from the personal-space ones above (see migration 027) — nothing
+// here touches a user's own deadlines/schedule/timetable.
+
+export interface StudyGroup {
+  id: string
+  name: string
+  created_by: string
+  study_time: string | null
+  created_at: string
+}
+
+export interface StudyGroupMember {
+  id: string
+  group_id: string
+  user_id: string
+  role: 'creator' | 'member'
+  joined_at: string
+  profile?: { id: string; full_name: string; avatar_initials: string; avatar_color: string }
+}
+
+export interface StudyGroupMessage {
+  id: string
+  group_id: string
+  sender_id: string
+  content: string | null
+  image_url: string | null
+  sent_at: string
+  sender?: { id: string; full_name: string; avatar_initials: string; avatar_color: string }
+}
+
+// Groups the current user belongs to (creator or joined member), newest
+// activity first isn't available yet without a message join — ordered by
+// creation for now.
+export async function getStudyGroupsForUser(userId: string): Promise<StudyGroup[]> {
+  const { data, error } = await supabase
+    .from('study_group_members')
+    .select('study_groups(*)')
+    .eq('user_id', userId)
+  if (error || !data) return []
+  return data
+    .map((row: any) => row.study_groups)
+    .filter(Boolean) as StudyGroup[]
+}
+
+export async function getStudyGroup(groupId: string): Promise<StudyGroup | null> {
+  const { data, error } = await supabase
+    .from('study_groups')
+    .select('*')
+    .eq('id', groupId)
+    .maybeSingle()
+  if (error || !data) return null
+  return data as StudyGroup
+}
+
+// Creator is auto-added as a member by the DB trigger (migration 027) —
+// no separate membership insert needed here.
+export async function createStudyGroup(
+  createdBy: string, name: string, studyTime: string | null
+): Promise<{ group: StudyGroup | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('study_groups')
+    .insert({ name: name.trim(), created_by: createdBy, study_time: studyTime })
+    .select()
+    .single()
+  if (error || !data) return { group: null, error: error?.message ?? 'Could not create group.' }
+  return { group: data as StudyGroup, error: null }
+}
+
+// Joining via invite link = inserting yourself as a member of a group whose
+// id came from the link (see migration 027 — no separate invite-token table).
+export async function joinStudyGroup(
+  groupId: string, userId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('study_group_members')
+    .insert({ group_id: groupId, user_id: userId, role: 'member' })
+  // Already a member (unique constraint) isn't a real error for this flow.
+  if (error && !error.message.includes('duplicate')) return { error: error.message }
+  return { error: null }
+}
+
+export async function getStudyGroupMembers(groupId: string): Promise<StudyGroupMember[]> {
+  const { data, error } = await supabase
+    .from('study_group_members')
+    .select('*, profile:profiles_public!user_id(id, full_name, avatar_initials, avatar_color)')
+    .eq('group_id', groupId)
+    .order('joined_at', { ascending: true })
+  if (error || !data) return []
+  return data as unknown as StudyGroupMember[]
+}
+
+export async function getStudyGroupMessages(groupId: string): Promise<StudyGroupMessage[]> {
+  const { data, error } = await supabase
+    .from('study_group_messages')
+    .select('*, sender:profiles_public!sender_id(id, full_name, avatar_initials, avatar_color)')
+    .eq('group_id', groupId)
+    .order('sent_at', { ascending: true })
+  if (error || !data) return []
+  return data as unknown as StudyGroupMessage[]
+}
+
+// Text-only for now — image_url wired up in the image-sharing stack.
+export async function sendStudyGroupMessage(
+  groupId: string, senderId: string, content: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('study_group_messages')
+    .insert({ group_id: groupId, sender_id: senderId, content: content.trim() })
+  return { error: error ? error.message : null }
+}
+
+
 // Naming note: unrelated to the 'campus_partner' plan tier in PLAN_TIERS —
 // see the migration comment. This is the referral/affiliate feature.
 
