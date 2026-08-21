@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, X, ListChecks, Handshake, Contrast } from 'lucide-react'
+import { Menu, X, Backpack, Handshake, Contrast } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 
@@ -12,42 +12,42 @@ const navigate = useNavigate()
 return (
 <>
 <nav className="sticky top-0 z-40 bg-slate-deep flex items-center justify-between p-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => setMenuOpen(true)} aria-label="Open menu">
-          <Menu size={24} className="text-cream" />
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button onClick={() => setMenuOpen(true)} aria-label="Open menu" className="flex-shrink-0">
+          <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-cream" />
         </button>
-        <button onClick={() => navigate(currentUser ? '/feed' : '/')} className="flex items-center gap-0">
-            <img src="/logo.png" alt="A" className="h-14 w-auto -mr-3" />
-            <span className="text-cream font-serif text-2xl font-bold">trium</span>
-            <span className="text-ember font-serif text-2xl font-bold">X</span>
+        <button onClick={() => navigate(currentUser ? '/feed' : '/')} className="flex items-center gap-0 min-w-0 flex-shrink">
+            <img src="/logo.png" alt="A" className="h-9 sm:h-14 w-auto -mr-2 sm:-mr-3 flex-shrink-0" />
+            <span className="text-cream font-serif text-base sm:text-2xl font-bold truncate">trium</span>
+            <span className="text-ember font-serif text-base sm:text-2xl font-bold">X</span>
           </button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
         {currentUser ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => navigate('/space')}
-              className="flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
+              className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 text-cream-muted hover:text-cream transition-colors"
               aria-label="My Space"
               title="My Space"
             >
-              <ListChecks size={20} />
+              <Backpack className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             {partner && (
               <button
                 onClick={() => navigate('/partner')}
-                className="flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
+                className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 text-cream-muted hover:text-cream transition-colors"
                 aria-label="Partner Dashboard"
                 title="Partner Dashboard"
               >
-                <Handshake size={20} />
+                <Handshake className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
             <NotificationBell />
             <button
               onClick={() => navigate(`/profile/${currentUser.id}`)}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-[10px] sm:text-xs font-bold flex-shrink-0"
               style={{ backgroundColor: currentUser.avatar_color }}
             >
               {currentUser.avatar_initials}
@@ -56,7 +56,7 @@ return (
         ) : (
           <button
             onClick={() => navigate('/student')}
-            className="bg-ember hover:bg-ember-dark text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+            className="bg-ember hover:bg-ember-dark text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors flex-shrink-0"
           >
             Sign In
           </button>
