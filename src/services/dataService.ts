@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { compressImageForUpload } from './imageCache'
 
 // ── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -1581,13 +1582,36 @@ export async function getStudyGroupMessages(groupId: string): Promise<StudyGroup
   return data as unknown as StudyGroupMessage[]
 }
 
-// Text-only for now — image_url wired up in the image-sharing stack.
 export async function sendStudyGroupMessage(
   groupId: string, senderId: string, content: string
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('study_group_messages')
     .insert({ group_id: groupId, sender_id: senderId, content: content.trim() })
+  return { error: error ? error.message : null }
+}
+
+// Uploads to the private study-group-images bucket at
+// {groupId}/{senderId}/{random}.jpg, then inserts the chat row pointing at
+// that storage path. Compression happens here so every caller (gallery
+// pick or camera capture) gets it for free.
+export async function sendStudyGroupImage(
+  groupId: string, senderId: string, file: File
+): Promise<{ error: string | null }> {
+  if (!file.type.startsWith('image/')) {
+    return { error: 'Only images can be shared in group chat.' }
+  }
+  const compressed = await compressImageForUpload(file)
+  const path = `${groupId}/${senderId}/${crypto.randomUUID()}.jpg`
+
+  const { error: uploadError } = await supabase.storage
+    .from('study-group-images')
+    .upload(path, compressed, { contentType: 'image/jpeg' })
+  if (uploadError) return { error: uploadError.message }
+
+  const { error } = await supabase
+    .from('study_group_messages')
+    .insert({ group_id: groupId, sender_id: senderId, image_url: path })
   return { error: error ? error.message : null }
 }
 
