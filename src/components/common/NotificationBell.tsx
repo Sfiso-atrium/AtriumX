@@ -118,10 +118,10 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleBellClick}
-        className="relative flex items-center justify-center w-9 h-9 text-cream-muted hover:text-cream transition-colors"
+        className="relative flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 text-cream-muted hover:text-cream transition-colors"
         aria-label="Notifications"
       >
-        <Bell size={20} />
+        <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
         {notifications.length > 0 && (
           <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
             {notifications.length > 9 ? '9+' : notifications.length}
