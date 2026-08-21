@@ -20,6 +20,7 @@ function isStandalone() {
 export default function InstallAppButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showIOSSheet, setShowIOSSheet] = useState(false)
+  const [showGenericSheet, setShowGenericSheet] = useState(false)
   const [installed, setInstalled] = useState(isStandalone())
 
   useEffect(() => {
@@ -33,21 +34,24 @@ export default function InstallAppButton() {
   }, [])
 
   if (installed) return null
-  // Neither a real install prompt nor iOS's manual path applies (e.g. desktop
-  // Safari, or a browser that simply doesn't support installable PWAs) -
-  // nothing useful to show, so stay out of the way rather than show a dead button.
-  if (!deferredPrompt && !isIOS()) return null
 
   const handleClick = async () => {
     if (isIOS()) {
       setShowIOSSheet(true)
       return
     }
-    if (!deferredPrompt) return
-    await deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') setInstalled(true)
-    setDeferredPrompt(null)
+    if (deferredPrompt) {
+      await deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') setInstalled(true)
+      setDeferredPrompt(null)
+      return
+    }
+    // Neither the real install prompt nor the iOS path applies yet (e.g. the
+    // browser hasn't fired beforeinstallprompt, or doesn't support one at
+    // all) — rather than the button silently doing nothing, show generic
+    // manual steps so there's always somewhere useful for a tap to go.
+    setShowGenericSheet(true)
   }
 
   return (
@@ -57,7 +61,7 @@ export default function InstallAppButton() {
         className="flex items-center gap-1.5 border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-sm font-bold px-4 py-2 rounded-xl transition-colors"
       >
         <Download size={15} />
-        Get the App
+        Download
       </button>
 
       {showIOSSheet && (
@@ -82,6 +86,23 @@ export default function InstallAppButton() {
                 Scroll down and tap "Add to Home Screen"
               </li>
             </ol>
+          </div>
+        </div>
+      )}
+
+      {showGenericSheet && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center px-4">
+          <div className="bg-slate-card border border-slate-border rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-cream font-bold text-base">Install AtriumX</h2>
+              <button onClick={() => setShowGenericSheet(false)} className="text-cream-muted hover:text-cream">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-cream-muted text-sm leading-relaxed">
+              Open your browser's menu and look for "Install app" or "Add to Home Screen." Once installed,
+              AtriumX opens like any other app — no browser tabs, no address bar.
+            </p>
           </div>
         </div>
       )}
