@@ -9,7 +9,7 @@ export default function LegalFooter() {
         <a href="/Terms.html" className="text-cream-muted hover:text-teal-light transition-colors">Terms of Service</a>
         <a href="/Privacy.html" className="text-cream-muted hover:text-teal-light transition-colors">Privacy Policy</a>
       </div>
-      <p className="text-cream-muted text-xs">AtriumX | Built for campus communities</p>
+       <p class="copy">&copy; AtriumX | Built for campus communities</p>
     </footer>
   )
 }
