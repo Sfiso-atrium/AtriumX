@@ -28,7 +28,6 @@ export default function Entrance() {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <InstallAppButton />
           <button
             onClick={toggleBwMode}
             aria-label="Toggle black and white mode"
@@ -55,6 +54,10 @@ export default function Entrance() {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
+
+        <div className="flex justify-end mb-4">
+          <InstallAppButton />
+        </div>
 
         <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
 
