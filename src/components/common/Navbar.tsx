@@ -26,14 +26,16 @@ return (
       <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
         {currentUser ? (
           <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              onClick={() => navigate('/space')}
-              className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 text-cream-muted hover:text-cream transition-colors"
-              aria-label="My Space"
-              title="My Space"
-            >
-              <Backpack className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            {currentUser.account_type !== 'business' && (
+              <button
+                onClick={() => navigate('/space')}
+                className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 text-cream-muted hover:text-cream transition-colors"
+                aria-label="My Space"
+                title="My Space"
+              >
+                <Backpack className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
             {partner && (
               <button
                 onClick={() => navigate('/partner')}
