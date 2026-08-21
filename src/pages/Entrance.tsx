@@ -20,39 +20,39 @@ export default function Entrance() {
   return (
     <div className="min-h-screen bg-slate-deep">
 
-      <nav className="max-w-3xl mx-auto flex items-center justify-between px-6 pt-6">
-        <div className="flex items-center">
-          <img src="/logo.png" alt="AtriumX" className="h-9 w-auto -mr-1.5" />
-          <span className="font-serif text-xl">
+      <nav className="max-w-3xl mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 pt-6">
+        <div className="flex items-center min-w-0 flex-shrink">
+          <img src="/logo.png" alt="AtriumX" className="h-7 sm:h-9 w-auto -mr-1 sm:-mr-1.5 flex-shrink-0" />
+          <span className="font-serif text-base sm:text-xl truncate">
             <span className="text-cream">trium</span><span className="text-ember">X</span>
           </span>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
           <button
             onClick={toggleBwMode}
             aria-label="Toggle black and white mode"
             title="Toggle black and white mode"
-            className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
+            className={`flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 rounded-xl border transition-colors ${
               bwMode ? 'border-gold text-gold' : 'border-slate-border text-cream-muted hover:text-cream'
             }`}
           >
-            <Contrast size={18} />
+            <Contrast size={16} className="sm:hidden" />
+            <Contrast size={18} className="hidden sm:block" />
           </button>
           <button
             onClick={() => navigate('/student')}
-            className="border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+            className="border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-xs sm:text-sm font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-colors whitespace-nowrap"
           >
             Sign In
           </button>
           <button
             onClick={() => navigate('/student?mode=register')}
-            className="bg-gold hover:opacity-85 text-black text-sm font-bold px-4 py-2 rounded-xl transition-opacity"
+            className="bg-gold hover:opacity-85 text-black text-xs sm:text-sm font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-opacity whitespace-nowrap"
           >
             Get Started
           </button>
         </div>
       </nav>
-
       <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
 
         <div className="flex justify-end mb-4">
