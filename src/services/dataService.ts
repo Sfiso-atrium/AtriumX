@@ -1591,6 +1591,156 @@ export async function sendStudyGroupMessage(
   return { error: error ? error.message : null }
 }
 
+// ── GROUP DEADLINES (mirrors personal `deadlines`, group_id instead of user_id) ──
+
+export interface GroupDeadline {
+  id: string
+  group_id: string
+  created_by: string
+  title: string
+  due_at: string
+  notes: string | null
+  reminded: boolean
+  created_at: string
+}
+
+export async function getGroupDeadlines(groupId: string): Promise<GroupDeadline[]> {
+  const { data, error } = await supabase
+    .from('study_group_deadlines')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('due_at', { ascending: true })
+  if (error || !data) return []
+  return data as GroupDeadline[]
+}
+
+export async function createGroupDeadline(
+  groupId: string, createdBy: string, title: string, dueAt: string, notes: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_group_deadlines').insert({
+    group_id: groupId, created_by: createdBy, title, due_at: dueAt, notes: notes.trim() || null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteGroupDeadline(id: string): Promise<void> {
+  await supabase.from('study_group_deadlines').delete().eq('id', id)
+}
+
+// ── GROUP SCHEDULE (mirrors personal `schedule_entries`) ──────────────────
+
+export interface GroupScheduleEntry {
+  id: string
+  group_id: string
+  created_by: string
+  day_of_week: number
+  start_time: string
+  module: string
+  room: string | null
+  created_at: string
+}
+
+export async function getGroupScheduleEntries(groupId: string): Promise<GroupScheduleEntry[]> {
+  const { data, error } = await supabase
+    .from('study_group_schedule_entries')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true })
+  if (error || !data) return []
+  return data as GroupScheduleEntry[]
+}
+
+export async function createGroupScheduleEntry(
+  groupId: string, createdBy: string, dayOfWeek: number, startTime: string, module: string, room: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_group_schedule_entries').insert({
+    group_id: groupId, created_by: createdBy, day_of_week: dayOfWeek, start_time: startTime, module, room: room.trim() || null,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteGroupScheduleEntry(id: string): Promise<void> {
+  await supabase.from('study_group_schedule_entries').delete().eq('id', id)
+}
+
+// ── GROUP TIMETABLE (courses + prep notes — mirrors study_timetable_courses
+// and study_prep_notes) ────────────────────────────────────────────────────
+
+export interface GroupStudyCourse {
+  id: string
+  group_id: string
+  created_by: string
+  day_of_week: number
+  course_name: string
+  minutes: number
+  prepped: boolean
+  created_at: string
+}
+
+export async function getGroupStudyCourses(groupId: string): Promise<GroupStudyCourse[]> {
+  const { data, error } = await supabase
+    .from('study_group_timetable_courses')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('day_of_week', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error || !data) return []
+  return data as GroupStudyCourse[]
+}
+
+export async function createGroupStudyCourse(
+  groupId: string, createdBy: string, dayOfWeek: number, courseName: string, minutes: number
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_group_timetable_courses').insert({
+    group_id: groupId, created_by: createdBy, day_of_week: dayOfWeek, course_name: courseName, minutes,
+  })
+  return { error: error ? error.message : null }
+}
+
+export async function deleteGroupStudyCourse(id: string): Promise<void> {
+  await supabase.from('study_group_timetable_courses').delete().eq('id', id)
+}
+
+export interface GroupStudyPrepNote {
+  id: string
+  course_id: string
+  group_id: string
+  created_by: string
+  focus_topic: string
+  resource: string
+  goal: string
+  clarification_question: string | null
+  clarified: boolean
+  created_at: string
+}
+
+export async function getGroupStudyPrepNotes(groupId: string): Promise<GroupStudyPrepNote[]> {
+  const { data, error } = await supabase
+    .from('study_group_prep_notes')
+    .select('*')
+    .eq('group_id', groupId)
+  if (error || !data) return []
+  return data as GroupStudyPrepNote[]
+}
+
+export async function createGroupStudyPrepNote(
+  groupId: string, createdBy: string, courseId: string, focusTopic: string, resource: string, goal: string, clarificationQuestion: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('study_group_prep_notes').insert({
+    group_id: groupId, created_by: createdBy, course_id: courseId,
+    focus_topic: focusTopic.trim(), resource: resource.trim(), goal: goal.trim(),
+    clarification_question: clarificationQuestion.trim() || null,
+  })
+  if (error) return { error: error.message }
+  await supabase.from('study_group_timetable_courses').update({ prepped: true }).eq('id', courseId)
+  return { error: null }
+}
+
+export async function setGroupStudyPrepClarified(id: string, clarified: boolean): Promise<void> {
+  await supabase.from('study_group_prep_notes').update({ clarified }).eq('id', id)
+}
+
 
 // Naming note: unrelated to the 'campus_partner' plan tier in PLAN_TIERS —
 // see the migration comment. This is the referral/affiliate feature.
