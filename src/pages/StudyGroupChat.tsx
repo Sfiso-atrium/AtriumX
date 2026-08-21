@@ -158,7 +158,6 @@ return (
                     {msg.sender?.full_name ?? 'Study buddy'}
                   </p>
                 )}
-                <div
                 {msg.image_url ? (
                   <GroupChatImage path={msg.image_url} />
                 ) : (
@@ -172,7 +171,6 @@ return (
                     {msg.content}
                   </div>
                 )}
-                </div>
               </div>
             </div>
           )
