@@ -1,15 +1,17 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
-  getStudyGroup, getStudyGroupMembers, getStudyGroupMessages, sendStudyGroupMessage,
+  getStudyGroup, getStudyGroupMembers, getStudyGroupMessages,
+  sendStudyGroupMessage, sendStudyGroupImage,
 } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 import BottomNav from '../components/common/BottomNav'
 import GroupSpacePanel from '../components/common/GroupSpacePanel'
+import GroupChatImage from '../components/common/GroupChatImage'
 
 
 export default function StudyGroupChat() {
@@ -23,7 +25,10 @@ export default function StudyGroupChat() {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [showSpace, setShowSpace] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!groupId || !currentUser) return
@@ -75,6 +80,17 @@ export default function StudyGroupChat() {
     setSending(false)
     if (!error) setText('')
   }
+
+  const handleImagePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !currentUser || !groupId) return
+    setUploadingImage(true)
+    const { error } = await sendStudyGroupImage(groupId, currentUser.id, file)
+    setUploadingImage(false)
+    if (error) showToast(error, 'error')
+  }
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -142,13 +158,19 @@ export default function StudyGroupChat() {
                   </p>
                 )}
                 <div
-                  className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                    isOwn
-                      ? 'bg-ember text-white rounded-br-sm'
-                      : 'bg-slate-card border border-slate-border text-cream rounded-bl-sm'
-                  }`}
-                >
-                  {msg.content}
+                {msg.image_url ? (
+                  <GroupChatImage path={msg.image_url} />
+                ) : (
+                  <div
+                    className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                      isOwn
+                        ? 'bg-ember text-white rounded-br-sm'
+                        : 'bg-slate-card border border-slate-border text-cream rounded-bl-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                )}
                 </div>
               </div>
             </div>
@@ -157,8 +179,26 @@ export default function StudyGroupChat() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — text only for now; image sharing comes in a later stack */}
-      <div className="px-4 py-3 border-t border-slate-border flex gap-2 flex-shrink-0">
+      {/* Input */}
+      <div className="px-4 py-3 border-t border-slate-border flex gap-2 flex-shrink-0 items-end">
+        <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleImagePicked} className="hidden" />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImagePicked} className="hidden" />
+        <button
+          onClick={() => galleryInputRef.current?.click()}
+          disabled={uploadingImage}
+          title="Attach an image"
+          className="text-cream-muted hover:text-cream disabled:opacity-40 flex-shrink-0 pb-2"
+        >
+          <ImageIcon size={20} />
+        </button>
+        <button
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={uploadingImage}
+          title="Take a photo"
+          className="text-cream-muted hover:text-cream disabled:opacity-40 flex-shrink-0 pb-2"
+        >
+          <Camera size={20} />
+        </button>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
