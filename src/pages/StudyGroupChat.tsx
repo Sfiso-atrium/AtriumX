@@ -1,7 +1,7 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users } from 'lucide-react'
+import { ArrowLeft, Users, MoreVertical } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
@@ -9,6 +9,8 @@ import {
 } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 import BottomNav from '../components/common/BottomNav'
+import GroupSpacePanel from '../components/common/GroupSpacePanel'
+
 
 export default function StudyGroupChat() {
   const { groupId } = useParams()
@@ -20,6 +22,7 @@ export default function StudyGroupChat() {
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [showSpace, setShowSpace] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -118,6 +121,9 @@ export default function StudyGroupChat() {
           <p className="text-cream font-bold text-sm truncate">{group.name}</p>
           <p className="text-cream-muted text-xs">{members.length} member{members.length === 1 ? '' : 's'}</p>
         </div>
+        <button onClick={() => setShowSpace(true)} className="text-cream-muted hover:text-cream flex-shrink-0">
+          <MoreVertical size={20} />
+        </button>
       </div>
 
       {/* Messages */}
@@ -171,6 +177,7 @@ export default function StudyGroupChat() {
       </div>
 
       <BottomNav />
+      {showSpace && <GroupSpacePanel groupId={groupId!} onClose={() => setShowSpace(false)} />}
     </div>
   )
 }
