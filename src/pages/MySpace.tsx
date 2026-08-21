@@ -869,6 +869,27 @@ export default function MySpace() {
     return null
   }
 
+  if (currentUser.account_type === 'business') {
+    return (
+      <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-slate-card border border-slate-border flex items-center justify-center">
+          <Lock size={24} className="text-cream-muted" />
+        </div>
+        <p className="text-cream font-bold text-lg">My Space is only available for students</p>
+        <p className="text-cream-muted text-sm max-w-sm leading-relaxed">
+          Deadlines, timetables, budgeting and focus sessions are built for student accounts. Your business
+          account can still post listings, chat with buyers and manage your storefront from your profile.
+        </p>
+        <button
+          onClick={() => navigate(`/profile/${currentUser.id}`)}
+          className="bg-teal-primary hover:opacity-85 text-white font-bold px-5 py-2.5 rounded-xl transition-opacity mt-2"
+        >
+          Go to My Profile
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-deep pb-24">
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
