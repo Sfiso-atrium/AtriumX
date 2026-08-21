@@ -1,6 +1,6 @@
 // src/pages/Entrance.tsx
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Store, ListChecks, MessageCircle, MapPin, CalendarCheck, Contrast } from 'lucide-react'
+import { GraduationCap, Store, Backpack, MessageCircle, MapPin, CalendarCheck, Contrast } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InstallAppButton from '../components/common/InstallAppButton'
 
@@ -102,7 +102,7 @@ export default function Entrance() {
 
           <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-sapphire-light rounded-2xl p-6 transition-colors">
             <div className="flex items-center gap-2.5 mb-4">
-              <ListChecks size={22} className="text-sapphire-light" />
+              <Backpack size={22} className="text-sapphire-light" />
               <h2 className="text-cream font-bold text-base">My Space</h2>
             </div>
             <button
