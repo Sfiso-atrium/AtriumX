@@ -123,8 +123,9 @@ export default function StudyGroupChat() {
     )
   }
 
-  return (
-    <div className="flex flex-col h-[100dvh] bg-slate-deep">
+return (
+    <div className="h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden">
+
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0 gap-3">
         <button onClick={() => navigate('/space')} className="text-cream-muted hover:text-cream flex-shrink-0">
