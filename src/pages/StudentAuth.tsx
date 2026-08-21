@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { loginWithEmail, registerWithEmail } from '../services/dataService'
+import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
 import { subscribeToPush } from '../services/push'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
@@ -51,6 +51,12 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
         if ('Notification' in window && Notification.permission === 'default') {
           subscribeToPush(user.id)
         }
+        const joinGroupId = searchParams.get('join')
+        if (joinGroupId) {
+          await joinStudyGroup(joinGroupId, user.id)
+          navigate(`/group/${joinGroupId}`)
+          return
+        }
         const dest = redirectAfterLogin || '/feed'
         setRedirectAfterLogin(null)
         navigate(dest)
@@ -67,6 +73,12 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 if (user) {
         setCurrentUser(user)
+        const joinGroupId = searchParams.get('join')
+        if (joinGroupId) {
+          await joinStudyGroup(joinGroupId, user.id)
+          navigate(`/group/${joinGroupId}`)
+          return
+        }
         const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/feed')
         setRedirectAfterLogin(null)
         navigate(dest)
