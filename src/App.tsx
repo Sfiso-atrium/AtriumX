@@ -16,6 +16,7 @@ import BusinessPostListing from './pages/BusinessPostListing'
 import BusinessPlanSelect from './pages/BusinessPlanSelect'
 import MySpace from './pages/MySpace'
 import PartnerDashboard from './pages/Partnerdashboard'
+import StudyGroupChat from './pages/StudyGroupChat'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="/business/post" element={<BusinessPostListing />} />
           <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
           <Route path="/partner" element={<PartnerDashboard />} />
+          <Route path="/group/:groupId" element={<StudyGroupChat />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 
