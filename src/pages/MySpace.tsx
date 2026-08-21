@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock } from 'lucide-react'
+import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Plus, Copy, Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
@@ -11,6 +11,7 @@ import {
   Watchlist, getWatchlists, createWatchlist, deleteWatchlist,
   StudyCourse, getStudyCourses, createStudyCourse, deleteStudyCourse,
   StudyPrepNote, getStudyPrepNotes, createStudyPrepNote, setStudyPrepClarified,
+  StudyGroup, getStudyGroupsForUser, createStudyGroup,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
 
@@ -503,6 +504,164 @@ function PomodoroSection({ userId }: { userId: string }) {
           </p>
         )}
       </SectionCard>
+
+      <StudyGroupsSection userId={userId} />
+    </div>
+  )
+}
+
+// Card list of the user's study groups, plus a "+" button that opens the
+// create-group modal. Cards don't navigate anywhere yet — the group chat
+// screen itself is a later build stack.
+function StudyGroupsSection({ userId }: { userId: string }) {
+  const { showToast } = useApp()
+  const navigate = useNavigate()
+  const [groups, setGroups] = useState<StudyGroup[]>([])
+  const [showCreate, setShowCreate] = useState(false)
+  const [newGroup, setNewGroup] = useState<StudyGroup | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const load = () => getStudyGroupsForUser(userId).then(setGroups)
+  useEffect(() => { load() }, [userId])
+
+  const handleCreated = (group: StudyGroup) => {
+    setShowCreate(false)
+    setNewGroup(group)
+    setCopied(false)
+    load()
+  }
+
+  const inviteLink = (groupId: string) => `${window.location.origin}/#/student?join=${groupId}`
+
+  const handleCopy = (groupId: string) => {
+    navigator.clipboard.writeText(inviteLink(groupId))
+    setCopied(true)
+    showToast('Invite link copied.', 'success')
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mt-2 mb-1">
+        <p className="text-cream font-bold text-sm">Study Groups</p>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-1.5 bg-gold hover:bg-gold-muted text-slate-deep font-bold text-xs px-3 py-2 rounded-xl transition-colors"
+        >
+          <Plus size={14} /> New Group
+        </button>
+      </div>
+
+      {groups.length === 0 && (
+        <SectionCard>
+          <p className="text-cream-muted text-sm text-center py-4">
+            No study groups yet. Create one and invite your study buddies.
+          </p>
+        </SectionCard>
+      )}
+
+      {groups.map(g => (
+        <SectionCard key={g.id}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(`/group/${g.id}`)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
+              <div className="w-10 h-10 rounded-xl bg-teal-faint flex items-center justify-center flex-shrink-0">
+                <Users size={18} className="text-teal-light" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-cream font-bold text-sm truncate">{g.name}</p>
+                {g.study_time && (
+                  <p className="text-cream-muted text-xs">
+                    Studies {new Date(g.study_time).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={() => handleCopy(g.id)}
+              title="Copy invite link"
+              className="text-cream-muted hover:text-teal-light flex-shrink-0"
+            >
+              <Copy size={16} />
+            </button>
+          </div>
+        </SectionCard>
+      ))}
+
+      {showCreate && (
+        <CreateGroupModal userId={userId} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
+      )}
+
+      {newGroup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-serif text-xl text-cream">Group created</h2>
+              <button onClick={() => setNewGroup(null)} className="text-cream-muted hover:text-cream">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-cream-muted text-sm mb-4">
+              Share this link with your study buddies — opening it takes them to sign in, then straight into <span className="text-cream">{newGroup.name}</span>.
+            </p>
+            <button
+              onClick={() => handleCopy(newGroup.id)}
+              className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors"
+            >
+              {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy invite link</>}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Name + optional study time. Study time is what triggers the group
+// notification later — that piece is a separate build stack.
+function CreateGroupModal({ userId, onClose, onCreated }: { userId: string; onClose: () => void; onCreated: (g: StudyGroup) => void }) {
+  const { showToast } = useApp()
+  const [name, setName] = useState('')
+  const [studyTime, setStudyTime] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { showToast('Give your group a name.', 'error'); return }
+    setLoading(true)
+    const { group, error } = await createStudyGroup(userId, name, studyTime ? new Date(studyTime).toISOString() : null)
+    setLoading(false)
+    if (error || !group) { showToast(error || 'Could not create group.', 'error'); return }
+    onCreated(group)
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-serif text-xl text-cream">New study group</h2>
+          <button onClick={onClose} className="text-cream-muted hover:text-cream">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">Group name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Stats 201 Study Squad"
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          </div>
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">When do you study? (optional)</label>
+            <input type="datetime-local" value={studyTime} onChange={e => setStudyTime(e.target.value)}
+              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
+          </div>
+        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5"
+        >
+          {loading ? 'Creating...' : 'Create group'}
+        </button>
+      </div>
     </div>
   )
 }
