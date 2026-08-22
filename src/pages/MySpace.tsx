@@ -569,9 +569,9 @@ function StudyGroupsSection({ userId }: { userId: string }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-cream font-bold text-sm truncate">{g.name}</p>
-                {g.study_time && (
+                {g.study_weekdays && g.study_weekdays.length > 0 && g.study_hour !== null && g.study_minute !== null && (
                   <p className="text-cream-muted text-xs">
-                    Studies {new Date(g.study_time).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                    Studies {g.study_weekdays.map(d => DAYS[d].slice(0, 3)).join(', ')} at {String(g.study_hour).padStart(2, '0')}:{String(g.study_minute).padStart(2, '0')}
                   </p>
                 )}
               </div>
@@ -616,23 +616,34 @@ function StudyGroupsSection({ userId }: { userId: string }) {
   )
 }
 
-// Name + optional study time. Study time is what triggers the group
-// notification later — that piece is a separate build stack.
+// Name + optional recurring study slot (weekdays + one shared time) —
+// this is the fallback source for notifications; the Timetable tab is
+// the real source of truth whenever a group builds one out.
 function CreateGroupModal({ userId, onClose, onCreated }: { userId: string; onClose: () => void; onCreated: (g: StudyGroup) => void }) {
   const { showToast } = useApp()
   const [name, setName] = useState('')
-  const [studyTime, setStudyTime] = useState('')
+  const [weekdays, setWeekdays] = useState<number[]>([])
+  const [time, setTime] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const toggleDay = (day: number) => {
+    setWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort())
+  }
 
   const handleSubmit = async () => {
     if (!name.trim()) { showToast('Give your group a name.', 'error'); return }
+    if (weekdays.length > 0 && !time) { showToast('Pick a time for the days you selected.', 'error'); return }
+    if (time && weekdays.length === 0) { showToast('Pick at least one day for that time.', 'error'); return }
     setLoading(true)
-    const { group, error } = await createStudyGroup(userId, name, studyTime ? new Date(studyTime).toISOString() : null)
+    const [hour, minute] = time ? time.split(':').map(Number) : [null, null]
+    const { group, error } = await createStudyGroup(
+      userId, name,
+      weekdays.length > 0 ? weekdays : null, hour, minute
+    )
     setLoading(false)
     if (error || !group) { showToast(error || 'Could not create group.', 'error'); return }
     onCreated(group)
   }
-
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
       <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
@@ -649,8 +660,27 @@ function CreateGroupModal({ userId, onClose, onCreated }: { userId: string; onCl
               className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           </div>
           <div>
-            <label className="text-cream text-xs font-bold block mb-1.5">When do you study? (optional)</label>
-            <input type="datetime-local" value={studyTime} onChange={e => setStudyTime(e.target.value)}
+            <label className="text-cream text-xs font-bold block mb-1.5">Which days do you study? (optional)</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {DAYS.map((d, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => toggleDay(i)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    weekdays.includes(i)
+                      ? 'bg-ember text-white'
+                      : 'bg-slate-card border border-slate-border text-cream-muted'
+                  }`}
+                >
+                  {d.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-cream text-xs font-bold block mb-1.5">What time? (optional)</label>
+            <input type="time" value={time} onChange={e => setTime(e.target.value)}
               className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
           </div>
         </div>
