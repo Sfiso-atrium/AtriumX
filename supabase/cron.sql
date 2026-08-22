@@ -17,3 +17,20 @@
 
 -- Manual trigger (safe to run anytime):
 -- SELECT send_deadline_reminders();
+-- Send study-time push reminders (2hr/1hr/30min before each session).
+-- Requires: pg_cron AND pg_net extensions enabled (Dashboard > Database >
+-- Extensions), and a CRON_SECRET set as an Edge Function secret. Fill in
+-- both placeholders below when you run this manually in the SQL editor —
+-- don't commit the actual secret value into this file.
+
+-- SELECT cron.schedule(
+--   'study-reminders',
+--   '*/5 * * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := 'https://<your-project-ref>.supabase.co/functions/v1/send-study-reminders',
+--     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET value>'),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
