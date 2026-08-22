@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient'
 // Public key only - safe to ship in client code. Its matching private key
 // lives wherever the actual sending happens (a server, never the browser)
 // and is what proves a push claiming to be from AtriumX really is.
-const VAPID_PUBLIC_KEY = 'BKowMMqh3359P6StafHyQvVkMpAU0qqlSf50AKffms2DWuTBDs39CWzoxe0HG1B5cIOeiH1puomM51K1Zj8BiS4'
+const VAPID_PUBLIC_KEY = 'BBfLBJBGq75gnRPQma-JrZFUvwF18ktiqX0p0kmMH1J4ArMB6Vb0HtH2expFP9tz2rk7rUy8-dz7lYD7lLlwD_Q'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
