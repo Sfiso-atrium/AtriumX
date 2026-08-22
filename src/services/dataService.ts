@@ -1750,6 +1750,22 @@ export function studyGroupPomodoroRemainingSeconds(session: StudyGroupPomodoroSe
   return Math.max(0, Math.round((endsAt - Date.now()) / 1000))
 }
 
+// ── ONE-TIME ONBOARDING FLAGS (server-side, not localStorage — see
+// migration 033 for why) ─────────────────────────────────────────────────
+
+export async function getSeenMySpaceIntro(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('user_flags')
+    .select('seen_myspace_intro')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data?.seen_myspace_intro ?? false
+}
+
+export async function markSeenMySpaceIntro(userId: string): Promise<void> {
+  await supabase.from('user_flags').upsert({ user_id: userId, seen_myspace_intro: true })
+}
+
 // ── GROUP SCHEDULE (mirrors personal `schedule_entries`) ──────────────────
 
 export interface GroupScheduleEntry {
