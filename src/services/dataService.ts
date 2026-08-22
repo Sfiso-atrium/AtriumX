@@ -81,10 +81,12 @@ export interface Notification {
   user_id: string
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
         'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
-        'deadline_reminder' | 'watchlist_match' | 'referral_listing'
+        'deadline_reminder' | 'watchlist_match' | 'referral_listing' |
+        'group_deadline_reminder' | 'group_deadline_update'
   message: string
   listing_id: string | null
   conversation_id: string | null
+  group_id: string | null
   read: boolean
   created_at: string
 }
@@ -1656,6 +1658,37 @@ export async function createGroupDeadline(
 
 export async function deleteGroupDeadline(id: string): Promise<void> {
   await supabase.from('study_group_deadlines').delete().eq('id', id)
+}
+
+export interface GroupDeadlineStatus {
+  id: string
+  deadline_id: string
+  group_id: string
+  user_id: string
+  status: 'pending' | 'done' | 'not_affected'
+  responded_at: string | null
+  created_at: string
+  user?: { full_name: string; avatar_initials: string; avatar_color: string }
+}
+
+export async function getGroupDeadlineStatuses(deadlineId: string): Promise<GroupDeadlineStatus[]> {
+  const { data, error } = await supabase
+    .from('study_group_deadline_status')
+    .select('*, user:profiles(full_name, avatar_initials, avatar_color)')
+    .eq('deadline_id', deadlineId)
+  if (error || !data) return []
+  return data as unknown as GroupDeadlineStatus[]
+}
+
+export async function respondToGroupDeadline(
+  deadlineId: string, userId: string, status: 'done' | 'not_affected'
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('study_group_deadline_status')
+    .update({ status, responded_at: new Date().toISOString() })
+    .eq('deadline_id', deadlineId)
+    .eq('user_id', userId)
+  return { error: error ? error.message : null }
 }
 
 // ── GROUP SCHEDULE (mirrors personal `schedule_entries`) ──────────────────
