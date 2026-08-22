@@ -1488,7 +1488,9 @@ export interface StudyGroup {
   id: string
   name: string
   created_by: string
-  study_time: string | null
+  study_weekdays: number[] | null
+  study_hour: number | null
+  study_minute: number | null
   created_at: string
 }
 
@@ -1536,19 +1538,24 @@ export async function getStudyGroup(groupId: string): Promise<StudyGroup | null>
 }
 
 // Creator is auto-added as a member by the DB trigger (migration 027) —
-// no separate membership insert needed here.
+// no separate membership insert needed here. studyWeekdays/Hour/Minute is
+// only a fallback — the Timetable tab is the real source of truth for
+// notifications whenever a group has entries there.
 export async function createStudyGroup(
-  createdBy: string, name: string, studyTime: string | null
+  createdBy: string, name: string,
+  studyWeekdays: number[] | null, studyHour: number | null, studyMinute: number | null
 ): Promise<{ group: StudyGroup | null; error: string | null }> {
   const { data, error } = await supabase
     .from('study_groups')
-    .insert({ name: name.trim(), created_by: createdBy, study_time: studyTime })
+    .insert({
+      name: name.trim(), created_by: createdBy,
+      study_weekdays: studyWeekdays, study_hour: studyHour, study_minute: studyMinute,
+    })
     .select()
     .single()
   if (error || !data) return { group: null, error: error?.message ?? 'Could not create group.' }
   return { group: data as StudyGroup, error: null }
 }
-
 // Joining via invite link = inserting yourself as a member of a group whose
 // id came from the link (see migration 027 — no separate invite-token table).
 export async function joinStudyGroup(
