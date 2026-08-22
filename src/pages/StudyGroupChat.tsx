@@ -1,17 +1,22 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera } from 'lucide-react'
+import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
   getStudyGroup, getStudyGroupMembers, getStudyGroupMessages,
   sendStudyGroupMessage, sendStudyGroupImage,
+  StudyGroupPomodoroSession, getLatestStudyGroupPomodoroSession,
+  isStudyGroupPomodoroActive, studyGroupPomodoroRemainingSeconds,
 } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 import BottomNav from '../components/common/BottomNav'
 import GroupSpacePanel from '../components/common/GroupSpacePanel'
 import GroupChatImage from '../components/common/GroupChatImage'
+import GroupPomodoroPanel from '../components/common/GroupPomodoroPanel'
+
+type SpaceTab = 'Deadlines' | 'Schedule' | 'Timetable'
 
 
 export default function StudyGroupChat() {
@@ -25,11 +30,30 @@ export default function StudyGroupChat() {
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const [showSpace, setShowSpace] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [spaceTab, setSpaceTab] = useState<SpaceTab | null>(null)
+  const [showPomodoroPanel, setShowPomodoroPanel] = useState(false)
+  const [activeSession, setActiveSession] = useState<StudyGroupPomodoroSession | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [, forceHeaderTick] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const sessionActive = isStudyGroupPomodoroActive(activeSession)
+
+  useEffect(() => {
+    if (!sessionActive) return
+    tickRef.current = setInterval(() => forceHeaderTick(t => t + 1), 1000)
+    return () => { if (tickRef.current) clearInterval(tickRef.current) }
+  }, [sessionActive])
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') forceHeaderTick(t => t + 1) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   useEffect(() => {
     if (!groupId || !currentUser) return
@@ -38,10 +62,12 @@ export default function StudyGroupChat() {
       getStudyGroup(groupId),
       getStudyGroupMembers(groupId),
       getStudyGroupMessages(groupId),
-    ]).then(([g, m, msgs]) => {
+      getLatestStudyGroupPomodoroSession(groupId),
+    ]).then(([g, m, msgs, session]) => {
       setGroup(g)
       setMembers(m)
       setMessages(msgs)
+      setActiveSession(session)
       setLoading(false)
     })
   }, [groupId, currentUser])
@@ -67,6 +93,19 @@ export default function StudyGroupChat() {
             const sender = members.find(mem => mem.user_id === raw.sender_id)?.profile
             return [...prev, { ...raw, sender }]
           })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'study_group_pomodoro_sessions', filter: `group_id=eq.${groupId}` },
+        payload => setActiveSession(payload.new as StudyGroupPomodoroSession)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'study_group_pomodoro_sessions', filter: `group_id=eq.${groupId}` },
+        payload => {
+          const raw = payload.new as StudyGroupPomodoroSession
+          setActiveSession(prev => (prev?.id === raw.id ? raw : prev))
         }
       )
       .subscribe()
@@ -128,20 +167,59 @@ return (
     <div className="h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0 gap-3">
+      <div className="relative flex items-center px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0 gap-3">
         <button onClick={() => navigate('/space')} className="text-cream-muted hover:text-cream flex-shrink-0">
           <ArrowLeft size={20} />
         </button>
         <div className="w-9 h-9 rounded-full bg-teal-faint flex items-center justify-center flex-shrink-0">
           <Users size={16} className="text-teal-light" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 max-w-[42%]">
           <p className="text-cream font-bold text-sm truncate">{group.name}</p>
           <p className="text-cream-muted text-xs">{members.length} member{members.length === 1 ? '' : 's'}</p>
         </div>
-        <button onClick={() => setShowSpace(true)} className="text-cream-muted hover:text-cream flex-shrink-0">
-          <MoreVertical size={20} />
-        </button>
+        <div className="flex-1" />
+
+        {sessionActive && activeSession && (
+          <button
+            onClick={() => setShowPomodoroPanel(true)}
+            className="absolute left-1/2 -translate-x-1/2 bg-ember/15 border border-ember/40 text-ember font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Timer size={12} />
+            {(() => {
+              const s = studyGroupPomodoroRemainingSeconds(activeSession)
+              return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+            })()}
+          </button>
+        )}
+
+        <div className="relative flex-shrink-0">
+          <button onClick={() => setMenuOpen(o => !o)} className="text-cream-muted hover:text-cream">
+            <MoreVertical size={20} />
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-[190]" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl py-2 w-48 shadow-lg">
+                {[
+                  { label: 'Group Deadlines', icon: CalendarClock, action: () => setSpaceTab('Deadlines') },
+                  { label: 'Group Schedule', icon: Clock, action: () => setSpaceTab('Schedule') },
+                  { label: 'Group Timetable', icon: BookOpen, action: () => setSpaceTab('Timetable') },
+                  { label: 'Group Pomodoro', icon: Timer, action: () => setShowPomodoroPanel(true) },
+                ].map(item => (
+                  <button
+                    key={item.label}
+                    onClick={() => { item.action(); setMenuOpen(false) }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-cream hover:bg-slate-deep transition-colors text-left"
+                  >
+                    <item.icon size={15} className="text-cream-muted flex-shrink-0" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -217,7 +295,18 @@ return (
       </div>
 
       <BottomNav />
-      {showSpace && <GroupSpacePanel groupId={groupId!} onClose={() => setShowSpace(false)} />}
+      {spaceTab && (
+        <GroupSpacePanel groupId={groupId!} initialTab={spaceTab} onClose={() => setSpaceTab(null)} />
+      )}
+      {showPomodoroPanel && (
+        <GroupPomodoroPanel
+          groupId={groupId!}
+          session={activeSession}
+          onClose={() => setShowPomodoroPanel(false)}
+          onSessionChange={setActiveSession}
+        />
+      )}
     </div>
   )
 }
+
