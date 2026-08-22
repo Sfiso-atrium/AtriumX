@@ -400,8 +400,110 @@ function GoldPaperFall() {
   )
 }
 
-"// Wall-clock based, not a plain countdown..." through the new
-handlePreset/mins/secs lines).
+// Wall-clock based, not a plain countdown: startedAt is the timestamp the
+// current running segment began, accumulatedSeconds is everything banked
+// from segments before that (pausing folds the just-finished segment in).
+// secondsLeft is always derived from these two vs Date.now() — never
+// decremented directly — so the timer is correct the instant the page
+// loads, whether the tab was open the whole time, backgrounded and
+// throttled, or closed entirely and reopened minutes later. Both values
+// live in localStorage so a closed tab doesn't lose the session either.
+function PomodoroSection({ userId }: { userId: string }) {
+  const [focusMinutes, setFocusMinutes] = useState(() => {
+    const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
+    return saved > 0 ? saved : 25
+  })
+  const [startedAt, setStartedAt] = useState<number | null>(() => {
+    const raw = localStorage.getItem('pomodoro_started_at')
+    return raw ? Number(raw) : null
+  })
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(() => {
+    return Number(localStorage.getItem('pomodoro_accumulated_seconds')) || 0
+  })
+  const [todayMinutes, setTodayMinutes] = useState(0)
+  const [celebrate, setCelebrate] = useState(false)
+  const [dayMessage, setDayMessage] = useState<{ text: string; ahead: boolean } | null>(null)
+  const [, forceTick] = useState(0)
+  const completedRef = useRef(false)
+
+  const running = startedAt !== null
+  const totalSeconds = focusMinutes * 60
+  const elapsedSeconds = accumulatedSeconds + (running ? Math.floor((Date.now() - startedAt!) / 1000) : 0)
+  const secondsLeft = Math.max(0, totalSeconds - elapsedSeconds)
+
+  useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
+
+  const handleSessionComplete = async () => {
+    const newTotal = await addStudyMinutes(userId, focusMinutes)
+    setTodayMinutes(newTotal)
+    const yesterday = await getYesterdayStudyMinutes(userId)
+    if (newTotal > yesterday) {
+      setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
+      setCelebrate(true)
+      setTimeout(() => setCelebrate(false), 4200)
+    } else {
+      setDayMessage({ text: pickMessage(BEHIND_MESSAGES, 'pomodoro_last_behind_msg'), ahead: false })
+    }
+    setTimeout(() => setDayMessage(null), 6000)
+  }
+
+  useEffect(() => {
+    if (!running) return
+    const interval = setInterval(() => forceTick(t => t + 1), 1000)
+    return () => clearInterval(interval)
+  }, [running])
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') forceTick(t => t + 1) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
+
+  useEffect(() => {
+    if (running && secondsLeft <= 0 && !completedRef.current) {
+      completedRef.current = true
+      localStorage.removeItem('pomodoro_started_at')
+      localStorage.removeItem('pomodoro_accumulated_seconds')
+      setStartedAt(null)
+      setAccumulatedSeconds(0)
+      handleSessionComplete()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, secondsLeft])
+
+  const handleToggle = () => {
+    if (running) {
+      const segment = Math.floor((Date.now() - startedAt!) / 1000)
+      const newAccumulated = Math.min(totalSeconds, accumulatedSeconds + segment)
+      localStorage.setItem('pomodoro_accumulated_seconds', String(newAccumulated))
+      localStorage.removeItem('pomodoro_started_at')
+      setAccumulatedSeconds(newAccumulated)
+      setStartedAt(null)
+    } else {
+      completedRef.current = false
+      const now = Date.now()
+      localStorage.setItem('pomodoro_started_at', String(now))
+      setStartedAt(now)
+    }
+  }
+
+  const handleReset = () => {
+    localStorage.removeItem('pomodoro_started_at')
+    localStorage.removeItem('pomodoro_accumulated_seconds')
+    setStartedAt(null)
+    setAccumulatedSeconds(0)
+    completedRef.current = false
+  }
+
+  const handlePreset = (m: number) => {
+    setFocusMinutes(m)
+    localStorage.setItem('pomodoro_focus_minutes', String(m))
+    localStorage.removeItem('pomodoro_accumulated_seconds')
+    setAccumulatedSeconds(0)
+  }
+
+  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
+  const secs = String(secondsLeft % 60).padStart(2, '0')
   return (
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
