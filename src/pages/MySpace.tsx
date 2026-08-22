@@ -400,61 +400,8 @@ function GoldPaperFall() {
   )
 }
 
-function PomodoroSection({ userId }: { userId: string }) {
-  const [focusMinutes, setFocusMinutes] = useState(() => {
-    const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
-    return saved > 0 ? saved : 25
-  })
-  const [secondsLeft, setSecondsLeft] = useState(focusMinutes * 60)
-  const [running, setRunning] = useState(false)
-  const [todayMinutes, setTodayMinutes] = useState(0)
-  const [celebrate, setCelebrate] = useState(false)
-  const [dayMessage, setDayMessage] = useState<{ text: string; ahead: boolean } | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
-  useEffect(() => { if (!running) setSecondsLeft(focusMinutes * 60) }, [focusMinutes, running])
-
-  const handleSessionComplete = async () => {
-    const newTotal = await addStudyMinutes(userId, focusMinutes)
-    setTodayMinutes(newTotal)
-    const yesterday = await getYesterdayStudyMinutes(userId)
-    if (newTotal > yesterday) {
-      setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
-      setCelebrate(true)
-      setTimeout(() => setCelebrate(false), 4200)
-    } else {
-      setDayMessage({ text: pickMessage(BEHIND_MESSAGES, 'pomodoro_last_behind_msg'), ahead: false })
-    }
-    setTimeout(() => setDayMessage(null), 6000)
-  }
-
-  useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft(s => {
-          if (s <= 1) {
-            setRunning(false)
-            handleSessionComplete()
-            return focusMinutes * 60
-          }
-          return s - 1
-        })
-      }, 1000)
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running, userId, focusMinutes])
-
-  const handlePreset = (m: number) => {
-    setFocusMinutes(m)
-    localStorage.setItem('pomodoro_focus_minutes', String(m))
-  }
-
-  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
-  const secs = String(secondsLeft % 60).padStart(2, '0')
-
+"// Wall-clock based, not a plain countdown..." through the new
+handlePreset/mins/secs lines).
   return (
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
@@ -463,11 +410,11 @@ function PomodoroSection({ userId }: { userId: string }) {
         <div className="flex flex-col items-center py-6">
           <p className="text-cream font-serif text-5xl font-bold mb-6">{mins}:{secs}</p>
           <div className="flex gap-3">
-            <button onClick={() => setRunning(r => !r)}
+            <button onClick={handleToggle}
               className="bg-ember hover:bg-ember-dark text-white font-bold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
               {running ? <><Pause size={16} /> Pause</> : <><Play size={16} /> Start</>}
             </button>
-            <button onClick={() => { setRunning(false); setSecondsLeft(focusMinutes * 60) }}
+            <button onClick={handleReset}
               className="bg-slate-deep border border-slate-border text-cream-muted font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
               <RotateCcw size={16} />
             </button>
