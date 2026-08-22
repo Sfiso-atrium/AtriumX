@@ -17,7 +17,8 @@ import GroupChatImage from '../components/common/GroupChatImage'
 export default function StudyGroupChat() {
   const { groupId } = useParams()
   const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, showToast } = useApp()
+
   const [group, setGroup] = useState<StudyGroup | null>(null)
   const [members, setMembers] = useState<StudyGroupMember[]>([])
   const [messages, setMessages] = useState<StudyGroupMessage[]>([])
