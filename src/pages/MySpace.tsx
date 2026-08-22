@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Plus, Copy, Check } from 'lucide-react'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Plus, Copy, Check } from 'lucide-react'
+import HomeIcon from '../components/common/icons/HomeIcon'
+import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { useApp } from '../context/AppContext'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
@@ -364,6 +366,19 @@ const BEHIND_MESSAGES = [
   'Less time logged than yesterday — still counts.',
 ]
 
+// Shown every time a session finishes, regardless of how it compares to
+// yesterday — that comparison is a nice-to-know, this is the actual
+// congratulations.
+const SESSION_COMPLETE_MESSAGES = [
+  'Session done — nice focus. 🎉',
+  "That's a full session in the bank. Well done.",
+  'Timer done. That kind of focus adds up fast.',
+  "Nice one — that's time you'll be glad you spent.",
+  'Session complete. Your future self says thanks.',
+  "Boom, done. That's real progress.",
+  'Focus session logged — take a breather, you earned it.',
+]
+
 function pickMessage(pool: string[], storageKey: string): string {
   const lastIndex = Number(localStorage.getItem(storageKey) ?? '-1')
   let idx = Math.floor(Math.random() * pool.length)
@@ -409,6 +424,7 @@ function GoldPaperFall() {
 // throttled, or closed entirely and reopened minutes later. Both values
 // live in localStorage so a closed tab doesn't lose the session either.
 function PomodoroSection({ userId }: { userId: string }) {
+  const { showToast } = useApp()
   const [focusMinutes, setFocusMinutes] = useState(() => {
     const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
     return saved > 0 ? saved : 25
@@ -434,6 +450,7 @@ function PomodoroSection({ userId }: { userId: string }) {
   useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
 
   const handleSessionComplete = async () => {
+    showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
     const newTotal = await addStudyMinutes(userId, focusMinutes)
     setTodayMinutes(newTotal)
     const yesterday = await getYesterdayStudyMinutes(userId)
@@ -1095,11 +1112,12 @@ export default function MySpace() {
 
   useEffect(() => {
     if (!currentUser) return
-    const flag = `atriumx_space_intro_seen_${currentUser.id}`
-    if (!localStorage.getItem(flag)) {
-      setShowIntro(true)
-      localStorage.setItem(flag, '1')
-    }
+    getSeenMySpaceIntro(currentUser.id).then(seen => {
+      if (!seen) {
+        setShowIntro(true)
+        markSeenMySpaceIntro(currentUser.id)
+      }
+    })
   }, [currentUser])
 
   if (!currentUser) {
@@ -1133,8 +1151,9 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream">
-          <ArrowLeft size={20} />
+        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
+          <HomeIcon size={20} />
+          <span className="text-sm font-medium">Feed</span>
         </button>
         <span className="text-cream font-bold">My Space</span>
       </div>
