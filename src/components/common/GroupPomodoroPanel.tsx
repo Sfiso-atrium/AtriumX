@@ -100,7 +100,7 @@ export default function GroupPomodoroPanel({
           <>
             <div className="w-full">
               <p className="text-cream-muted text-xs mb-2">Focus length</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 {FOCUS_PRESETS.map(m => (
                   <button
                     key={m}
@@ -112,6 +112,14 @@ export default function GroupPomodoroPanel({
                     {m}m
                   </button>
                 ))}
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={duration}
+                  onChange={e => setDuration(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
+                  className="w-20 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-sm text-cream focus:outline-none focus:border-teal-light"
+                />
               </div>
             </div>
             <button
