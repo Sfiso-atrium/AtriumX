@@ -25,8 +25,10 @@ function DeleteBtn({ onClick }: { onClick: () => void }) {
   )
 }
 
-export default function GroupSpacePanel({ groupId, onClose }: { groupId: string; onClose: () => void }) {
-  const [tab, setTab] = useState<PanelTab>('Deadlines')
+export default function GroupSpacePanel({
+  groupId, onClose, initialTab = 'Deadlines',
+}: { groupId: string; onClose: () => void; initialTab?: PanelTab }) {
+  const [tab, setTab] = useState<PanelTab>(initialTab)
 
   return (
     <div className="fixed inset-0 z-[200] bg-slate-deep flex flex-col">
