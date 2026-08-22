@@ -34,3 +34,21 @@
 --   );
 --   $$
 -- );
+
+-- Send group-deadline push reminders (2 days / 1 day / 10hr / 1hr before
+-- due_at, per member — see migration 031_group_deadline_reminders.sql and
+-- supabase/functions/send-group-deadline-reminders). Same requirements as
+-- study-reminders above: pg_cron + pg_net enabled, CRON_SECRET set as an
+-- Edge Function secret, plus VAPID_PRIVATE_KEY and VAPID_SUBJECT.
+
+-- SELECT cron.schedule(
+--   'group-deadline-reminders',
+--   '*/5 * * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := 'https://<your-project-ref>.supabase.co/functions/v1/send-group-deadline-reminders',
+--     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET value>'),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
