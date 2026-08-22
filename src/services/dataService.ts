@@ -279,9 +279,9 @@ export async function logout(): Promise<void> {
 }
 
 export async function restoreSession(): Promise<Profile | null> {
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) return null
-  const profile = await getUserById(data.user.id)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
+  const profile = await getUserById(session.user.id)
   if (profile?.is_blocked) {
     await supabase.auth.signOut()
     return null
