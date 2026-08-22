@@ -65,6 +65,11 @@ useEffect(() => {
         setCurrentUser(profile)
         setIsLoadingAuth(false)
       }
+    }).catch(() => {
+      if (mounted) {
+        setCurrentUser(null)
+        setIsLoadingAuth(false)
+      }
     })
 
   const { data: listener } = supabase.auth.onAuthStateChange(
