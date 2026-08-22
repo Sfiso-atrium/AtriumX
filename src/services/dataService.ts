@@ -1691,6 +1691,65 @@ export async function respondToGroupDeadline(
   return { error: error ? error.message : null }
 }
 
+// ── GROUP POMODORO (migration 031) ───────────────────────────────────────
+// Deliberately no "is this running" column on the row itself — see the
+// migration comment. Every one of these helpers derives state from
+// started_at + duration_minutes vs the current time, so it's correct the
+// instant anyone opens the panel, regardless of whether their tab was
+// open the whole time or not.
+
+export interface StudyGroupPomodoroSession {
+  id: string
+  group_id: string
+  started_by: string
+  started_at: string
+  duration_minutes: number
+  ended_at: string | null
+  created_at: string
+}
+
+export async function getLatestStudyGroupPomodoroSession(groupId: string): Promise<StudyGroupPomodoroSession | null> {
+  const { data, error } = await supabase
+    .from('study_group_pomodoro_sessions')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return data as StudyGroupPomodoroSession | null
+}
+
+export async function startStudyGroupPomodoroSession(
+  groupId: string, userId: string, durationMinutes: number
+): Promise<{ session: StudyGroupPomodoroSession | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('study_group_pomodoro_sessions')
+    .insert({ group_id: groupId, started_by: userId, duration_minutes: durationMinutes })
+    .select()
+    .single()
+  if (error) return { session: null, error: error.message }
+  return { session: data as StudyGroupPomodoroSession, error: null }
+}
+
+export async function endStudyGroupPomodoroSession(sessionId: string): Promise<void> {
+  await supabase
+    .from('study_group_pomodoro_sessions')
+    .update({ ended_at: new Date().toISOString() })
+    .eq('id', sessionId)
+}
+
+export function isStudyGroupPomodoroActive(session: StudyGroupPomodoroSession | null): boolean {
+  if (!session || session.ended_at) return false
+  const endsAt = new Date(session.started_at).getTime() + session.duration_minutes * 60000
+  return Date.now() < endsAt
+}
+
+export function studyGroupPomodoroRemainingSeconds(session: StudyGroupPomodoroSession): number {
+  const endsAt = new Date(session.started_at).getTime() + session.duration_minutes * 60000
+  return Math.max(0, Math.round((endsAt - Date.now()) / 1000))
+}
+
 // ── GROUP SCHEDULE (mirrors personal `schedule_entries`) ──────────────────
 
 export interface GroupScheduleEntry {
