@@ -1490,6 +1490,7 @@ export interface StudyGroup {
   id: string
   name: string
   created_by: string
+  avatar_url: string | null
   study_weekdays: number[] | null
   study_hour: number | null
   study_minute: number | null
@@ -1537,6 +1538,52 @@ export async function getStudyGroup(groupId: string): Promise<StudyGroup | null>
     .maybeSingle()
   if (error || !data) return null
   return data as StudyGroup
+}
+
+// Renames the group. RLS ("study_groups_update_creator") already rejects
+// this for anyone but the group's creator — no need to re-check role here.
+export async function updateStudyGroupName(
+  groupId: string, name: string
+): Promise<{ error: string | null }> {
+  const trimmed = name.trim()
+  if (!trimmed) return { error: 'Group name cannot be empty.' }
+  const { error } = await supabase
+    .from('study_groups')
+    .update({ name: trimmed })
+    .eq('id', groupId)
+  return { error: error ? error.message : null }
+}
+
+// Uploads to the private study-group-avatars bucket at
+// {groupId}/{random}.jpg — always a fresh filename (never overwritten in
+// place) so devices with the previous avatar cached on-device (see
+// imageCache.ts) fetch the new file instead of showing a stale one. The
+// old file is best-effort removed afterwards so storage doesn't grow
+// unbounded; a failed cleanup isn't treated as a failed edit.
+export async function uploadStudyGroupAvatar(
+  groupId: string, file: File, previousPath: string | null
+): Promise<{ error: string | null; path: string | null }> {
+  if (!file.type.startsWith('image/')) {
+    return { error: 'Please choose an image file.', path: null }
+  }
+  const compressed = await compressImageForUpload(file)
+  const path = `${groupId}/${crypto.randomUUID()}.jpg`
+
+  const { error: uploadError } = await supabase.storage
+    .from('study-group-avatars')
+    .upload(path, compressed, { contentType: 'image/jpeg' })
+  if (uploadError) return { error: uploadError.message, path: null }
+
+  const { error } = await supabase
+    .from('study_groups')
+    .update({ avatar_url: path })
+    .eq('id', groupId)
+  if (error) return { error: error.message, path: null }
+
+  if (previousPath) {
+    await supabase.storage.from('study-group-avatars').remove([previousPath])
+  }
+  return { error: null, path }
 }
 
 // Creator is auto-added as a member by the DB trigger (migration 027) —
