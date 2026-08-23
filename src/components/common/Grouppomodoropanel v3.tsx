@@ -6,6 +6,7 @@ import {
   StudyGroupPomodoroSession,
   getLatestStudyGroupPomodoroSession, startStudyGroupPomodoroSession, endStudyGroupPomodoroSession,
   isStudyGroupPomodoroActive, studyGroupPomodoroRemainingSeconds,
+  getTodayStudyMinutes, getYesterdayStudyMinutes,
 } from '../../services/dataService'
 
 const FOCUS_PRESETS = [15, 25, 45, 60]
@@ -19,12 +20,28 @@ export default function GroupPomodoroPanel({
   onSessionChange: (s: StudyGroupPomodoroSession | null) => void
 }) {
   const { currentUser, showToast } = useApp()
-  const [duration, setDuration] = useState(25)
+  const [duration, setDuration] = useState(() => {
+    const saved = Number(localStorage.getItem(`group_pomodoro_focus_${groupId}`))
+    return saved > 0 ? saved : 25
+  })
   const [starting, setStarting] = useState(false)
+  const [todayMinutes, setTodayMinutes] = useState(0)
+  const [yesterdayMinutes, setYesterdayMinutes] = useState(0)
   const [, forceTick] = useState(0)
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const active = isStudyGroupPomodoroActive(session)
+
+  useEffect(() => {
+    if (!currentUser) return
+    getTodayStudyMinutes(currentUser.id).then(setTodayMinutes)
+    getYesterdayStudyMinutes(currentUser.id).then(setYesterdayMinutes)
+  }, [currentUser])
+
+  const handleSetDuration = (m: number) => {
+    setDuration(m)
+    localStorage.setItem(`group_pomodoro_focus_${groupId}`, String(m))
+  }
 
   // Ticks the display once a second while a session is active. The source
   // of truth is always the wall-clock math in dataService — this interval
@@ -89,6 +106,15 @@ export default function GroupPomodoroPanel({
           )}
         </div>
 
+        <div className="bg-slate-card border border-slate-border rounded-2xl w-full p-4">
+          <p className="text-cream-muted text-xs mb-1">Your studied minutes today</p>
+          <p className="text-teal-light text-xl font-serif font-bold">{todayMinutes} min</p>
+          <div className="mt-2 pt-2 border-t border-slate-border">
+            <p className="text-cream-muted text-xs mb-1">Studied yesterday</p>
+            <p className="text-cream text-sm font-bold">{yesterdayMinutes} min</p>
+          </div>
+        </div>
+
         {active ? (
           <button
             onClick={handleStop}
@@ -104,7 +130,7 @@ export default function GroupPomodoroPanel({
                 {FOCUS_PRESETS.map(m => (
                   <button
                     key={m}
-                    onClick={() => setDuration(m)}
+                    onClick={() => handleSetDuration(m)}
                     className={`px-3 py-1.5 rounded-xl text-sm font-bold border transition-colors ${
                       duration === m ? 'bg-teal-primary text-white border-teal-light' : 'bg-slate-deep text-cream-muted border-slate-border'
                     }`}
@@ -117,7 +143,7 @@ export default function GroupPomodoroPanel({
                   min="1"
                   max="180"
                   value={duration}
-                  onChange={e => setDuration(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
+                  onChange={e => handleSetDuration(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
                   className="w-20 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-sm text-cream focus:outline-none focus:border-teal-light"
                 />
               </div>
