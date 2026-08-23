@@ -38,7 +38,11 @@ stroke="#0D9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
 export default function Feed() {
 const { activeCategory, showToast } = useApp()
   const navigate = useNavigate()
-  const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
+  const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
+    const saved = localStorage.getItem('feed_last_tab')
+    return saved === 'business' ? 'business' : 'marketplace'
+  })
+  useEffect(() => { localStorage.setItem('feed_last_tab', feedTab) }, [feedTab])
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
