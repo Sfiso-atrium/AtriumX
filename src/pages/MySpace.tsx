@@ -415,6 +415,69 @@ function GoldPaperFall() {
   )
 }
 
+function FocusTimerVisual({
+  mins,
+  secs,
+  focusMinutes,
+}: {
+  mins: string
+  secs: string
+  focusMinutes: number
+}) {
+  const totalSeconds = focusMinutes * 60
+  const remainingSeconds =
+    Number(mins) * 60 + Number(secs)
+
+  const progress = totalSeconds
+    ? 1 - remainingSeconds / totalSeconds
+    : 0
+
+  const circumference = 2 * Math.PI * 118
+  const dashOffset = circumference * (1 - progress)
+
+  return (
+    <div className="relative w-[260px] h-[260px] flex items-center justify-center">
+      <svg
+        viewBox="0 0 260 260"
+        className="absolute inset-0 w-full h-full -rotate-90"
+      >
+        <circle
+          cx="130"
+          cy="130"
+          r="118"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-slate-border"
+        />
+
+        <circle
+          cx="130"
+          cy="130"
+          r="118"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          className="text-gold transition-all duration-700"
+        />
+      </svg>
+
+      <div className="text-center">
+        <p className="text-cream font-serif text-6xl font-bold tracking-tight">
+          {mins}:{secs}
+        </p>
+
+        <p className="text-cream-muted text-sm mt-2">
+          Focus session
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // Wall-clock based, not a plain countdown: startedAt is the timestamp the
 // current running segment began, accumulatedSeconds is everything banked
 // from segments before that (pausing folds the just-finished segment in).
@@ -532,61 +595,160 @@ function PomodoroSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
       <TabIntro tab="Pomodoro" />
-      <SectionCard>
-        <div className="flex flex-col items-center py-6">
-          <p className="text-cream font-serif text-5xl font-bold mb-6">{mins}:{secs}</p>
-          <div className="flex gap-3">
-            <button onClick={handleToggle}
-              className="bg-ember hover:bg-ember-dark text-white font-bold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
-              {running ? <><Pause size={16} /> Pause</> : <><Play size={16} /> Start</>}
-            </button>
-            <button onClick={handleReset}
-              className="bg-slate-deep border border-slate-border text-cream-muted font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors">
-              <RotateCcw size={16} />
-            </button>
+      <section className="relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-6 sm:p-8">
+        <div className="absolute inset-x-0 bottom-0 h-24 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(13,148,136,0.25),transparent_65%)]" />
+        </div>
+
+        <div className="relative grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-center">
+          <div className="flex justify-center">
+            <FocusTimerVisual
+              mins={mins}
+              secs={secs}
+              focusMinutes={focusMinutes}
+            />
+          </div>
+
+          <div className="flex flex-col items-center lg:items-start">
+            <p className="text-cream-muted text-sm mb-4">
+              One session at a time.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleToggle}
+                className="bg-gold hover:bg-gold-muted text-slate-deep font-bold px-7 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors"
+              >
+                {running
+                  ? <><Pause size={16} /> Pause</>
+                  : <><Play size={16} /> Start</>
+                }
+              </button>
+
+              <button
+                onClick={handleReset}
+                className="bg-slate-deep border border-slate-border text-cream-muted hover:text-cream font-bold px-4 py-3 rounded-xl transition-colors"
+              >
+                <RotateCcw size={17} />
+              </button>
+            </div>
+
+            <div className="mt-8 max-w-sm">
+              <p className="text-cream-muted italic text-sm leading-relaxed">
+                "Discipline is choosing what matters most and giving it your full attention."
+              </p>
+            </div>
           </div>
         </div>
-      </SectionCard>
+      </section>
 
       <SectionCard>
-        <p className="text-cream-muted text-xs mb-2">Focus length</p>
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex items-center gap-2 mb-4">
+          <Timer size={17} className="text-teal-light" />
+          <p className="text-cream font-bold text-sm">
+            Focus length
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {FOCUS_PRESETS.map(m => (
-            <button key={m} disabled={running} onClick={() => handlePreset(m)}
-              className={`px-3 py-1.5 rounded-xl text-sm font-bold border transition-colors disabled:opacity-40 ${
-                focusMinutes === m ? 'bg-teal-primary text-white border-teal-light' : 'bg-slate-deep text-cream-muted border-slate-border'
-              }`}>
+            <button
+              key={m}
+              disabled={running}
+              onClick={() => handlePreset(m)}
+              className={`py-3 rounded-xl text-sm font-bold border transition-all disabled:opacity-40 ${
+                focusMinutes === m
+                  ? 'bg-teal-primary text-white border-teal-light shadow-lg shadow-teal-primary/20'
+                  : 'bg-slate-deep text-cream-muted border-slate-border hover:border-teal-light hover:text-cream'
+              }`}
+            >
               {m}m
             </button>
           ))}
+
           <input
-            type="number" min="1" max="180" disabled={running}
-            value={focusMinutes}
-            onChange={e => handlePreset(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
-            className="w-20 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-sm text-cream disabled:opacity-40 focus:outline-none focus:border-teal-light"
+            type="number"
+            min="1"
+            max="180"
+            disabled={running}
+            value={FOCUS_PRESETS.includes(focusMinutes) ? '' : focusMinutes}
+            placeholder="Custom"
+            onChange={e =>
+              handlePreset(
+                Math.max(
+                  1,
+                  Math.min(180, Number(e.target.value) || 1)
+                )
+              )
+            }
+            className="bg-slate-deep border border-slate-border rounded-xl px-3 py-3 text-sm text-cream placeholder:text-cream-muted disabled:opacity-40 focus:outline-none focus:border-teal-light"
           />
         </div>
       </SectionCard>
 
-      <SectionCard>
-        <p className="text-cream-muted text-xs mb-1">Studied today</p>
-        <p className="text-teal-light text-2xl font-serif font-bold">{todayMinutes} min</p>
-        <div className="mt-3 pt-3 border-t border-slate-border">
-          <p className="text-cream-muted text-xs mb-1">Studied yesterday</p>
-          <p className="text-cream text-sm font-bold">{yesterdayMinutes} min</p>
-        </div>
-        {dayMessage && (
-          <p className={`text-sm mt-2 ${dayMessage.ahead ? 'text-gold' : 'text-cream-muted'}`}>
-            {dayMessage.text}
-          </p>
-        )}
-      </SectionCard>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <SectionCard>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-cream-muted text-xs mb-2">Today</p>
+              <p className="text-teal-light text-3xl font-serif font-bold">
+                {todayMinutes} min
+              </p>
+              <p className="text-cream-muted text-xs mt-2">
+                Studied today
+              </p>
+            </div>
+
+            <div className="w-11 h-11 rounded-full border-4 border-teal-primary/30 border-t-teal-light" />
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-cream-muted text-xs mb-2">Yesterday</p>
+              <p className="text-cream text-3xl font-serif font-bold">
+                {yesterdayMinutes} min
+              </p>
+              <p className="text-cream-muted text-xs mt-2">
+                Studied yesterday
+              </p>
+            </div>
+
+            <div className="w-11 h-11 rounded-full border-4 border-sapphire-light/20 border-t-sapphire-light/50" />
+          </div>
+        </SectionCard>
+      </div>
+
+      {dayMessage && (
+        <p className={`text-sm text-center ${dayMessage.ahead ? 'text-gold' : 'text-cream-muted'}`}>
+          {dayMessage.text}
+        </p>
+      )}
 
       <button
         onClick={() => navigate('/focus')}
-        className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold-muted text-slate-deep font-bold py-4 rounded-2xl transition-colors shadow-lg shadow-gold/20"
+        className="group w-full flex items-center justify-between bg-gold hover:bg-gold-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-gold/20"
       >
-        <Sparkles size={18} /> Enter Focus Mode
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+            <Sparkles size={19} />
+          </div>
+
+          <div className="text-left">
+            <p className="font-bold text-sm">
+              Enter Focus Mode
+            </p>
+            <p className="text-xs opacity-70">
+              Minimize distractions. Maximize growth.
+            </p>
+          </div>
+        </div>
+
+        <ChevronDown
+          size={18}
+          className="-rotate-90 group-hover:translate-x-1 transition-transform"
+        />
       </button>
 
       <StudyGroupsSection userId={userId} />
@@ -626,13 +788,22 @@ function StudyGroupsSection({ userId }: { userId: string }) {
 
   return (
     <>
-      <div className="flex items-center justify-between mt-2 mb-1">
-        <p className="text-cream font-bold text-sm">Study Groups</p>
+      <div className="flex items-center justify-between mt-6 mb-3">
+        <div>
+          <p className="text-cream font-bold">
+            Study Groups
+          </p>
+          <p className="text-cream-muted text-xs mt-1">
+            Stay accountable. Achieve together.
+          </p>
+        </div>
+
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 bg-gold hover:bg-gold-muted text-slate-deep font-bold text-xs px-3 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 bg-gold hover:bg-gold-muted text-slate-deep font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
         >
-          <Plus size={14} /> New Group
+          <Plus size={15} />
+          New Group
         </button>
       </div>
 
@@ -645,11 +816,14 @@ function StudyGroupsSection({ userId }: { userId: string }) {
       )}
 
       {groups.map(g => (
-        <SectionCard key={g.id}>
+        <div
+          key={g.id}
+          className="bg-slate-card border border-slate-border rounded-2xl p-4 hover:border-teal-light/40 transition-colors"
+        >
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(`/group/${g.id}`)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
-              <div className="w-10 h-10 rounded-xl bg-teal-faint flex items-center justify-center flex-shrink-0">
-                <Users size={18} className="text-teal-light" />
+              <div className="w-11 h-11 rounded-xl bg-teal-faint border border-teal-light/10 flex items-center justify-center flex-shrink-0">
+                <Users size={19} className="text-teal-light" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-cream font-bold text-sm truncate">{g.name}</p>
@@ -668,7 +842,7 @@ function StudyGroupsSection({ userId }: { userId: string }) {
               <Copy size={16} />
             </button>
           </div>
-        </SectionCard>
+        </div>
       ))}
 
       {showCreate && (
@@ -1125,11 +1299,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
 export default function MySpace() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
-  const [tab, setTab] = useState<Tab>(() => {
-    const saved = localStorage.getItem('myspace_last_tab')
-    return (TABS as readonly string[]).includes(saved || '') ? (saved as Tab) : 'Deadlines'
-  })
-  useEffect(() => { localStorage.setItem('myspace_last_tab', tab) }, [tab])
+  const [tab, setTab] = useState<Tab>('Deadlines')
   const [showIntro, setShowIntro] = useState(false)
 
   useEffect(() => {
@@ -1173,8 +1343,8 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-teal-light border border-teal-light/40 bg-teal-faint px-3 py-1.5 rounded-xl hover:bg-teal-light/10 transition-colors">
-          <HomeIcon size={18} />
+        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
+          <HomeIcon size={20} />
           <span className="text-sm font-medium">Feed</span>
         </button>
         <span className="text-cream font-bold">My Space</span>
