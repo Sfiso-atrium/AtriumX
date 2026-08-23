@@ -459,14 +459,6 @@ function PomodoroSection({ userId }: { userId: string }) {
     setTodayMinutes(newTotal)
     const yesterday = await getYesterdayStudyMinutes(userId)
     setYesterdayMinutes(yesterday)
-
-  useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
-
-  const handleSessionComplete = async () => {
-    showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
-    const newTotal = await addStudyMinutes(userId, focusMinutes)
-    setTodayMinutes(newTotal)
-    const yesterday = await getYesterdayStudyMinutes(userId)
     if (newTotal > yesterday) {
       setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
       setCelebrate(true)
