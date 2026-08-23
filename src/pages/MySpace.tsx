@@ -437,6 +437,7 @@ function PomodoroSection({ userId }: { userId: string }) {
     return Number(localStorage.getItem('pomodoro_accumulated_seconds')) || 0
   })
   const [todayMinutes, setTodayMinutes] = useState(0)
+  const [yesterdayMinutes, setYesterdayMinutes] = useState(0)
   const [celebrate, setCelebrate] = useState(false)
   const [dayMessage, setDayMessage] = useState<{ text: string; ahead: boolean } | null>(null)
   const [, forceTick] = useState(0)
@@ -446,6 +447,18 @@ function PomodoroSection({ userId }: { userId: string }) {
   const totalSeconds = focusMinutes * 60
   const elapsedSeconds = accumulatedSeconds + (running ? Math.floor((Date.now() - startedAt!) / 1000) : 0)
   const secondsLeft = Math.max(0, totalSeconds - elapsedSeconds)
+
+  useEffect(() => {
+    getTodayStudyMinutes(userId).then(setTodayMinutes)
+    getYesterdayStudyMinutes(userId).then(setYesterdayMinutes)
+  }, [userId])
+
+  const handleSessionComplete = async () => {
+    showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
+    const newTotal = await addStudyMinutes(userId, focusMinutes)
+    setTodayMinutes(newTotal)
+    const yesterday = await getYesterdayStudyMinutes(userId)
+    setYesterdayMinutes(yesterday)
 
   useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
 
@@ -564,6 +577,10 @@ function PomodoroSection({ userId }: { userId: string }) {
       <SectionCard>
         <p className="text-cream-muted text-xs mb-1">Studied today</p>
         <p className="text-teal-light text-2xl font-serif font-bold">{todayMinutes} min</p>
+        <div className="mt-3 pt-3 border-t border-slate-border">
+          <p className="text-cream-muted text-xs mb-1">Studied yesterday</p>
+          <p className="text-cream text-sm font-bold">{yesterdayMinutes} min</p>
+        </div>
         {dayMessage && (
           <p className={`text-sm mt-2 ${dayMessage.ahead ? 'text-gold' : 'text-cream-muted'}`}>
             {dayMessage.text}
@@ -1107,7 +1124,11 @@ function TodaySnapshot({ userId }: { userId: string }) {
 export default function MySpace() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
-  const [tab, setTab] = useState<Tab>('Deadlines')
+  const [tab, setTab] = useState<Tab>(() => {
+    const saved = localStorage.getItem('myspace_last_tab')
+    return (TABS as readonly string[]).includes(saved || '') ? (saved as Tab) : 'Deadlines'
+  })
+  useEffect(() => { localStorage.setItem('myspace_last_tab', tab) }, [tab])
   const [showIntro, setShowIntro] = useState(false)
 
   useEffect(() => {
@@ -1151,8 +1172,8 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
-          <HomeIcon size={20} />
+        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-teal-light border border-teal-light/40 bg-teal-faint px-3 py-1.5 rounded-xl hover:bg-teal-light/10 transition-colors">
+          <HomeIcon size={18} />
           <span className="text-sm font-medium">Feed</span>
         </button>
         <span className="text-cream font-bold">My Space</span>
