@@ -425,6 +425,7 @@ function GoldPaperFall() {
 // live in localStorage so a closed tab doesn't lose the session either.
 function PomodoroSection({ userId }: { userId: string }) {
   const { showToast } = useApp()
+  const navigate = useNavigate()
   const [focusMinutes, setFocusMinutes] = useState(() => {
     const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
     return saved > 0 ? saved : 25
@@ -453,12 +454,13 @@ function PomodoroSection({ userId }: { userId: string }) {
     getYesterdayStudyMinutes(userId).then(setYesterdayMinutes)
   }, [userId])
 
+  useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
+
   const handleSessionComplete = async () => {
     showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
     const newTotal = await addStudyMinutes(userId, focusMinutes)
     setTodayMinutes(newTotal)
     const yesterday = await getYesterdayStudyMinutes(userId)
-    setYesterdayMinutes(yesterday)
     if (newTotal > yesterday) {
       setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
       setCelebrate(true)
@@ -579,6 +581,13 @@ function PomodoroSection({ userId }: { userId: string }) {
           </p>
         )}
       </SectionCard>
+
+      <button
+        onClick={() => navigate('/focus')}
+        className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold-muted text-slate-deep font-bold py-4 rounded-2xl transition-colors shadow-lg shadow-gold/20"
+      >
+        <Sparkles size={18} /> Enter Focus Mode
+      </button>
 
       <StudyGroupsSection userId={userId} />
     </div>
