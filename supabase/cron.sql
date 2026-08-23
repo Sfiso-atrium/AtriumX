@@ -52,3 +52,15 @@
 --   );
 --   $$
 -- );
+
+APPEND:
+
+-- Run expire_old_study_logs() once a day to delete study_log rows older
+-- than yesterday — only today's and yesterday's minutes are ever shown to
+-- a user, so anything older is permanently irrelevant (see migration 032).
+
+-- Example cron job (run in SQL editor after enabling pg_cron):
+-- SELECT cron.schedule('expire-old-study-logs', '0 3 * * *', $$SELECT expire_old_study_logs();$$);
+
+-- Manual trigger (safe to run anytime):
+-- SELECT expire_old_study_logs();
