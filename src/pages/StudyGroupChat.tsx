@@ -168,7 +168,7 @@ return (
 
       {/* Header */}
       <div className="relative flex items-center px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0 gap-3">
-        <button onClick={() => navigate('/space')} className="text-cream-muted hover:text-cream flex-shrink-0">
+        <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream flex-shrink-0">
           <ArrowLeft size={20} />
         </button>
         <div className="w-9 h-9 rounded-full bg-teal-faint flex items-center justify-center flex-shrink-0">
