@@ -174,18 +174,18 @@ return (
         <div className="w-9 h-9 rounded-full bg-teal-faint flex items-center justify-center flex-shrink-0">
           <Users size={16} className="text-teal-light" />
         </div>
-        <div className="min-w-0 max-w-[42%]">
+        <div className="min-w-0 flex-1">
           <p className="text-cream font-bold text-sm truncate">{group.name}</p>
           <p className="text-cream-muted text-xs">{members.length} member{members.length === 1 ? '' : 's'}</p>
         </div>
-        <div className="flex-1" />
 
         {sessionActive && activeSession && (
           <button
             onClick={() => setShowPomodoroPanel(true)}
-            className="absolute left-1/2 -translate-x-1/2 bg-ember/15 border border-ember/40 text-ember font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap"
+            className="flex-shrink-0 bg-ember/15 border border-ember/40 text-ember font-bold text-[11px] sm:text-xs px-2 sm:px-3 py-1 rounded-full flex items-center gap-1 sm:gap-1.5 whitespace-nowrap"
           >
-            <Timer size={12} />
+            <Timer size={11} className="sm:hidden" />
+            <Timer size={12} className="hidden sm:block" />
             {(() => {
               const s = studyGroupPomodoroRemainingSeconds(activeSession)
               return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -309,4 +309,3 @@ return (
     </div>
   )
 }
-
