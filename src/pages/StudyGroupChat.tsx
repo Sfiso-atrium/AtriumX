@@ -1,7 +1,7 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer } from 'lucide-react'
+import { ArrowLeft, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer, Settings } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
@@ -14,6 +14,8 @@ import { supabase } from '../services/supabaseClient'
 import BottomNav from '../components/common/BottomNav'
 import GroupSpacePanel from '../components/common/GroupSpacePanel'
 import GroupChatImage from '../components/common/GroupChatImage'
+import GroupAvatarImage from '../components/common/GroupAvatarImage'
+import EditGroupModal from '../components/common/EditGroupModal'
 import GroupPomodoroPanel from '../components/common/GroupPomodoroPanel'
 
 type SpaceTab = 'Deadlines' | 'Schedule' | 'Timetable'
@@ -33,6 +35,7 @@ export default function StudyGroupChat() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [spaceTab, setSpaceTab] = useState<SpaceTab | null>(null)
   const [showPomodoroPanel, setShowPomodoroPanel] = useState(false)
+  const [showEditGroup, setShowEditGroup] = useState(false)
   const [activeSession, setActiveSession] = useState<StudyGroupPomodoroSession | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [, forceHeaderTick] = useState(0)
@@ -171,9 +174,7 @@ return (
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream flex-shrink-0">
           <ArrowLeft size={20} />
         </button>
-        <div className="w-9 h-9 rounded-full bg-teal-faint flex items-center justify-center flex-shrink-0">
-          <Users size={16} className="text-teal-light" />
-        </div>
+        <GroupAvatarImage path={group.avatar_url} size={36} />
         <div className="min-w-0 flex-1">
           <p className="text-cream font-bold text-sm truncate">{group.name}</p>
           <p className="text-cream-muted text-xs">{members.length} member{members.length === 1 ? '' : 's'}</p>
@@ -202,6 +203,9 @@ return (
               <div className="fixed inset-0 z-[190]" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl py-2 w-48 shadow-lg">
                 {[
+                  ...(group.created_by === currentUser?.id
+                    ? [{ label: 'Edit Group', icon: Settings, action: () => setShowEditGroup(true) }]
+                    : []),
                   { label: 'Group Deadlines', icon: CalendarClock, action: () => setSpaceTab('Deadlines') },
                   { label: 'Group Schedule', icon: Clock, action: () => setSpaceTab('Schedule') },
                   { label: 'Group Timetable', icon: BookOpen, action: () => setSpaceTab('Timetable') },
@@ -304,6 +308,13 @@ return (
           session={activeSession}
           onClose={() => setShowPomodoroPanel(false)}
           onSessionChange={setActiveSession}
+        />
+      )}
+      {showEditGroup && group && (
+        <EditGroupModal
+          group={group}
+          onClose={() => setShowEditGroup(false)}
+          onSaved={updated => setGroup(updated)}
         />
       )}
     </div>
