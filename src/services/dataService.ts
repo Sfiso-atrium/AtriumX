@@ -1363,13 +1363,12 @@ export async function getYesterdayStudyMinutes(userId: string): Promise<number> 
 }
 
 export async function addStudyMinutes(userId: string, minutes: number): Promise<number> {
-  const today = localDateString()
-  const current = await getTodayStudyMinutes(userId)
-  const newTotal = current + minutes
-  await supabase.from('study_log').upsert({
-    user_id: userId, log_date: today, minutes: newTotal,
+  const { data, error } = await supabase.rpc('increment_study_minutes', {
+    p_log_date: localDateString(),
+    p_minutes: minutes,
   })
-  return newTotal
+  if (error) throw error
+  return data as number
 }
 
 export interface Watchlist {
