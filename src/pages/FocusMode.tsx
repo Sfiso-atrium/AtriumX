@@ -1,7 +1,9 @@
 // src/pages/FocusMode.tsx
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Play, Pause, RotateCcw, Heart, Moon, PartyPopper } from 'lucide-react'
+import { X, Play, Pause, RotateCcw, Heart, Moon, PartyPopper, Sparkles } from 'lucide-react'
+import { useApp } from '../context/AppContext'
+import { useFocusSession } from '../hooks/useFocusSession'
 
 const BREAK_RATIO = 0.2 // suggested break = 20% of study time, editable by the person
 
@@ -11,70 +13,53 @@ function formatTime(totalSeconds: number) {
   return `${m}:${s}`
 }
 
-type Phase = 'setup' | 'study' | 'break' | 'done'
-
 export default function FocusMode() {
   const navigate = useNavigate()
+  const { currentUser } = useApp()
   const [girly, setGirly] = useState(false)
 
-  const [phase, setPhase] = useState<Phase>('setup')
-  const [studyMinutes, setStudyMinutes] = useState(25)
-  const [breakMinutes, setBreakMinutes] = useState(5)
+  // Draft values for the setup form — only committed to the shared
+  // session (and localStorage) once "Start Focus Session" is pressed.
+  const [studyMinutesDraft, setStudyMinutesDraft] = useState(25)
+  const [breakMinutesDraft, setBreakMinutesDraft] = useState(5)
   const [breakTouched, setBreakTouched] = useState(false)
 
-  const [studySecondsLeft, setStudySecondsLeft] = useState(0)
-  const [breakSecondsLeft, setBreakSecondsLeft] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const intervalRef = useRef<number | null>(null)
+  // Whether the person has actively entered the timer view during THIS
+  // visit to the page — starts false every mount so that reopening Focus
+  // Mode on an already-running session shows the resume prompt first,
+  // rather than dropping straight back into the countdown.
+  const [enteredTimerView, setEnteredTimerView] = useState(false)
 
-  // Break suggestion appears once study time is set, and only pre-fills
-  // the field until the person edits it themselves.
   useEffect(() => {
     if (!breakTouched) {
-      setBreakMinutes(Math.max(1, Math.round(studyMinutes * BREAK_RATIO)))
+      setBreakMinutesDraft(Math.max(1, Math.round(studyMinutesDraft * BREAK_RATIO)))
     }
-  }, [studyMinutes, breakTouched])
+  }, [studyMinutesDraft, breakTouched])
 
   useEffect(() => {
-    if (!isRunning) return
-    intervalRef.current = window.setInterval(() => {
-      if (phase === 'study') {
-        setStudySecondsLeft(prev => {
-          if (prev <= 1) {
-            setPhase('break')
-            setBreakSecondsLeft(breakMinutes * 60)
-            return 0
-          }
-          return prev - 1
-        })
-      } else if (phase === 'break') {
-        setBreakSecondsLeft(prev => {
-          if (prev <= 1) {
-            setIsRunning(false)
-            setPhase('done')
-            return 0
-          }
-          return prev - 1
-        })
-      }
-    }, 1000)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [isRunning, phase, breakMinutes])
+    if (!currentUser) navigate('/student')
+  }, [currentUser, navigate])
+
+  const session = useFocusSession(currentUser?.id ?? '')
+  const { phase, running, secondsLeft, mins, secs, focusMinutes, breakMinutes, start, toggle, reset } = session
+
+  if (!currentUser) return null
+
+  const showResumePrompt = (phase === 'study' || phase === 'break') && !enteredTimerView
+  const showSetup = phase === 'idle'
+  const showTimer = (phase === 'study' || phase === 'break') && enteredTimerView
+  const showDone = phase === 'done'
 
   const handleStart = () => {
-    setStudySecondsLeft(studyMinutes * 60)
-    setBreakSecondsLeft(breakMinutes * 60)
-    setPhase('study')
-    setIsRunning(true)
+    start(studyMinutesDraft, breakMinutesDraft)
+    setEnteredTimerView(true)
   }
 
-  const handlePauseResume = () => setIsRunning(prev => !prev)
+  const handleResume = () => setEnteredTimerView(true)
 
   const handleReset = () => {
-    setIsRunning(false)
-    setPhase('setup')
-    setStudySecondsLeft(0)
-    setBreakSecondsLeft(0)
+    reset()
+    setEnteredTimerView(false)
   }
 
   // Theme tokens — kept local to this screen only, separate from the
@@ -130,11 +115,32 @@ export default function FocusMode() {
       </div>
 
       <div className="relative z-10 max-w-md mx-auto px-5 pb-16 pt-6 flex flex-col gap-6">
-        {phase === 'setup' && (
+        {showResumePrompt && (
+          <div className="flex flex-col items-center text-center gap-4 py-16">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${theme.activeCard} border`}>
+              <Sparkles size={26} style={{ color: theme.accent }} />
+            </div>
+            <h2 className={`font-serif text-2xl font-bold ${theme.text}`}>
+              You're already in a session
+            </h2>
+            <p className={`${theme.textMuted} text-sm max-w-xs`}>
+              {phase === 'study' ? 'Study' : 'Break'} time left: {formatTime(secondsLeft)}
+            </p>
+            <button
+              onClick={handleResume}
+              className="mt-2 px-6 py-3 rounded-2xl font-bold text-white transition-transform active:scale-[0.98]"
+              style={{ background: theme.accent }}
+            >
+              Proceed to Focus Mode
+            </button>
+          </div>
+        )}
+
+        {showSetup && (
           <>
             <div className="text-center mb-2">
               <h1 className={`font-serif text-3xl font-bold ${theme.text}`}>Focus Mode</h1>
-              <p className={`${theme.textMuted} text-sm mt-1`}>Set your study time — nothing here gets saved anywhere.</p>
+              <p className={`${theme.textMuted} text-sm mt-1`}>Set your study time — study minutes count toward your streak, breaks don't.</p>
             </div>
 
             <div className={`rounded-3xl border p-5 ${theme.cardBg}`}>
@@ -143,8 +149,8 @@ export default function FocusMode() {
                 type="number"
                 min={1}
                 max={180}
-                value={studyMinutes}
-                onChange={e => setStudyMinutes(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
+                value={studyMinutesDraft}
+                onChange={e => setStudyMinutesDraft(Math.max(1, Math.min(180, Number(e.target.value) || 1)))}
                 className={`w-full bg-transparent border rounded-xl px-4 py-3 text-2xl font-serif font-bold focus:outline-none ${theme.text}`}
                 style={{ borderColor: theme.accentSoft }}
               />
@@ -155,15 +161,15 @@ export default function FocusMode() {
               <div className="flex items-center justify-between mb-2">
                 <label className={`text-xs font-bold ${theme.text}`}>Break time</label>
                 <span className={`text-[11px] ${theme.textMuted}`}>
-                  suggested: {Math.max(1, Math.round(studyMinutes * BREAK_RATIO))} min (20% of study time)
+                  suggested: {Math.max(1, Math.round(studyMinutesDraft * BREAK_RATIO))} min (20% of study time)
                 </span>
               </div>
               <input
                 type="number"
                 min={1}
                 max={90}
-                value={breakMinutes}
-                onChange={e => { setBreakTouched(true); setBreakMinutes(Math.max(1, Math.min(90, Number(e.target.value) || 1))) }}
+                value={breakMinutesDraft}
+                onChange={e => { setBreakTouched(true); setBreakMinutesDraft(Math.max(1, Math.min(90, Number(e.target.value) || 1))) }}
                 className={`w-full bg-transparent border rounded-xl px-4 py-3 text-2xl font-serif font-bold focus:outline-none ${theme.text}`}
                 style={{ borderColor: theme.accentSoft }}
               />
@@ -180,7 +186,7 @@ export default function FocusMode() {
           </>
         )}
 
-        {(phase === 'study' || phase === 'break') && (
+        {showTimer && (
           <>
             <div className={`rounded-3xl border p-6 text-center transition-all ${phase === 'study' ? theme.activeCard : theme.cardBg}`}>
               <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${phase === 'study' ? theme.text : theme.textMuted}`}>
@@ -190,7 +196,7 @@ export default function FocusMode() {
                 className={`font-serif font-bold leading-none ${theme.text}`}
                 style={{ fontSize: '4.5rem', transform: 'scaleY(1.2)', letterSpacing: '0.02em' }}
               >
-                {phase === 'study' ? formatTime(studySecondsLeft) : formatTime(studyMinutes * 60)}
+                {phase === 'study' ? formatTime(secondsLeft) : formatTime(focusMinutes * 60)}
               </p>
             </div>
 
@@ -202,7 +208,7 @@ export default function FocusMode() {
                 className={`font-serif font-bold leading-none ${theme.text}`}
                 style={{ fontSize: '4.5rem', transform: 'scaleY(1.2)', letterSpacing: '0.02em' }}
               >
-                {phase === 'break' ? formatTime(breakSecondsLeft) : formatTime(breakMinutes * 60)}
+                {phase === 'break' ? formatTime(secondsLeft) : formatTime(breakMinutes * 60)}
               </p>
             </div>
 
@@ -214,27 +220,28 @@ export default function FocusMode() {
                 <RotateCcw size={18} />
               </button>
               <button
-                onClick={handlePauseResume}
+                onClick={toggle}
                 className="w-16 h-16 rounded-full flex items-center justify-center text-white"
                 style={{ background: theme.accent }}
               >
-                {isRunning ? <Pause size={26} /> : <Play size={26} className="ml-0.5" />}
+                {running ? <Pause size={26} /> : <Play size={26} className="ml-0.5" />}
               </button>
               <div className="w-12 h-12" />
             </div>
 
             <p className={`text-center text-xs ${theme.textMuted} flex items-center justify-center gap-1.5 mt-1`}>
-              <Moon size={12} /> Not tracked, not saved — just this session.
+              <Moon size={12} />
+              {phase === 'study' ? 'Study minutes are being recorded as you go.' : "Break time isn't recorded — enjoy it."}
             </p>
           </>
         )}
 
-        {phase === 'done' && (
+        {showDone && (
           <div className="flex flex-col items-center text-center gap-3 py-10">
             <PartyPopper size={36} style={{ color: theme.accent }} />
             <h2 className={`font-serif text-2xl font-bold ${theme.text}`}>Session complete</h2>
             <p className={`${theme.textMuted} text-sm max-w-xs`}>
-              {studyMinutes} min of focus, {breakMinutes} min of rest. Nicely done.
+              {focusMinutes} min of focus, {breakMinutes} min of rest. Nicely done.
             </p>
             <button
               onClick={handleReset}
