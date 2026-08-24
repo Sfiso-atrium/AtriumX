@@ -47,6 +47,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const [showReportModal, setShowReportModal] = useState(false)
   const [titleExpanded, setTitleExpanded] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
@@ -139,6 +140,15 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
+
+  // Grows the textarea with its content (up to a cap, then it scrolls
+  // internally) so a longer message is actually visible while typing.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [text])
 
 if (conversation.is_closed_by_admin) {
     return (
@@ -279,12 +289,13 @@ return (
       {!conversation.is_resolved && !sellerLocked && (
         <div className="px-4 py-3 border-t border-slate-border flex gap-2 flex-shrink-0">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors"
+            className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
           />
           <button
             onClick={handleSend}
