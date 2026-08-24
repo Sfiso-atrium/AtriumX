@@ -1,7 +1,7 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer, Settings } from 'lucide-react'
+import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer, Send, Settings } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
@@ -11,7 +11,6 @@ import {
   isStudyGroupPomodoroActive, studyGroupPomodoroRemainingSeconds,
 } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
-import BottomNav from '../components/common/BottomNav'
 import GroupSpacePanel from '../components/common/GroupSpacePanel'
 import GroupChatImage from '../components/common/GroupChatImage'
 import GroupAvatarImage from '../components/common/GroupAvatarImage'
@@ -40,6 +39,7 @@ export default function StudyGroupChat() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [, forceHeaderTick] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -167,7 +167,7 @@ export default function StudyGroupChat() {
   }
 
 return (
-    <div className="h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-slate-deep flex flex-col overflow-hidden">
 
       {/* Header */}
       <div className="relative flex items-center px-4 py-3 border-b border-slate-border bg-slate-deep flex-shrink-0 gap-3">
@@ -281,24 +281,24 @@ return (
         >
           <Camera size={20} />
         </button>
-        <textarea
+          <textarea
+          ref={textareaRef}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors"
+          className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
         />
         <button
           onClick={handleSend}
           disabled={sending || !text.trim()}
-          className="bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold px-4 rounded-xl text-sm transition-colors flex-shrink-0"
+          className="w-10 h-10 flex items-center justify-center bg-ember hover:bg-ember-dark disabled:opacity-40 rounded-xl text-white flex-shrink-0 transition-colors"
         >
-          Send
+          <Send size={16} />
         </button>
       </div>
 
-      <BottomNav />
       {spaceTab && (
         <GroupSpacePanel groupId={groupId!} initialTab={spaceTab} onClose={() => setSpaceTab(null)} />
       )}
