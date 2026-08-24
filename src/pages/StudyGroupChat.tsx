@@ -142,6 +142,18 @@ export default function StudyGroupChat() {
     }
   }
 
+  // Grows the textarea with its content (up to a cap, then it scrolls
+  // internally) so a longer message is actually visible while typing,
+  // instead of staying pinned to a single line. This is the piece that
+  // was missing — the ref and CSS classes were already there, but nothing
+  // was actually resizing the box.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [text])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-deep flex items-center justify-center">
