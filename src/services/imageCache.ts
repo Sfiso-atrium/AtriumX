@@ -71,6 +71,19 @@ export async function deleteCachedImageBlob(path: string): Promise<void> {
     // no-op
   }
 }
+// Converts a File to a base64 string (no data: prefix) for sending to the
+// moderate-group-image Edge Function as JSON.
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1] ?? '')
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
 
 // Downscales + re-encodes an image before upload, to keep Supabase Storage
 // bandwidth/cost down (this is the only point the image touches a server,
