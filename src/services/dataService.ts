@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import { compressImageForUpload } from './imageCache'
+import { compressImageForUpload, fileToBase64 } from './imageCache'
 
 // ── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -1650,6 +1650,11 @@ export async function sendStudyGroupMessage(
 // {groupId}/{senderId}/{random}.jpg, then inserts the chat row pointing at
 // that storage path. Compression happens here so every caller (gallery
 // pick or camera capture) gets it for free.
+// Sends the image to the moderate-group-image Edge Function, which checks
+// it against Sightengine's nudity model BEFORE writing anything anywhere.
+// If it's flagged, the function rejects it and nothing is ever uploaded
+// to Storage or inserted as a message — this is what actually enforces
+// the block, not just a client-side check that could be bypassed.
 export async function sendStudyGroupImage(
   groupId: string, senderId: string, file: File
 ): Promise<{ error: string | null }> {
@@ -1657,19 +1662,24 @@ export async function sendStudyGroupImage(
     return { error: 'Only images can be shared in group chat.' }
   }
   const compressed = await compressImageForUpload(file)
-  const path = `${groupId}/${senderId}/${crypto.randomUUID()}.jpg`
+  const imageBase64 = await fileToBase64(compressed)
 
-  const { error: uploadError } = await supabase.storage
-    .from('study-group-images')
-    .upload(path, compressed, { contentType: 'image/jpeg' })
-  if (uploadError) return { error: uploadError.message }
+  const { error } = await supabase.functions.invoke('moderate-group-image', {
+    body: { groupId, imageBase64, fileName: compressed.name },
+  })
 
-  const { error } = await supabase
-    .from('study_group_messages')
-    .insert({ group_id: groupId, sender_id: senderId, image_url: path })
-  return { error: error ? error.message : null }
+  if (error) {
+    let message = 'Could not send image.'
+    try {
+      const body = await (error as any).context?.json()
+      if (body?.error) message = body.error
+    } catch {
+      // keep default message
+    }
+    return { error: message }
+  }
+  return { error: null }
 }
-
 // ── GROUP DEADLINES (mirrors personal `deadlines`, group_id instead of user_id) ──
 
 export interface GroupDeadline {
