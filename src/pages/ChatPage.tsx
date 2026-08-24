@@ -34,6 +34,10 @@ export default function ChatPage() {
   const [active, setActive] = useState<FullConversation | null>(null)
   const [loading, setLoading] = useState(true)
   const isMobile = useIsMobile()
+  // Only the actual open-conversation view on mobile needs the nav hidden
+  // (that's where the keyboard opens under the input) — the conversation
+  // list, and the desktop split-pane view, keep it as normal.
+  const hideBottomNav = isMobile && !!active
 
   // isLoadingAuth must gate this redirect — otherwise, on a page refresh,
   // currentUser starts out null while the session is still restoring and
@@ -104,7 +108,7 @@ useEffect(() => {
 
   return (
     <>
-      <div className="h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden">
+      <div className={hideBottomNav ? 'h-[100dvh] bg-slate-deep flex flex-col overflow-hidden' : 'h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden'}>
         {/* Top bar */}
         <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3 flex-shrink-0">
           {active && isMobile ? (
@@ -221,7 +225,7 @@ return (
           </div>
         </div>
       </div>
-      <BottomNav />
+      {!hideBottomNav && <BottomNav />}
     </>
   )
 }
