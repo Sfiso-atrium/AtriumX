@@ -9,13 +9,14 @@ import {
   Deadline, getDeadlines, createDeadline, deleteDeadline,
   ScheduleEntry, getScheduleEntries, createScheduleEntry, deleteScheduleEntry,
   BudgetEntry, getBudgetEntries, createBudgetEntry, deleteBudgetEntry,
-  getTodayStudyMinutes, getYesterdayStudyMinutes, addStudyMinutes,
+  getTodayStudyMinutes, getYesterdayStudyMinutes,
   Watchlist, getWatchlists, createWatchlist, deleteWatchlist,
   StudyCourse, getStudyCourses, createStudyCourse, deleteStudyCourse,
   StudyPrepNote, getStudyPrepNotes, createStudyPrepNote, setStudyPrepClarified,
   StudyGroup, getStudyGroupsForUser, createStudyGroup,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
+import { useFocusSession } from '../hooks/useFocusSession'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const TABS = ['Deadlines', 'Timetable', 'Schedule', 'Budget', 'Pomodoro', 'Watchlist'] as const
@@ -419,10 +420,12 @@ function FocusTimerVisual({
   mins,
   secs,
   focusMinutes,
+  label = 'Focus session',
 }: {
   mins: string
   secs: string
   focusMinutes: number
+  label?: string
 }) {
   const totalSeconds = focusMinutes * 60
   const remainingSeconds =
@@ -471,126 +474,73 @@ function FocusTimerVisual({
         </p>
 
         <p className="text-cream-muted text-sm mt-2">
-          Focus session
+          {label}
         </p>
       </div>
     </div>
   )
 }
 
-// Wall-clock based, not a plain countdown: startedAt is the timestamp the
-// current running segment began, accumulatedSeconds is everything banked
-// from segments before that (pausing folds the just-finished segment in).
-// secondsLeft is always derived from these two vs Date.now() — never
-// decremented directly — so the timer is correct the instant the page
-// loads, whether the tab was open the whole time, backgrounded and
-// throttled, or closed entirely and reopened minutes later. Both values
-// live in localStorage so a closed tab doesn't lose the session either.
+// Both this widget and the Focus Mode page (/focus) render off one shared
+// session — useFocusSession — backed by the same localStorage keys. So
+// starting here and continuing on /focus (or the reverse) is the same
+// clock, not two, and study minutes get credited to Supabase as they're
+// earned rather than only if the whole preset finishes.
 function PomodoroSection({ userId }: { userId: string }) {
   const { showToast } = useApp()
   const navigate = useNavigate()
-  const [focusMinutes, setFocusMinutes] = useState(() => {
-    const saved = Number(localStorage.getItem('pomodoro_focus_minutes'))
-    return saved > 0 ? saved : 25
-  })
-  const [startedAt, setStartedAt] = useState<number | null>(() => {
-    const raw = localStorage.getItem('pomodoro_started_at')
-    return raw ? Number(raw) : null
-  })
-  const [accumulatedSeconds, setAccumulatedSeconds] = useState(() => {
-    return Number(localStorage.getItem('pomodoro_accumulated_seconds')) || 0
-  })
+  const session = useFocusSession(userId)
+  const { phase, running, focusMinutes, breakMinutes, mins, secs, setFocusMinutes, toggle, reset, start } = session
+
   const [todayMinutes, setTodayMinutes] = useState(0)
   const [yesterdayMinutes, setYesterdayMinutes] = useState(0)
   const [celebrate, setCelebrate] = useState(false)
   const [dayMessage, setDayMessage] = useState<{ text: string; ahead: boolean } | null>(null)
-  const [, forceTick] = useState(0)
-  const completedRef = useRef(false)
-
-  const running = startedAt !== null
-  const totalSeconds = focusMinutes * 60
-  const elapsedSeconds = accumulatedSeconds + (running ? Math.floor((Date.now() - startedAt!) / 1000) : 0)
-  const secondsLeft = Math.max(0, totalSeconds - elapsedSeconds)
+  const prevPhaseRef = useRef(phase)
 
   useEffect(() => {
     getTodayStudyMinutes(userId).then(setTodayMinutes)
     getYesterdayStudyMinutes(userId).then(setYesterdayMinutes)
   }, [userId])
 
-  useEffect(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, [userId])
-
-  const handleSessionComplete = async () => {
-    showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
-    const newTotal = await addStudyMinutes(userId, focusMinutes)
-    setTodayMinutes(newTotal)
-    const yesterday = await getYesterdayStudyMinutes(userId)
-    if (newTotal > yesterday) {
-      setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
-      setCelebrate(true)
-      setTimeout(() => setCelebrate(false), 4200)
-    } else {
-      setDayMessage({ text: pickMessage(BEHIND_MESSAGES, 'pomodoro_last_behind_msg'), ahead: false })
-    }
-    setTimeout(() => setDayMessage(null), 6000)
-  }
-
+  // Study minutes land in Supabase progressively (see useFocusSession), so
+  // keep "today" fresh while a study phase is actually running rather than
+  // only refetching once on mount.
   useEffect(() => {
-    if (!running) return
-    const interval = setInterval(() => forceTick(t => t + 1), 1000)
+    if (phase !== 'study' || !running) return
+    const interval = setInterval(() => { getTodayStudyMinutes(userId).then(setTodayMinutes) }, 15000)
     return () => clearInterval(interval)
-  }, [running])
+  }, [phase, running, userId])
 
+  // study -> break is "session complete" from a study-minutes standpoint —
+  // every minute of it is already banked by then — so that's the moment
+  // the congratulatory toast and today-vs-yesterday message fire.
   useEffect(() => {
-    const onVisible = () => { if (document.visibilityState === 'visible') forceTick(t => t + 1) }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [])
-
-  useEffect(() => {
-    if (running && secondsLeft <= 0 && !completedRef.current) {
-      completedRef.current = true
-      localStorage.removeItem('pomodoro_started_at')
-      localStorage.removeItem('pomodoro_accumulated_seconds')
-      setStartedAt(null)
-      setAccumulatedSeconds(0)
-      handleSessionComplete()
+    if (prevPhaseRef.current === 'study' && phase === 'break') {
+      showToast(pickMessage(SESSION_COMPLETE_MESSAGES, 'pomodoro_last_complete_msg'), 'success')
+      getTodayStudyMinutes(userId).then(async newTotal => {
+        setTodayMinutes(newTotal)
+        const yesterday = await getYesterdayStudyMinutes(userId)
+        if (newTotal > yesterday) {
+          setDayMessage({ text: pickMessage(AHEAD_MESSAGES, 'pomodoro_last_ahead_msg'), ahead: true })
+          setCelebrate(true)
+          setTimeout(() => setCelebrate(false), 4200)
+        } else {
+          setDayMessage({ text: pickMessage(BEHIND_MESSAGES, 'pomodoro_last_behind_msg'), ahead: false })
+        }
+        setTimeout(() => setDayMessage(null), 6000)
+      })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, secondsLeft])
+    prevPhaseRef.current = phase
+  }, [phase, userId, showToast])
 
   const handleToggle = () => {
-    if (running) {
-      const segment = Math.floor((Date.now() - startedAt!) / 1000)
-      const newAccumulated = Math.min(totalSeconds, accumulatedSeconds + segment)
-      localStorage.setItem('pomodoro_accumulated_seconds', String(newAccumulated))
-      localStorage.removeItem('pomodoro_started_at')
-      setAccumulatedSeconds(newAccumulated)
-      setStartedAt(null)
-    } else {
-      completedRef.current = false
-      const now = Date.now()
-      localStorage.setItem('pomodoro_started_at', String(now))
-      setStartedAt(now)
-    }
+    if (phase === 'idle' || phase === 'done') start(focusMinutes)
+    else toggle()
   }
 
-  const handleReset = () => {
-    localStorage.removeItem('pomodoro_started_at')
-    localStorage.removeItem('pomodoro_accumulated_seconds')
-    setStartedAt(null)
-    setAccumulatedSeconds(0)
-    completedRef.current = false
-  }
+  const handlePreset = (m: number) => setFocusMinutes(m)
 
-  const handlePreset = (m: number) => {
-    setFocusMinutes(m)
-    localStorage.setItem('pomodoro_focus_minutes', String(m))
-    localStorage.removeItem('pomodoro_accumulated_seconds')
-    setAccumulatedSeconds(0)
-  }
-
-  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
-  const secs = String(secondsLeft % 60).padStart(2, '0')
   return (
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
@@ -605,13 +555,14 @@ function PomodoroSection({ userId }: { userId: string }) {
             <FocusTimerVisual
               mins={mins}
               secs={secs}
-              focusMinutes={focusMinutes}
+              focusMinutes={phase === 'break' ? breakMinutes : focusMinutes}
+              label={phase === 'break' ? 'Break' : 'Focus session'}
             />
           </div>
 
           <div className="flex flex-col items-center lg:items-start">
             <p className="text-cream-muted text-sm mb-4">
-              One session at a time.
+              {phase === 'break' ? "On break — this time isn't counted." : 'One session at a time.'}
             </p>
 
             <div className="flex gap-3">
@@ -626,7 +577,7 @@ function PomodoroSection({ userId }: { userId: string }) {
               </button>
 
               <button
-                onClick={handleReset}
+                onClick={reset}
                 className="bg-slate-deep border border-slate-border text-cream-muted hover:text-cream font-bold px-4 py-3 rounded-xl transition-colors"
               >
                 <RotateCcw size={17} />
@@ -1343,7 +1294,10 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-
+        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
+          <HomeIcon size={20} />
+          <span className="text-sm font-medium">Feed</span>
+        </button>
         <span className="text-cream font-bold">My Space</span>
       </div>
 
