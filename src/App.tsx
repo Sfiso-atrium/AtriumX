@@ -16,6 +16,7 @@ import BusinessPostListing from './pages/BusinessPostListing'
 import BusinessPlanSelect from './pages/BusinessPlanSelect'
 import MySpace from './pages/MySpace'
 import PartnerDashboard from './pages/Partnerdashboard'
+import PushPermissionPrompt from './components/common/PushPermissionPrompt'
 import StudyGroupChat from './pages/StudyGroupChat'
 import FocusMode from './pages/FocusMode'
 import Toast from './components/common/Toast'
@@ -57,6 +58,7 @@ export default function App() {
       <HashRouter>
         <ToastLayer />
         <ModalLayer />
+        <PushPermissionPrompt />
 
         <Routes>
           <Route path="/" element={<Entrance />} />
