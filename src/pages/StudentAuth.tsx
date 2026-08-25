@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
-import { subscribeToPush } from '../services/push'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
 
@@ -46,11 +45,6 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (err) return setError(err)
       if (user) {
         setCurrentUser(user)
-        // Used to only save whether permission was granted - now actually
-        // subscribes through the service worker and saves the delivery details.
-        if ('Notification' in window && Notification.permission === 'default') {
-          subscribeToPush(user.id)
-        }
         const joinGroupId = searchParams.get('join')
         if (joinGroupId) {
           await joinStudyGroup(joinGroupId, user.id)
