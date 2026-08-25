@@ -95,6 +95,8 @@ export default function NotificationBell() {
       navigate(`/profile/${currentUser.id}`)
     } else if ((notif.type === 'message' || notif.type === 'message_locked') && notif.conversation_id) {
       navigate(`/chat/${notif.conversation_id}`)
+    } else if (notif.type === 'group_message' && notif.group_id) {
+      navigate(`/group/${notif.group_id}`)
     } else if ((notif.type === 'review' || notif.type === 'review_locked' || notif.type === 'business_approved' || notif.type === 'business_rejected') && currentUser) {
       navigate(`/profile/${currentUser.id}`)
     } else if (notif.type === 'deadline_reminder' || notif.type === 'watchlist_match') {
