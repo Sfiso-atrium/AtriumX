@@ -82,7 +82,7 @@ export interface Notification {
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
         'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
         'deadline_reminder' | 'watchlist_match' | 'referral_listing' |
-        'group_deadline_reminder' | 'group_deadline_update'
+        'group_deadline_reminder' | 'group_deadline_update' | 'group_message'
   message: string
   listing_id: string | null
   conversation_id: string | null
