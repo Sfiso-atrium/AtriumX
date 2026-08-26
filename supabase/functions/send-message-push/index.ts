@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
   }
 
   let sent = 0
+  const errors: { statusCode?: number; message: string }[] = []
   for (const sub of subs ?? []) {
     try {
       await webpush.sendNotification(
@@ -77,10 +78,11 @@ Deno.serve(async (req) => {
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await supabase.from('push_subscriptions').delete().eq('id', sub.id)
       }
+      errors.push({ statusCode: err?.statusCode, message: err?.body || err?.message || String(err) })
     }
   }
 
-  return new Response(JSON.stringify({ recipients: recipient_ids.length, devices: subs?.length ?? 0, sent }), {
+  return new Response(JSON.stringify({ recipients: recipient_ids.length, devices: subs?.length ?? 0, sent, errors }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })
