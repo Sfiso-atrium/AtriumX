@@ -89,7 +89,14 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
             setOwnMsgCount(updated.filter(m => m.sender_id === currentUser?.id).length)
             return updated
           })
-          if (currentUser) getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
+          if (currentUser) {
+            // The chat is open right now, so a message arriving live counts
+            // as read the instant it lands — mark it read in the same beat,
+            // not just refresh the badge off the stale (still-unread) count.
+            markMessagesRead(conversation.id, currentUser.id).then(() => {
+              getUnreadMessageCount(currentUser.id).then(setUnreadMessageCount)
+            })
+          }
         }
       )
       .subscribe()
@@ -293,6 +300,7 @@ return (
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
             placeholder="Type a message..."
             rows={1}
             className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
