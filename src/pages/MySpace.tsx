@@ -1294,10 +1294,7 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
-          <HomeIcon size={20} />
-          <span className="text-sm font-medium">Feed</span>
-        </button>
+
         <span className="text-cream font-bold">My Space</span>
       </div>
 
