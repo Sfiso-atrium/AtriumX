@@ -18,6 +18,7 @@ import MySpace from './pages/MySpace'
 import PartnerDashboard from './pages/Partnerdashboard'
 import PushPermissionPrompt from './components/common/PushPermissionPrompt'
 import StudyGroupChat from './pages/StudyGroupChat'
+import StudyGroupsList from './pages/StudyGroupsList'
 import FocusMode from './pages/FocusMode'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
           <Route path="/partner" element={<PartnerDashboard />} />
           <Route path="/group/:groupId" element={<StudyGroupChat />} />
+          <Route path="/groups" element={<StudyGroupsList />} />
           <Route path="/focus" element={<FocusMode />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
