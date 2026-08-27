@@ -1502,6 +1502,7 @@ export interface StudyGroupMember {
   user_id: string
   role: 'creator' | 'member'
   joined_at: string
+  last_read_at: string
   profile?: { id: string; full_name: string; avatar_initials: string; avatar_color: string }
 }
 
@@ -1527,6 +1528,114 @@ export async function getStudyGroupsForUser(userId: string): Promise<StudyGroup[
   return data
     .map((row: any) => row.study_groups)
     .filter(Boolean) as StudyGroup[]
+}
+
+export interface StudyGroupWithActivity extends StudyGroup {
+  last_message?: StudyGroupMessage
+  unread_count: number
+}
+
+// Same shape as getConversationsForUser, adapted for groups: latest
+// message per group comes from one nested-select query (mirrors the
+// conversations/messages foreign-table order+limit trick); unread counts
+// are tallied separately because — unlike 1-on-1 messages, which have a
+// single shared `read` flag — each group member has their *own*
+// last_read_at, so "unread" can't be expressed as one shared .eq() filter.
+export async function getStudyGroupsForUserWithActivity(userId: string): Promise<StudyGroupWithActivity[]> {
+  const { data: memberRows, error: memberErr } = await supabase
+    .from('study_group_members')
+    .select('last_read_at, study_groups(*)')
+    .eq('user_id', userId)
+  if (memberErr || !memberRows) return []
+
+  const membership = memberRows
+    .map((row: any) => ({ group: row.study_groups as StudyGroup, lastReadAt: row.last_read_at as string }))
+    .filter(m => m.group)
+  if (membership.length === 0) return []
+
+  const groupIds = membership.map(m => m.group.id)
+
+  const { data: groupsWithLatest } = await supabase
+    .from('study_groups')
+    .select('id, study_group_messages(id, group_id, sender_id, content, image_url, sent_at, sender:profiles_public!sender_id(id, full_name, avatar_initials, avatar_color))')
+    .in('id', groupIds)
+    .order('sent_at', { ascending: false, foreignTable: 'study_group_messages' })
+    .limit(1, { foreignTable: 'study_group_messages' })
+
+  const lastMessageByGroup: Record<string, StudyGroupMessage> = {}
+  ;(groupsWithLatest || []).forEach((g: any) => {
+    if (g.study_group_messages?.[0]) lastMessageByGroup[g.id] = g.study_group_messages[0]
+  })
+
+  // Bounded to messages that could possibly be unread by *any* of the
+  // user's groups (i.e. after the earliest of their last_read_at values),
+  // then each message is checked against its own group's threshold.
+  const earliestLastRead = membership.reduce((min, m) => m.lastReadAt < min ? m.lastReadAt : min, membership[0].lastReadAt)
+  const { data: candidateMessages } = await supabase
+    .from('study_group_messages')
+    .select('group_id, sender_id, sent_at')
+    .in('group_id', groupIds)
+    .neq('sender_id', userId)
+    .gte('sent_at', earliestLastRead)
+
+  const unreadCountByGroup: Record<string, number> = {}
+  ;(candidateMessages || []).forEach(m => {
+    const mem = membership.find(x => x.group.id === m.group_id)
+    if (mem && m.sent_at > mem.lastReadAt) {
+      unreadCountByGroup[m.group_id] = (unreadCountByGroup[m.group_id] || 0) + 1
+    }
+  })
+
+  return membership
+    .map(({ group }) => ({
+      ...group,
+      last_message: lastMessageByGroup[group.id],
+      unread_count: unreadCountByGroup[group.id] || 0,
+    }))
+    .sort((a, b) => {
+      const aTime = new Date(a.last_message?.sent_at ?? a.created_at).getTime()
+      const bTime = new Date(b.last_message?.sent_at ?? b.created_at).getTime()
+      return bTime - aTime
+    })
+}
+
+// Lean version of the above for badge counts — skips the message-content
+// and sender-profile fetching entirely since a badge just needs a number.
+export async function getUnreadStudyGroupCount(userId: string): Promise<number> {
+  const { data: memberRows } = await supabase
+    .from('study_group_members')
+    .select('group_id, last_read_at')
+    .eq('user_id', userId)
+  if (!memberRows || memberRows.length === 0) return 0
+
+  const groupIds = memberRows.map(r => r.group_id)
+  const earliestLastRead = memberRows.reduce((min, r) => r.last_read_at < min ? r.last_read_at : min, memberRows[0].last_read_at)
+
+  const { data: candidateMessages } = await supabase
+    .from('study_group_messages')
+    .select('group_id, sender_id, sent_at')
+    .in('group_id', groupIds)
+    .neq('sender_id', userId)
+    .gte('sent_at', earliestLastRead)
+  if (!candidateMessages) return 0
+
+  let count = 0
+  candidateMessages.forEach(m => {
+    const row = memberRows.find(r => r.group_id === m.group_id)
+    if (row && m.sent_at > row.last_read_at) count++
+  })
+  return count
+}
+
+// Opening a group's chat (or receiving a live message while already in
+// it) is what "reading" it means here — same idea as markMessagesRead for
+// 1-on-1 chats, just advancing a cursor instead of flipping per-row flags.
+export async function markStudyGroupRead(groupId: string, userId: string): Promise<void> {
+  await supabase
+    .from('study_group_members')
+    .update({ last_read_at: new Date().toISOString() })
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
 }
 
 export async function getStudyGroup(groupId: string): Promise<StudyGroup | null> {
