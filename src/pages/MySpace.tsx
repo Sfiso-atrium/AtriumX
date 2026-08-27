@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Plus, Copy, Check } from 'lucide-react'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock } from 'lucide-react'
 import HomeIcon from '../components/common/icons/HomeIcon'
 import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { useApp } from '../context/AppContext'
@@ -13,9 +13,10 @@ import {
   Watchlist, getWatchlists, createWatchlist, deleteWatchlist,
   StudyCourse, getStudyCourses, createStudyCourse, deleteStudyCourse,
   StudyPrepNote, getStudyPrepNotes, createStudyPrepNote, setStudyPrepClarified,
-  StudyGroup, getStudyGroupsForUser, createStudyGroup,
+  getUnreadStudyGroupCount,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
+import EducationGroupIcon from '../components/common/EducationGroupIcon'
 import { useFocusSession } from '../hooks/useFocusSession'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -701,206 +702,6 @@ function PomodoroSection({ userId }: { userId: string }) {
           className="-rotate-90 group-hover:translate-x-1 transition-transform"
         />
       </button>
-
-      <StudyGroupsSection userId={userId} />
-    </div>
-  )
-}
-
-// Card list of the user's study groups, plus a "+" button that opens the
-// create-group modal. Cards don't navigate anywhere yet — the group chat
-// screen itself is a later build stack.
-function StudyGroupsSection({ userId }: { userId: string }) {
-  const { showToast } = useApp()
-  const navigate = useNavigate()
-  const [groups, setGroups] = useState<StudyGroup[]>([])
-  const [showCreate, setShowCreate] = useState(false)
-  const [newGroup, setNewGroup] = useState<StudyGroup | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  const load = () => getStudyGroupsForUser(userId).then(setGroups)
-  useEffect(() => { load() }, [userId])
-
-  const handleCreated = (group: StudyGroup) => {
-    setShowCreate(false)
-    setNewGroup(group)
-    setCopied(false)
-    load()
-  }
-
-  const inviteLink = (groupId: string) => `${window.location.origin}/#/student?join=${groupId}`
-
-  const handleCopy = (groupId: string) => {
-    navigator.clipboard.writeText(inviteLink(groupId))
-    setCopied(true)
-    showToast('Invite link copied.', 'success')
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <>
-      <div className="flex items-center justify-between mt-6 mb-3">
-        <div>
-          <p className="text-cream font-bold">
-            Study Groups
-          </p>
-          <p className="text-cream-muted text-xs mt-1">
-            Stay accountable. Achieve together.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 bg-gold hover:bg-gold-muted text-slate-deep font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
-        >
-          <Plus size={15} />
-          New Group
-        </button>
-      </div>
-
-      {groups.length === 0 && (
-        <SectionCard>
-          <p className="text-cream-muted text-sm text-center py-4">
-            No study groups yet. Create one and invite your study buddies.
-          </p>
-        </SectionCard>
-      )}
-
-      {groups.map(g => (
-        <div
-          key={g.id}
-          className="bg-slate-card border border-slate-border rounded-2xl p-4 hover:border-teal-light/40 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(`/group/${g.id}`)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
-              <div className="w-11 h-11 rounded-xl bg-teal-faint border border-teal-light/10 flex items-center justify-center flex-shrink-0">
-                <Users size={19} className="text-teal-light" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-cream font-bold text-sm truncate">{g.name}</p>
-                {g.study_weekdays && g.study_weekdays.length > 0 && g.study_hour !== null && g.study_minute !== null && (
-                  <p className="text-cream-muted text-xs">
-                    Studies {g.study_weekdays.map(d => DAYS[d].slice(0, 3)).join(', ')} at {String(g.study_hour).padStart(2, '0')}:{String(g.study_minute).padStart(2, '0')}
-                  </p>
-                )}
-              </div>
-            </button>
-            <button
-              onClick={() => handleCopy(g.id)}
-              title="Copy invite link"
-              className="text-cream-muted hover:text-teal-light flex-shrink-0"
-            >
-              <Copy size={16} />
-            </button>
-          </div>
-        </div>
-      ))}
-
-      {showCreate && (
-        <CreateGroupModal userId={userId} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
-      )}
-
-      {newGroup && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="font-serif text-xl text-cream">Group created</h2>
-              <button onClick={() => setNewGroup(null)} className="text-cream-muted hover:text-cream">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-cream-muted text-sm mb-4">
-              Share this link with your study buddies — opening it takes them to sign in, then straight into <span className="text-cream">{newGroup.name}</span>.
-            </p>
-            <button
-              onClick={() => handleCopy(newGroup.id)}
-              className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors"
-            >
-              {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy invite link</>}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-// Name + optional recurring study slot (weekdays + one shared time) —
-// this is the fallback source for notifications; the Timetable tab is
-// the real source of truth whenever a group builds one out.
-function CreateGroupModal({ userId, onClose, onCreated }: { userId: string; onClose: () => void; onCreated: (g: StudyGroup) => void }) {
-  const { showToast } = useApp()
-  const [name, setName] = useState('')
-  const [weekdays, setWeekdays] = useState<number[]>([])
-  const [time, setTime] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const toggleDay = (day: number) => {
-    setWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort())
-  }
-
-  const handleSubmit = async () => {
-    if (!name.trim()) { showToast('Give your group a name.', 'error'); return }
-    if (weekdays.length > 0 && !time) { showToast('Pick a time for the days you selected.', 'error'); return }
-    if (time && weekdays.length === 0) { showToast('Pick at least one day for that time.', 'error'); return }
-    setLoading(true)
-    const [hour, minute] = time ? time.split(':').map(Number) : [null, null]
-    const { group, error } = await createStudyGroup(
-      userId, name,
-      weekdays.length > 0 ? weekdays : null, hour, minute
-    )
-    setLoading(false)
-    if (error || !group) { showToast(error || 'Could not create group.', 'error'); return }
-    onCreated(group)
-  }
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif text-xl text-cream">New study group</h2>
-          <button onClick={onClose} className="text-cream-muted hover:text-cream">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-cream text-xs font-bold block mb-1.5">Group name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Stats 201 Study Squad"
-              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          </div>
-          <div>
-            <label className="text-cream text-xs font-bold block mb-1.5">Which days do you study? (optional)</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {DAYS.map((d, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => toggleDay(i)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                    weekdays.includes(i)
-                      ? 'bg-ember text-white'
-                      : 'bg-slate-card border border-slate-border text-cream-muted'
-                  }`}
-                >
-                  {d.slice(0, 3)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-cream text-xs font-bold block mb-1.5">What time? (optional)</label>
-            <input type="time" value={time} onChange={e => setTime(e.target.value)}
-              className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
-          </div>
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5"
-        >
-          {loading ? 'Creating...' : 'Create group'}
-        </button>
-      </div>
     </div>
   )
 }
@@ -1252,6 +1053,7 @@ export default function MySpace() {
   const { currentUser } = useApp()
   const [tab, setTab] = useState<Tab>('Deadlines')
   const [showIntro, setShowIntro] = useState(false)
+  const [unreadGroups, setUnreadGroups] = useState(0)
 
   useEffect(() => {
     if (!currentUser) return
@@ -1261,6 +1063,11 @@ export default function MySpace() {
         markSeenMySpaceIntro(currentUser.id)
       }
     })
+  }, [currentUser])
+
+  useEffect(() => {
+    if (!currentUser) return
+    getUnreadStudyGroupCount(currentUser.id).then(setUnreadGroups)
   }, [currentUser])
 
   if (!currentUser) {
@@ -1294,8 +1101,19 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-
-        <span className="text-cream font-bold">My Space</span>
+        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
+          <HomeIcon size={20} />
+          <span className="text-sm font-medium">Feed</span>
+        </button>
+        <span className="text-cream font-bold flex-1">My Space</span>
+        <button onClick={() => navigate('/groups')} className="relative text-cream-muted hover:text-cream transition-colors">
+          <EducationGroupIcon size={22} />
+          {unreadGroups > 0 && (
+            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">
+              {unreadGroups > 9 ? '9+' : unreadGroups}
+            </span>
+          )}
+        </button>
       </div>
 
       <TodaySnapshot userId={currentUser.id} />
