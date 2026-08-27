@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
   getStudyGroup, getStudyGroupMembers, getStudyGroupMessages,
-  sendStudyGroupMessage, sendStudyGroupImage,
+  sendStudyGroupMessage, sendStudyGroupImage, markStudyGroupRead,
   StudyGroupPomodoroSession, getLatestStudyGroupPomodoroSession,
   isStudyGroupPomodoroActive, studyGroupPomodoroRemainingSeconds,
 } from '../services/dataService'
@@ -73,6 +73,9 @@ export default function StudyGroupChat() {
       setActiveSession(session)
       setLoading(false)
     })
+    // Opening the group is what "reading" it means here — same idea as
+    // ChatWindow marking a 1-on-1 conversation read on open.
+    markStudyGroupRead(groupId, currentUser.id)
   }, [groupId, currentUser])
 
   useEffect(() => {
@@ -96,6 +99,12 @@ export default function StudyGroupChat() {
             const sender = members.find(mem => mem.user_id === raw.sender_id)?.profile
             return [...prev, { ...raw, sender }]
           })
+          // The group's chat is open right now, so a message arriving live
+          // counts as read the instant it lands — same fix as ChatWindow's
+          // equivalent handler for 1-on-1 chats.
+          if (currentUser && raw.sender_id !== currentUser.id) {
+            markStudyGroupRead(groupId, currentUser.id)
+          }
         }
       )
       .on(
