@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock } from 'lucide-react'
-import HomeIcon from '../components/common/icons/HomeIcon'
-import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
   Deadline, getDeadlines, createDeadline, deleteDeadline,
@@ -16,7 +15,7 @@ import {
   getUnreadStudyGroupCount,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
-import EducationGroupIcon from '../components/common/EducationGroupIcon'
+import NotificationBell from '../components/common/NotificationBell'
 import { useFocusSession } from '../hooks/useFocusSession'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -1101,18 +1100,22 @@ export default function MySpace() {
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={() => navigate('/feed')} className="flex items-center gap-1.5 text-cream-muted hover:text-cream transition-colors">
-          <HomeIcon size={20} />
-          <span className="text-sm font-medium">Feed</span>
-        </button>
         <span className="text-cream font-bold flex-1">My Space</span>
         <button onClick={() => navigate('/groups')} className="relative text-cream-muted hover:text-cream transition-colors">
-          <EducationGroupIcon size={22} />
+          <Users size={20} />
           {unreadGroups > 0 && (
             <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">
               {unreadGroups > 9 ? '9+' : unreadGroups}
             </span>
           )}
+        </button>
+        <NotificationBell />
+        <button
+          onClick={() => navigate(`/profile/${currentUser.id}`)}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+          style={{ backgroundColor: currentUser.avatar_color }}
+        >
+          {currentUser.avatar_initials}
         </button>
       </div>
 
