@@ -126,7 +126,7 @@ useEffect(() => {
         </div>
 <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Conversation list — hidden on mobile when a convo is open */}
-          <div className={`w-full md:w-80 border-r border-slate-border flex-shrink-0 overflow-y-auto ${active && isMobile ? 'hidden' : 'block'} md:block`}>
+          <div className={`w-full md:w-80 border-r border-slate-border flex-shrink-0 overflow-y-auto pb-16 ${active && isMobile ? 'hidden' : 'block'} md:block`}>
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full py-16 px-4 text-center">
                 <p className="text-cream-muted text-sm">No conversations yet.</p>
