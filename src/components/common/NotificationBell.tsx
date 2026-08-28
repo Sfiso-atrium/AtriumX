@@ -125,7 +125,7 @@ export default function NotificationBell() {
       >
         <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
         {notifications.length > 0 && (
-          <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+          <span className="absolute top-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full text-white text-[7px] sm:text-[10px] flex items-center justify-center font-bold leading-none">
             {notifications.length > 9 ? '9+' : notifications.length}
           </span>
         )}
