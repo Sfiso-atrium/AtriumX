@@ -1021,25 +1021,36 @@ function TodaySnapshot({ userId }: { userId: string }) {
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-sapphire-light/20 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full bg-teal-primary/20 blur-3xl pointer-events-none" />
       <div className="relative">
-        <p className="text-cream font-serif text-lg mb-3">Hey {firstName} 👋</p>
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 bg-ember/10 border border-ember/25 rounded-xl px-3 py-1.5">
-            <CalendarClock size={14} className="text-ember flex-shrink-0" />
-            <span className="text-cream text-xs font-medium">
-              {nextDeadline ? `${nextDeadline.title} in ${daysUntil}d` : 'No deadlines'}
-            </span>
+        <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
+        <p className="text-cream-muted text-xs mb-3">Stay consistent, your future self is counting on you.</p>
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-ember/10 border border-ember/25 rounded-xl px-3 py-2">
+            <CalendarClock size={16} className="text-ember flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-cream text-xs font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
+              <p className="text-cream-muted text-[10px]">Upcoming</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-gold/10 border border-gold/25 rounded-xl px-3 py-1.5">
-            <Timer size={14} className="text-gold flex-shrink-0" />
-            <span className="text-cream text-xs font-medium">{todayMinutes} min focused today</span>
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gold/10 border border-gold/25 rounded-xl px-3 py-2">
+            <Timer size={16} className="text-gold flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-cream text-xs font-bold truncate">{todayMinutes} min</p>
+              <p className="text-cream-muted text-[10px]">Focused today</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-teal-faint border border-teal-light/25 rounded-xl px-3 py-1.5">
-            <Wallet size={14} className="text-teal-light flex-shrink-0" />
-            <span className="text-cream text-xs font-medium">R{balance.toFixed(0)} left</span>
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-teal-faint border border-teal-light/25 rounded-xl px-3 py-2">
+            <Wallet size={16} className="text-teal-light flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-cream text-xs font-bold truncate">R{balance.toFixed(0)}</p>
+              <p className="text-cream-muted text-[10px]">Left in budget</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-sapphire-light/10 border border-sapphire-light/25 rounded-xl px-3 py-1.5">
-            <Eye size={14} className="text-sapphire-light flex-shrink-0" />
-            <span className="text-cream text-xs font-medium">{watchCount} watching</span>
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-sapphire-light/10 border border-sapphire-light/25 rounded-xl px-3 py-2">
+            <Eye size={16} className="text-sapphire-light flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-cream text-xs font-bold truncate">{watchCount}</p>
+              <p className="text-cream-muted text-[10px]">Watching</p>
+            </div>
           </div>
         </div>
       </div>
