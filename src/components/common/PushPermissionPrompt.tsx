@@ -23,6 +23,17 @@ export default function PushPermissionPrompt() {
 
   useEffect(() => {
     if (!currentUser || !pushSupported()) { setVisible(false); return }
+    if (Notification.permission === 'granted') {
+      // Already granted on this device - possibly by a different
+      // account. Re-subscribing here is silent (no dialog, since
+      // requestPermission() resolves immediately when already granted)
+      // and re-associates this device's existing push subscription with
+      // whoever is logged in now, so a shared/dev device always routes
+      // pushes to its current user instead of a stale previous one.
+      subscribeToPush(currentUser.id)
+      setVisible(false)
+      return
+    }
     setVisible(Notification.permission === 'default')
   }, [currentUser])
 
