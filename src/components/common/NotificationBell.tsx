@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-import { Notification, getUnreadNotifications, markNotificationRead } from '../../services/dataService'
+import { Notification, getUnreadNotifications, markNotificationRead, markAllNotificationsRead } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import RatingModal from '../student/RatingModal'
 
@@ -114,6 +114,12 @@ export default function NotificationBell() {
     navigate('/retailer')
   }
 
+  const handleClearAll = async () => {
+    if (!currentUser) return
+    setNotifications([])
+    await markAllNotificationsRead(currentUser.id)
+  }
+
   if (!currentUser) return null
 
   return (
@@ -133,8 +139,13 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-11 w-80 bg-slate-deep border border-slate-border rounded-2xl shadow-xl z-[150] overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-border">
+          <div className="px-4 py-3 border-b border-slate-border flex items-center justify-between">
             <p className="text-cream font-bold text-sm">Notifications</p>
+            {notifications.length > 0 && (
+              <button onClick={handleClearAll} className="text-teal-light text-xs font-bold hover:text-teal-primary transition-colors">
+                Clear all
+              </button>
+            )}
           </div>
           {notifications.length === 0 ? (
             <div className="px-4 py-6 text-center">
