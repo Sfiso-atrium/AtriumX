@@ -98,7 +98,7 @@ export default function StudyGroupsList() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-deep pb-24">
+      <div className="min-h-screen bg-slate-deep pb-16">
         <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
           <button onClick={() => navigate('/space')} className="text-cream-muted hover:text-cream">
             <ArrowLeft size={20} />
