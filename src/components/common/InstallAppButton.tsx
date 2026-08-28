@@ -1,15 +1,12 @@
 // src/components/common/InstallAppButton.tsx
 import { useState, useEffect } from 'react'
-import { Download, Share, X } from 'lucide-react'
+import { Download } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-function isIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent)
-}
 function isStandalone() {
   // already installed / already running as an app - covers both the
   // standard check and the older iOS-only navigator flag
@@ -19,8 +16,6 @@ function isStandalone() {
 
 export default function InstallAppButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showIOSSheet, setShowIOSSheet] = useState(false)
-  const [showGenericSheet, setShowGenericSheet] = useState(false)
   const [installed, setInstalled] = useState(isStandalone())
 
   useEffect(() => {
@@ -33,79 +28,28 @@ export default function InstallAppButton() {
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  if (installed) return null
+  // Nothing to show: already installed, or this browser never handed us a
+  // native prompt to trigger. That second case covers iOS Safari and
+  // desktop Safari/Firefox specifically — none of them expose any API to
+  // install a PWA programmatically, so there is no silent one-tap action
+  // possible there at all. A button with no real action behind it creates
+  // more doubt than no button, so it simply doesn't render on those browsers.
+  if (installed || !deferredPrompt) return null
 
   const handleClick = async () => {
-    if (isIOS()) {
-      setShowIOSSheet(true)
-      return
-    }
-    if (deferredPrompt) {
-      await deferredPrompt.prompt()
-      const { outcome } = await deferredPrompt.userChoice
-      if (outcome === 'accepted') setInstalled(true)
-      setDeferredPrompt(null)
-      return
-    }
-    // Neither the real install prompt nor the iOS path applies yet (e.g. the
-    // browser hasn't fired beforeinstallprompt, or doesn't support one at
-    // all) — rather than the button silently doing nothing, show generic
-    // manual steps so there's always somewhere useful for a tap to go.
-    setShowGenericSheet(true)
+    await deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === 'accepted') setInstalled(true)
+    setDeferredPrompt(null)
   }
 
   return (
-    <>
-      <button
-        onClick={handleClick}
-        className="flex items-center gap-1.5 border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-sm font-bold px-4 py-2 rounded-xl transition-colors"
-      >
-        <Download size={15} />
-        Download
-      </button>
-
-      {showIOSSheet && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center px-4">
-          <div className="bg-slate-card border border-slate-border rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-cream font-bold text-base">Install AtriumX</h2>
-              <button onClick={() => setShowIOSSheet(false)} className="text-cream-muted hover:text-cream">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-cream-muted text-sm leading-relaxed mb-3">
-              Safari doesn't support one-tap installs, but adding it to your Home Screen takes two taps:
-            </p>
-            <ol className="text-cream text-sm leading-relaxed flex flex-col gap-2 mb-2">
-              <li className="flex items-center gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-primary text-white text-xs flex items-center justify-center font-bold">1</span>
-                Tap the <Share size={14} className="inline mx-0.5" /> Share button in Safari's toolbar
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-primary text-white text-xs flex items-center justify-center font-bold">2</span>
-                Scroll down and tap "Add to Home Screen"
-              </li>
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showGenericSheet && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center px-4">
-          <div className="bg-slate-card border border-slate-border rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-cream font-bold text-base">Install AtriumX</h2>
-              <button onClick={() => setShowGenericSheet(false)} className="text-cream-muted hover:text-cream">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-cream-muted text-sm leading-relaxed">
-              Open your browser's menu and look for "Install app" or "Add to Home Screen." Once installed,
-              AtriumX opens like any other app — no browser tabs, no address bar.
-            </p>
-          </div>
-        </div>
-      )}
-    </>
+    <button
+      onClick={handleClick}
+      className="flex items-center gap-1.5 border border-slate-border hover:border-teal-light text-cream hover:text-teal-light text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+    >
+      <Download size={15} />
+      Download
+    </button>
   )
 }
