@@ -1,4 +1,5 @@
 // src/pages/Entrance.tsx
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GraduationCap, Store, Backpack, MessageCircle, MapPin, CalendarCheck, Contrast } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -6,7 +7,17 @@ import InstallAppButton from '../components/common/InstallAppButton'
 
 export default function Entrance() {
   const navigate = useNavigate()
-  const { currentUser, setRedirectAfterLogin, bwMode, toggleBwMode } = useApp()
+  const { currentUser, isLoadingAuth, setRedirectAfterLogin, bwMode, toggleBwMode } = useApp()
+
+  // The installed PWA's start_url is "/" (this page), so every time
+  // someone reopens the app it lands here first — previously with no
+  // check at all, meaning an already-signed-in person saw the landing
+  // page and Sign In button again instead of just going to their feed.
+  useEffect(() => {
+    if (!isLoadingAuth && currentUser) {
+      navigate('/feed', { replace: true })
+    }
+  }, [isLoadingAuth, currentUser, navigate])
 
   const handleMySpace = () => {
     if (currentUser) {
@@ -15,6 +26,13 @@ export default function Entrance() {
       setRedirectAfterLogin('/space')
       navigate('/student')
     }
+  }
+
+  // Nothing to show while we still don't know if there's a session, or
+  // for the instant before the redirect above fires — avoids a flash of
+  // the landing page for someone who's actually already signed in.
+  if (isLoadingAuth || currentUser) {
+    return <div className="min-h-screen bg-slate-deep" />
   }
 
   return (
