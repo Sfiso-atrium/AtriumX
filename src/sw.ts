@@ -17,6 +17,21 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 self.skipWaiting()
 
+// skipWaiting() alone only lets this worker finish activating - it
+// doesn't hand control of already-open windows to it. For someone who
+// installed the app before this worker existed, that means their
+// already-open install can keep running the OLD worker (no 'push'
+// listener below) indefinitely, since installed PWAs are often reopened
+// rather than fully closed. A push arriving at a page with no listening
+// worker still has to produce a system notification (Chrome enforces
+// this), so Chrome falls back to its own generic one instead of the
+// real AtriumX one. clients.claim() takes control of those already-open
+// windows the moment this worker activates, so the next push is handled
+// here rather than falling through to that generic fallback.
+self.addEventListener('activate', (event: ExtendableEvent) => {
+  event.waitUntil(self.clients.claim())
+})
+
 interface PushPayload {
   title: string
   body: string
