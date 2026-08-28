@@ -175,6 +175,17 @@ function isEligibleForRegistration(email: string): boolean {
 const INELIGIBLE_EMAIL_MESSAGE =
   'Sorry, we could not sign you in. AtriumX is only open to registered students, If you believe this is a mistake email us at students@atriumx.co.za and we\'ll sort it out.'
 
+const OFFLINE_MESSAGE = "You appear to be offline. Please check your internet connection and try again."
+
+// supabase-js surfaces a dropped connection as a raw error.message like
+// "Failed to fetch" or "NetworkError when attempting to fetch resource" —
+// technically accurate, meaningless to a person. Catch those patterns and
+// swap in something that actually tells them what to do.
+function isNetworkError(message: string): boolean {
+  const m = message.toLowerCase()
+  return m.includes('failed to fetch') || m.includes('network') || m.includes('load failed')
+}
+
 export async function registerWithEmail(
   email: string,
   password: string,
@@ -218,7 +229,7 @@ await supabase
     },
   })
 
-  if (error) return { user: null, error: error.message }
+  if (error) return { user: null, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message }
   if (!data.user) return { user: null, error: 'Registration failed.' }
 
   let profile = null
@@ -255,7 +266,7 @@ export async function loginWithEmail(
   if (error) {
     if (error.message.toLowerCase().includes('invalid login credentials'))
       return { user: null, error: 'Incorrect email or password. Please try again.' }
-    return { user: null, error: error.message }
+    return { user: null, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message }
   }
 
   if (!data.user) return { user: null, error: 'Login failed. Please try again.' }
@@ -1111,7 +1122,7 @@ export async function registerBusinessWithEmail(
     },
   })
 
-  if (error) return { user: null, error: error.message }
+  if (error) return { user: null, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message }
   if (!data.user) return { user: null, error: 'Registration failed.' }
 
   let profile = null
