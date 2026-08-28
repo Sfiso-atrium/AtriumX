@@ -100,6 +100,19 @@ useEffect(() => {
     return () => { supabase.removeChannel(channel) }
   }, [currentUser])
 
+  // Being "active" is what makes a conversation read here, regardless of
+  // *how* it became active — a manual card click, the convId in the URL
+  // on load, or the desktop default of auto-selecting the first one. The
+  // old version only cleared this inside the card's own onClick, so any
+  // conversation that became active another way kept showing its stale
+  // count on the card even after its messages were actually read.
+  useEffect(() => {
+    if (!active) return
+    setConversations(prev =>
+      prev.map(c => c.id === active.id ? { ...c, unread_count: 0 } : c)
+    )
+  }, [active?.id])
+
   if (isLoadingAuth || loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -149,12 +162,7 @@ conversations.map(conv => {
 return (
                   <button
                     key={conv.id}
-                    onClick={() => {
-                      setActive(conv)
-                      setConversations(prev =>
-                        prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c)
-                      )
-                    }}
+                    onClick={() => setActive(conv)}
                     className={`w-full flex items-center gap-3 px-4 py-3 border-b border-b-slate-border border-l-4 text-left transition-colors ${
                       iAmSeller ? 'border-l-teal-primary' : 'border-l-ember'
                     } ${
