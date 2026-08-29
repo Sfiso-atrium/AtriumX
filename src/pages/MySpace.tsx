@@ -915,27 +915,36 @@ function TimetableSection({ userId }: { userId: string }) {
         const dayCourses = courses.filter(c => c.day_of_week === dayIdx)
         const totalMinutes = dayCourses.reduce((s, c) => s + c.minutes, 0)
         return (
-          <div key={dayIdx} className="bg-slate-card border border-slate-border rounded-2xl p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex items-center gap-3 w-32 sm:w-36 flex-shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-teal-faint border border-teal-light/25 flex items-center justify-center flex-shrink-0">
-                  <Calendar size={18} className="text-teal-light" />
+          <div key={dayIdx} className="bg-slate-card border border-slate-border rounded-2xl p-3 sm:p-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+              <div className="flex items-center gap-3 sm:w-32 md:w-36 sm:flex-shrink-0 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-faint border border-teal-light/25 flex items-center justify-center flex-shrink-0">
+                  <Calendar size={16} className="text-teal-light sm:hidden" />
+                  <Calendar size={18} className="text-teal-light hidden sm:block" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-cream font-bold text-sm truncate">{dayName}</p>
-                  <p className="text-teal-light text-xs">{getDateForDayOfWeek(dayIdx)}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-cream font-bold text-xs sm:text-sm truncate">{dayName}</p>
+                  <p className="text-teal-light text-[11px] sm:text-xs truncate">{getDateForDayOfWeek(dayIdx)}</p>
                 </div>
+                {dayCourses.length < 3 && (
+                  <button
+                    onClick={() => setOpenDayForm(openDayForm === dayIdx ? null : dayIdx)}
+                    className="sm:hidden flex-shrink-0 flex items-center gap-1 border border-teal-light/40 text-teal-light hover:bg-teal-light/10 text-[11px] font-bold px-2 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Plus size={12} /> Add
+                  </button>
+                )}
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 w-full">
                 {dayCourses.length === 0 ? (
-                  <div className="flex items-center gap-3 h-10">
+                  <div className="flex items-center gap-3 min-h-10">
                     <div className="w-9 h-9 rounded-full bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
                       <ClipboardList size={16} className="text-cream-muted" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-cream text-sm font-bold">No courses planned yet</p>
-                      <p className="text-cream-muted text-xs">Small steps add up.</p>
+                      <p className="text-cream text-xs sm:text-sm font-bold">No courses planned yet</p>
+                      <p className="text-cream-muted text-[11px] sm:text-xs">Small steps add up.</p>
                     </div>
                   </div>
                 ) : (
@@ -944,7 +953,7 @@ function TimetableSection({ userId }: { userId: string }) {
                       const note = preps.find(p => p.course_id === course.id)
                       const isExpanded = expanded === course.id
                       return (
-                        <div key={course.id} className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                        <div key={course.id} className="bg-slate-deep border border-slate-border rounded-xl px-2.5 sm:px-3 py-2 overflow-hidden">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => course.prepped ? setExpanded(isExpanded ? null : course.id) : setPrepTarget(course)}
@@ -952,12 +961,15 @@ function TimetableSection({ userId }: { userId: string }) {
                               aria-label={course.prepped ? 'View prep notes' : 'Prep for this session'}
                             >
                               {course.prepped
-                                ? <CheckCircle2 size={20} className="text-teal-light" />
-                                : <Circle size={20} className="text-cream-muted" />}
+                                ? <CheckCircle2 size={18} className="text-teal-light sm:hidden" />
+                                : <Circle size={18} className="text-cream-muted sm:hidden" />}
+                              {course.prepped
+                                ? <CheckCircle2 size={20} className="text-teal-light hidden sm:block" />
+                                : <Circle size={20} className="text-cream-muted hidden sm:block" />}
                             </button>
                             <div className="min-w-0 flex-1">
-                              <p className="text-cream text-sm font-bold truncate">{course.course_name}</p>
-                              <p className="text-cream-muted text-xs">{course.minutes} min</p>
+                              <p className="text-cream text-xs sm:text-sm font-bold truncate">{course.course_name}</p>
+                              <p className="text-cream-muted text-[11px] sm:text-xs">{course.minutes} min</p>
                             </div>
                             {course.prepped && (
                               <button onClick={() => setExpanded(isExpanded ? null : course.id)} className="text-cream-muted flex-shrink-0">
@@ -969,9 +981,9 @@ function TimetableSection({ userId }: { userId: string }) {
 
                           {isExpanded && note && (
                             <div className="mt-2.5 pt-2.5 border-t border-slate-border flex flex-col gap-1.5">
-                              <p className="text-xs"><span className="text-cream-muted">Focus: </span><span className="text-cream">{note.focus_topic}</span></p>
-                              <p className="text-xs"><span className="text-cream-muted">Resource: </span><span className="text-cream">{note.resource}</span></p>
-                              <p className="text-xs"><span className="text-cream-muted">Goal: </span><span className="text-cream">{note.goal}</span></p>
+                              <p className="text-[11px] sm:text-xs break-words"><span className="text-cream-muted">Focus: </span><span className="text-cream">{note.focus_topic}</span></p>
+                              <p className="text-[11px] sm:text-xs break-words"><span className="text-cream-muted">Resource: </span><span className="text-cream">{note.resource}</span></p>
+                              <p className="text-[11px] sm:text-xs break-words"><span className="text-cream-muted">Goal: </span><span className="text-cream">{note.goal}</span></p>
                               {note.clarification_question && (
                                 <button
                                   onClick={() => handleClarifiedToggle(note)}
@@ -980,7 +992,7 @@ function TimetableSection({ userId }: { userId: string }) {
                                   {note.clarified
                                     ? <CheckCircle2 size={16} className="text-teal-light flex-shrink-0 mt-0.5" />
                                     : <Circle size={16} className="text-cream-muted flex-shrink-0 mt-0.5" />}
-                                  <span className={`text-xs ${note.clarified ? 'text-cream-muted line-through' : 'text-cream'}`}>
+                                  <span className={`text-[11px] sm:text-xs break-words ${note.clarified ? 'text-cream-muted line-through' : 'text-cream'}`}>
                                     {note.clarification_question}
                                   </span>
                                 </button>
@@ -997,7 +1009,7 @@ function TimetableSection({ userId }: { userId: string }) {
               {dayCourses.length < 3 && (
                 <button
                   onClick={() => setOpenDayForm(openDayForm === dayIdx ? null : dayIdx)}
-                  className="flex-shrink-0 flex items-center gap-1.5 border border-teal-light/40 text-teal-light hover:bg-teal-light/10 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                  className="hidden sm:flex flex-shrink-0 items-center gap-1.5 border border-teal-light/40 text-teal-light hover:bg-teal-light/10 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
                 >
                   <Plus size={14} /> Add course
                 </button>
@@ -1005,7 +1017,7 @@ function TimetableSection({ userId }: { userId: string }) {
             </div>
 
             {totalMinutes > 0 && (
-              <p className="text-cream-muted text-xs mt-2 ml-[52px] sm:ml-[60px]">{totalMinutes} min planned</p>
+              <p className="text-cream-muted text-[11px] sm:text-xs mt-2 sm:ml-[60px]">{totalMinutes} min planned</p>
             )}
 
             {openDayForm === dayIdx && (
