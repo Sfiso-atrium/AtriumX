@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users } from 'lucide-react'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Calendar, ClipboardList, Plus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -36,13 +36,13 @@ const TAB_INTRO: Record<Tab, string> = {
 // Each tab gets its own icon + accent, pulled from AtriumX's existing color
 // tokens (sapphire was defined in the theme but unused elsewhere in the
 // app — a natural fit for the newest feature, Timetable).
-const TAB_META: Record<Tab, { icon: typeof CalendarClock; active: string; iconWrap: string; iconColor: string }> = {
-  Deadlines: { icon: CalendarClock, active: 'bg-ember border-ember', iconWrap: 'bg-ember/15 border-ember/30', iconColor: 'text-ember' },
-  Timetable: { icon: BookOpen, active: 'bg-sapphire-light border-sapphire-light', iconWrap: 'bg-sapphire-light/15 border-sapphire-light/30', iconColor: 'text-sapphire-light' },
-  Schedule: { icon: Clock, active: 'bg-teal-primary border-teal-primary', iconWrap: 'bg-teal-faint border-teal-light/30', iconColor: 'text-teal-light' },
-  Budget: { icon: Wallet, active: 'bg-gold border-gold', iconWrap: 'bg-gold/15 border-gold/30', iconColor: 'text-gold' },
-  Pomodoro: { icon: Timer, active: 'bg-gold border-gold', iconWrap: 'bg-gold/15 border-gold/30', iconColor: 'text-gold' },
-  Watchlist: { icon: Eye, active: 'bg-teal-primary border-teal-primary', iconWrap: 'bg-teal-faint border-teal-light/30', iconColor: 'text-teal-light' },
+const TAB_META: Record<Tab, { icon: typeof CalendarClock }> = {
+  Deadlines: { icon: CalendarClock },
+  Timetable: { icon: BookOpen },
+  Schedule: { icon: Clock },
+  Budget: { icon: Wallet },
+  Pomodoro: { icon: Timer },
+  Watchlist: { icon: Eye },
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
@@ -62,8 +62,8 @@ function TabIntro({ tab }: { tab: Tab }) {
   const Icon = meta.icon
   return (
     <div className="flex items-start gap-2.5 mb-1">
-      <div className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${meta.iconWrap}`}>
-        <Icon size={14} className={meta.iconColor} />
+      <div className="w-7 h-7 rounded-full border border-slate-border bg-slate-card flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon size={14} className="text-cream-muted" />
       </div>
       <p className="text-cream-muted text-sm leading-snug pt-0.5">{TAB_INTRO[tab]}</p>
     </div>
@@ -839,6 +839,17 @@ function PrepModal({ course, onClose, onSubmitted }: { course: StudyCourse; onCl
   )
 }
 
+// Live, computed fresh from the real date every time — never stored, never
+// asked of the user. dayIdx 0=Sunday..6=Saturday, matching DAYS above.
+function getDateForDayOfWeek(dayIdx: number): string {
+  const now = new Date()
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay())
+  const target = new Date(startOfWeek)
+  target.setDate(startOfWeek.getDate() + dayIdx)
+  return target.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
 function TimetableSection({ userId }: { userId: string }) {
   const { showToast } = useApp()
   const [courses, setCourses] = useState<StudyCourse[]>([])
@@ -886,95 +897,116 @@ function TimetableSection({ userId }: { userId: string }) {
         const dayCourses = courses.filter(c => c.day_of_week === dayIdx)
         const totalMinutes = dayCourses.reduce((s, c) => s + c.minutes, 0)
         return (
-          <SectionCard key={dayIdx}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-cream font-bold text-sm">{dayName}</p>
-              {totalMinutes > 0 && <span className="text-sapphire-light text-xs font-bold bg-sapphire-light/10 border border-sapphire-light/30 px-2 py-0.5 rounded-full">{totalMinutes} min planned</span>}
-            </div>
-
-            {dayCourses.length === 0 && (
-              <p className="text-cream-muted text-xs mb-2">No courses planned yet — small steps add up.</p>
-            )}
-
-            <div className="flex flex-col gap-2">
-              {dayCourses.map(course => {
-                const note = preps.find(p => p.course_id === course.id)
-                const isExpanded = expanded === course.id
-                return (
-                  <div key={course.id} className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => course.prepped ? setExpanded(isExpanded ? null : course.id) : setPrepTarget(course)}
-                        className="flex-shrink-0"
-                        aria-label={course.prepped ? 'View prep notes' : 'Prep for this session'}
-                      >
-                        {course.prepped
-                          ? <CheckCircle2 size={20} className="text-teal-light" />
-                          : <Circle size={20} className="text-cream-muted" />}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-cream text-sm font-bold truncate">{course.course_name}</p>
-                        <p className="text-cream-muted text-xs">{course.minutes} min</p>
-                      </div>
-                      {course.prepped && (
-                        <button onClick={() => setExpanded(isExpanded ? null : course.id)} className="text-cream-muted flex-shrink-0">
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      )}
-                      <DeleteBtn onClick={() => handleDeleteCourse(course.id)} />
-                    </div>
-
-                    {isExpanded && note && (
-                      <div className="mt-2.5 pt-2.5 border-t border-slate-border flex flex-col gap-1.5">
-                        <p className="text-xs"><span className="text-cream-muted">Focus: </span><span className="text-cream">{note.focus_topic}</span></p>
-                        <p className="text-xs"><span className="text-cream-muted">Resource: </span><span className="text-cream">{note.resource}</span></p>
-                        <p className="text-xs"><span className="text-cream-muted">Goal: </span><span className="text-cream">{note.goal}</span></p>
-                        {note.clarification_question && (
-                          <button
-                            onClick={() => handleClarifiedToggle(note)}
-                            className="flex items-start gap-2 mt-1.5 text-left"
-                          >
-                            {note.clarified
-                              ? <CheckCircle2 size={16} className="text-teal-light flex-shrink-0 mt-0.5" />
-                              : <Circle size={16} className="text-cream-muted flex-shrink-0 mt-0.5" />}
-                            <span className={`text-xs ${note.clarified ? 'text-cream-muted line-through' : 'text-cream'}`}>
-                              {note.clarification_question}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {dayCourses.length < 3 && (
-              openDayForm === dayIdx ? (
-                <div className="flex flex-col gap-2 mt-2.5 pt-2.5 border-t border-slate-border">
-                  <input value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Course name"
-                    className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-                  <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Minutes to study"
-                    className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-                  <div className="flex gap-2">
-                    <button onClick={() => handleAddCourse(dayIdx)} className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
-                      Add
-                    </button>
-                    <button onClick={() => { setOpenDayForm(null); setCourseName(''); setMinutes('') }} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-sm transition-colors">
-                      Cancel
-                    </button>
-                  </div>
+          <div key={dayIdx} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3 w-32 sm:w-36 flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-teal-faint border border-teal-light/25 flex items-center justify-center flex-shrink-0">
+                  <Calendar size={18} className="text-teal-light" />
                 </div>
-              ) : (
+                <div className="min-w-0">
+                  <p className="text-cream font-bold text-sm truncate">{dayName}</p>
+                  <p className="text-teal-light text-xs">{getDateForDayOfWeek(dayIdx)}</p>
+                </div>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                {dayCourses.length === 0 ? (
+                  <div className="flex items-center gap-3 h-10">
+                    <div className="w-9 h-9 rounded-full bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
+                      <ClipboardList size={16} className="text-cream-muted" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-cream text-sm font-bold">No courses planned yet</p>
+                      <p className="text-cream-muted text-xs">Small steps add up.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {dayCourses.map(course => {
+                      const note = preps.find(p => p.course_id === course.id)
+                      const isExpanded = expanded === course.id
+                      return (
+                        <div key={course.id} className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => course.prepped ? setExpanded(isExpanded ? null : course.id) : setPrepTarget(course)}
+                              className="flex-shrink-0"
+                              aria-label={course.prepped ? 'View prep notes' : 'Prep for this session'}
+                            >
+                              {course.prepped
+                                ? <CheckCircle2 size={20} className="text-teal-light" />
+                                : <Circle size={20} className="text-cream-muted" />}
+                            </button>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-cream text-sm font-bold truncate">{course.course_name}</p>
+                              <p className="text-cream-muted text-xs">{course.minutes} min</p>
+                            </div>
+                            {course.prepped && (
+                              <button onClick={() => setExpanded(isExpanded ? null : course.id)} className="text-cream-muted flex-shrink-0">
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </button>
+                            )}
+                            <DeleteBtn onClick={() => handleDeleteCourse(course.id)} />
+                          </div>
+
+                          {isExpanded && note && (
+                            <div className="mt-2.5 pt-2.5 border-t border-slate-border flex flex-col gap-1.5">
+                              <p className="text-xs"><span className="text-cream-muted">Focus: </span><span className="text-cream">{note.focus_topic}</span></p>
+                              <p className="text-xs"><span className="text-cream-muted">Resource: </span><span className="text-cream">{note.resource}</span></p>
+                              <p className="text-xs"><span className="text-cream-muted">Goal: </span><span className="text-cream">{note.goal}</span></p>
+                              {note.clarification_question && (
+                                <button
+                                  onClick={() => handleClarifiedToggle(note)}
+                                  className="flex items-start gap-2 mt-1.5 text-left"
+                                >
+                                  {note.clarified
+                                    ? <CheckCircle2 size={16} className="text-teal-light flex-shrink-0 mt-0.5" />
+                                    : <Circle size={16} className="text-cream-muted flex-shrink-0 mt-0.5" />}
+                                  <span className={`text-xs ${note.clarified ? 'text-cream-muted line-through' : 'text-cream'}`}>
+                                    {note.clarification_question}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {dayCourses.length < 3 && (
                 <button
-                  onClick={() => setOpenDayForm(dayIdx)}
-                  className="w-full mt-2.5 border border-dashed border-slate-border text-cream-muted hover:text-teal-light hover:border-teal-light text-xs font-bold py-2 rounded-xl transition-colors"
+                  onClick={() => setOpenDayForm(openDayForm === dayIdx ? null : dayIdx)}
+                  className="flex-shrink-0 flex items-center gap-1.5 border border-teal-light/40 text-teal-light hover:bg-teal-light/10 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
                 >
-                  + Add course
+                  <Plus size={14} /> Add course
                 </button>
-              )
+              )}
+            </div>
+
+            {totalMinutes > 0 && (
+              <p className="text-cream-muted text-xs mt-2 ml-[52px] sm:ml-[60px]">{totalMinutes} min planned</p>
             )}
-          </SectionCard>
+
+            {openDayForm === dayIdx && (
+              <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-border">
+                <input value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Course name"
+                  className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Minutes to study"
+                  className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                <div className="flex gap-2">
+                  <button onClick={() => handleAddCourse(dayIdx)} className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+                    Add
+                  </button>
+                  <button onClick={() => { setOpenDayForm(null); setCourseName(''); setMinutes('') }} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-sm transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )
       })}
 
@@ -1024,29 +1056,29 @@ function TodaySnapshot({ userId }: { userId: string }) {
         <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
         <p className="text-cream-muted text-xs mb-3">Stay consistent, your future self is counting on you.</p>
         <div className="flex gap-2">
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-ember/10 border border-ember/25 rounded-xl px-3 py-2">
-            <CalendarClock size={16} className="text-ember flex-shrink-0" />
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+            <CalendarClock size={16} className="text-cream-muted flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-cream text-xs font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
               <p className="text-cream-muted text-[10px]">Upcoming</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gold/10 border border-gold/25 rounded-xl px-3 py-2">
-            <Timer size={16} className="text-gold flex-shrink-0" />
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+            <Timer size={16} className="text-cream-muted flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-cream text-xs font-bold truncate">{todayMinutes} min</p>
               <p className="text-cream-muted text-[10px]">Focused today</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-teal-faint border border-teal-light/25 rounded-xl px-3 py-2">
-            <Wallet size={16} className="text-teal-light flex-shrink-0" />
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+            <Wallet size={16} className="text-cream-muted flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-cream text-xs font-bold truncate">R{balance.toFixed(0)}</p>
               <p className="text-cream-muted text-[10px]">Left in budget</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-sapphire-light/10 border border-sapphire-light/25 rounded-xl px-3 py-2">
-            <Eye size={16} className="text-sapphire-light flex-shrink-0" />
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+            <Eye size={16} className="text-cream-muted flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-cream text-xs font-bold truncate">{watchCount}</p>
               <p className="text-cream-muted text-[10px]">Watching</p>
@@ -1144,7 +1176,7 @@ export default function MySpace() {
                 onClick={() => setTab(t)}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
                   isActive
-                    ? `${meta.active} text-white`
+                    ? 'bg-teal-primary border-teal-primary text-white'
                     : 'bg-transparent text-cream-muted border-slate-border hover:border-teal-light'
                 }`}
               >
