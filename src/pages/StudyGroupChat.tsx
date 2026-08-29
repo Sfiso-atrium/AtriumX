@@ -1,12 +1,12 @@
 // src/pages/StudyGroupChat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer, Send, Settings } from 'lucide-react'
+import { ArrowLeft, Users, MoreVertical, Image as ImageIcon, Camera, CalendarClock, Clock, BookOpen, Timer, Send, Settings, LogOut } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupMember, StudyGroupMessage,
   getStudyGroup, getStudyGroupMembers, getStudyGroupMessages,
-  sendStudyGroupMessage, sendStudyGroupImage, markStudyGroupRead,
+  sendStudyGroupMessage, sendStudyGroupImage, markStudyGroupRead, leaveStudyGroup,
   StudyGroupPomodoroSession, getLatestStudyGroupPomodoroSession,
   isStudyGroupPomodoroActive, studyGroupPomodoroRemainingSeconds,
 } from '../services/dataService'
@@ -143,6 +143,20 @@ export default function StudyGroupChat() {
     if (error) showToast(error, 'error')
   }
 
+  // Leaving removes their own membership row (RLS only allows deleting
+  // your own), which is also what makes the group disappear from their
+  // list on My Space — that list is queried from this same table.
+  // Rejoining later means pasting the link again, and starts a fresh
+  // joined_at, so old messages stay out of reach the same as a first join.
+  const handleLeave = async () => {
+    if (!currentUser || !groupId || !group) return
+    const confirmed = window.confirm(`Leave ${group.name}? You'll need the invite link again to rejoin.`)
+    if (!confirmed) return
+    const { error } = await leaveStudyGroup(groupId, currentUser.id)
+    if (error) { showToast(error, 'error'); return }
+    navigate('/groups')
+  }
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -241,6 +255,14 @@ return (
                     {item.label}
                   </button>
                 ))}
+                <div className="h-px bg-slate-border my-1.5 mx-2" />
+                <button
+                  onClick={() => { setMenuOpen(false); handleLeave() }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-slate-deep transition-colors text-left"
+                >
+                  <LogOut size={15} className="flex-shrink-0" />
+                  Leave Group
+                </button>
               </div>
             </>
           )}
@@ -253,6 +275,15 @@ return (
           <p className="text-cream-muted text-xs text-center mt-8">No messages yet. Say hello!</p>
         )}
         {messages.map(msg => {
+          if (msg.type === 'system') {
+            return (
+              <div key={msg.id} className="flex justify-center my-1 select-none pointer-events-none">
+                <span className="text-cream-muted text-[11px] bg-slate-card/60 px-3 py-1 rounded-full">
+                  {msg.content}
+                </span>
+              </div>
+            )
+          }
           const isOwn = msg.sender_id === currentUser?.id
           return (
             <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
