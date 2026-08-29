@@ -133,12 +133,12 @@ function DeadlinesSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       <TabIntro tab="Deadlines" />
       <div className="bg-slate-card rounded-2xl p-3 flex items-center gap-3">
+        <p className="text-cream text-sm font-bold leading-snug flex-1 min-w-0">Tick them off one by one — that's all a deadline list needs to be.</p>
         <img
           src="/images/myspace/myspace-deadlines-checklist.png"
           alt="A checklist notepad and alarm clock"
           className="w-20 h-16 sm:w-28 sm:h-24 object-contain flex-shrink-0"
         />
-        <p className="text-cream text-sm font-bold leading-snug">Tick them off one by one — that's all a deadline list needs to be.</p>
       </div>
       <SectionCard>
         <p className="text-cream font-bold text-sm mb-3">Add a deadline</p>
@@ -304,12 +304,12 @@ function BudgetSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       <TabIntro tab="Budget" />
       <div className="bg-slate-card rounded-2xl p-3 flex items-center gap-3">
+        <p className="text-cream text-sm font-bold leading-snug flex-1 min-w-0">Every rand logged is one less surprise at month-end.</p>
         <img
           src="/images/myspace/myspace-budget-piggybank.png"
           alt="A piggy bank with Rand coins and a wallet"
           className="w-20 h-14 sm:w-28 sm:h-20 object-contain flex-shrink-0"
         />
-        <p className="text-cream text-sm font-bold leading-snug">Every rand logged is one less surprise at month-end.</p>
       </div>
       <SectionCard>
         <p className="text-cream-muted text-xs mb-1">Balance</p>
@@ -721,15 +721,15 @@ function PomodoroSection({ userId }: { userId: string }) {
       </button>
 
       <div className="bg-slate-card rounded-2xl p-4 flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-cream font-bold text-sm sm:text-base">Consistency is your superpower.</p>
+          <p className="text-cream-muted text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
+        </div>
         <img
           src="/images/myspace/myspace-snapshot-milestones.png"
           alt="A path winding up a mountain to a flag at the summit"
           className="w-24 h-14 sm:w-40 sm:h-24 object-contain flex-shrink-0"
         />
-        <div className="min-w-0">
-          <p className="text-cream font-bold text-sm sm:text-base">Consistency is your superpower.</p>
-          <p className="text-cream-muted text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
-        </div>
       </div>
     </div>
   )
@@ -1094,48 +1094,48 @@ function TodaySnapshot({ userId }: { userId: string }) {
     <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-3xl p-5 mx-4 mt-3">
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-sapphire-light/20 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full bg-teal-primary/20 blur-3xl pointer-events-none" />
-      <div className="relative">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex-1 min-w-0">
+      <div className="relative flex items-stretch gap-3">
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div className="mb-3">
             <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
             <p className="text-cream-muted text-xs">Stay consistent, your future self is counting on you.</p>
           </div>
-          <img
-            src="/images/myspace/myspace-hero-desk.png"
-            alt="A cosy study desk with books, a lamp, coffee, and a laptop"
-            className="w-16 h-11 sm:w-32 sm:h-20 md:w-48 md:h-28 object-contain object-right flex-shrink-0"
-          />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
-          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
-            <CalendarClock size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
-            <div className="min-w-0">
-              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
-              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Upcoming</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+            <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-1.5 sm:px-2.5 py-1.5">
+              <CalendarClock size={13} className="text-cream-muted flex-shrink-0 sm:w-[15px] sm:h-[15px]" />
+              <div className="min-w-0">
+                <p className="text-cream text-[10px] sm:text-[11px] font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
+                <p className="text-cream-muted text-[8px] sm:text-[9px] truncate">Upcoming</p>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
-            <Timer size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
-            <div className="min-w-0">
-              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{todayMinutes} min</p>
-              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Focused today</p>
+            <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-1.5 sm:px-2.5 py-1.5">
+              <Timer size={13} className="text-cream-muted flex-shrink-0 sm:w-[15px] sm:h-[15px]" />
+              <div className="min-w-0">
+                <p className="text-cream text-[10px] sm:text-[11px] font-bold truncate">{todayMinutes} min</p>
+                <p className="text-cream-muted text-[8px] sm:text-[9px] truncate">Focused today</p>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
-            <Wallet size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
-            <div className="min-w-0">
-              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">R{balance.toFixed(0)}</p>
-              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Left in budget</p>
+            <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-1.5 sm:px-2.5 py-1.5">
+              <Wallet size={13} className="text-cream-muted flex-shrink-0 sm:w-[15px] sm:h-[15px]" />
+              <div className="min-w-0">
+                <p className="text-cream text-[10px] sm:text-[11px] font-bold truncate">R{balance.toFixed(0)}</p>
+                <p className="text-cream-muted text-[8px] sm:text-[9px] truncate">Left in budget</p>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
-            <Eye size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
-            <div className="min-w-0">
-              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{watchCount}</p>
-              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Watching</p>
+            <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-1.5 sm:px-2.5 py-1.5">
+              <Eye size={13} className="text-cream-muted flex-shrink-0 sm:w-[15px] sm:h-[15px]" />
+              <div className="min-w-0">
+                <p className="text-cream text-[10px] sm:text-[11px] font-bold truncate">{watchCount}</p>
+                <p className="text-cream-muted text-[8px] sm:text-[9px] truncate">Watching</p>
+              </div>
             </div>
           </div>
         </div>
+        <img
+          src="/images/myspace/myspace-hero-desk.png"
+          alt="A cosy study desk with books, a lamp, coffee, and a laptop"
+          className="w-20 sm:w-36 md:w-44 object-contain object-right flex-shrink-0 self-center"
+        />
       </div>
     </div>
   )
