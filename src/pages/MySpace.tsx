@@ -439,7 +439,7 @@ function FocusTimerVisual({
   const dashOffset = circumference * (1 - progress)
 
   return (
-    <div className="relative w-[260px] h-[260px] flex items-center justify-center">
+    <div className="relative w-[110px] h-[110px] sm:w-[180px] sm:h-[180px] lg:w-[260px] lg:h-[260px] flex items-center justify-center flex-shrink-0">
       <svg
         viewBox="0 0 260 260"
         className="absolute inset-0 w-full h-full -rotate-90"
@@ -468,12 +468,12 @@ function FocusTimerVisual({
         />
       </svg>
 
-      <div className="text-center">
-        <p className="text-cream font-serif text-6xl font-bold tracking-tight">
+      <div className="text-center px-1">
+        <p className="text-cream font-serif text-lg sm:text-3xl lg:text-6xl font-bold tracking-tight">
           {mins}:{secs}
         </p>
 
-        <p className="text-cream-muted text-sm mt-2">
+        <p className="text-cream-muted text-[8px] sm:text-xs lg:text-sm mt-1 lg:mt-2 leading-tight">
           {label}
         </p>
       </div>
@@ -545,12 +545,12 @@ function PomodoroSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
       <TabIntro tab="Pomodoro" />
-      <section className="relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-6 sm:p-8">
+      <section className="pomodoro-card relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-3 sm:p-6 lg:p-8">
         <div className="absolute inset-x-0 bottom-0 h-24 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(13,148,136,0.25),transparent_65%)]" />
         </div>
 
-        <div className="relative grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-center">
+        <div className="relative grid grid-cols-[auto_1fr] lg:grid-cols-[1.15fr_0.85fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           <div className="flex justify-center">
             <FocusTimerVisual
               mins={mins}
@@ -560,32 +560,33 @@ function PomodoroSection({ userId }: { userId: string }) {
             />
           </div>
 
-          <div className="flex flex-col items-center lg:items-start">
-            <p className="text-cream-muted text-sm mb-4">
+          <div className="min-w-0 flex flex-col items-start">
+            <p className="text-cream-muted text-[11px] sm:text-sm mb-2 sm:mb-4">
               {phase === 'break' ? "On break — this time isn't counted." : 'One session at a time.'}
             </p>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={handleToggle}
-                className="bg-gold hover:bg-gold-muted text-slate-deep font-bold px-7 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors"
+                className="bg-gold hover:bg-gold-muted text-slate-deep font-bold px-3 sm:px-7 py-2 sm:py-3 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap"
               >
                 {running
-                  ? <><Pause size={16} /> Pause</>
-                  : <><Play size={16} /> Start</>
+                  ? <><Pause size={14} className="sm:hidden" /><Pause size={16} className="hidden sm:block" /> Pause</>
+                  : <><Play size={14} className="sm:hidden" /><Play size={16} className="hidden sm:block" /> Start</>
                 }
               </button>
 
               <button
                 onClick={reset}
-                className="bg-slate-deep border border-slate-border text-cream-muted hover:text-cream font-bold px-4 py-3 rounded-xl transition-colors"
+                className="bg-slate-deep border border-slate-border text-cream-muted hover:text-cream font-bold px-2.5 sm:px-4 py-2 sm:py-3 rounded-xl transition-colors flex-shrink-0"
               >
-                <RotateCcw size={17} />
+                <RotateCcw size={14} className="sm:hidden" />
+                <RotateCcw size={17} className="hidden sm:block" />
               </button>
             </div>
 
-            <div className="mt-8 max-w-sm">
-              <p className="text-cream-muted italic text-sm leading-relaxed">
+            <div className="mt-4 sm:mt-8 max-w-sm">
+              <p className="text-cream-muted italic text-[11px] sm:text-sm leading-relaxed">
                 "Discipline is choosing what matters most and giving it your full attention."
               </p>
             </div>
