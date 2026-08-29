@@ -132,13 +132,13 @@ function DeadlinesSection({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <TabIntro tab="Deadlines" />
-      <div className="bg-cream/95 border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+      <div className="bg-slate-card rounded-2xl p-3 flex items-center gap-3">
         <img
           src="/images/myspace/myspace-deadlines-checklist.png"
           alt="A checklist notepad and alarm clock"
           className="w-20 h-16 sm:w-28 sm:h-24 object-contain flex-shrink-0"
         />
-        <p className="text-slate-deep text-sm font-bold leading-snug">Tick them off one by one — that's all a deadline list needs to be.</p>
+        <p className="text-cream text-sm font-bold leading-snug">Tick them off one by one — that's all a deadline list needs to be.</p>
       </div>
       <SectionCard>
         <p className="text-cream font-bold text-sm mb-3">Add a deadline</p>
@@ -303,7 +303,7 @@ function BudgetSection({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <TabIntro tab="Budget" />
-      <div className="bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+      <div className="bg-slate-card rounded-2xl p-3 flex items-center gap-3">
         <img
           src="/images/myspace/myspace-budget-piggybank.png"
           alt="A piggy bank with Rand coins and a wallet"
@@ -719,6 +719,18 @@ function PomodoroSection({ userId }: { userId: string }) {
           className="-rotate-90 group-hover:translate-x-1 transition-transform"
         />
       </button>
+
+      <div className="bg-slate-card rounded-2xl p-4 flex items-center gap-3">
+        <img
+          src="/images/myspace/myspace-snapshot-milestones.png"
+          alt="A path winding up a mountain to a flag at the summit"
+          className="w-24 h-14 sm:w-40 sm:h-24 object-contain flex-shrink-0"
+        />
+        <div className="min-w-0">
+          <p className="text-cream font-bold text-sm sm:text-base">Consistency is your superpower.</p>
+          <p className="text-cream-muted text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1094,33 +1106,33 @@ function TodaySnapshot({ userId }: { userId: string }) {
             className="w-16 h-11 sm:w-32 sm:h-20 md:w-48 md:h-28 object-contain object-right flex-shrink-0"
           />
         </div>
-        <div className="flex gap-2">
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-            <CalendarClock size={16} className="text-cream-muted flex-shrink-0" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
+            <CalendarClock size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
             <div className="min-w-0">
-              <p className="text-cream text-xs font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
-              <p className="text-cream-muted text-[10px]">Upcoming</p>
+              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{nextDeadline ? `${daysUntil}d left` : 'No deadlines'}</p>
+              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Upcoming</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-            <Timer size={16} className="text-cream-muted flex-shrink-0" />
+          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
+            <Timer size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
             <div className="min-w-0">
-              <p className="text-cream text-xs font-bold truncate">{todayMinutes} min</p>
-              <p className="text-cream-muted text-[10px]">Focused today</p>
+              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{todayMinutes} min</p>
+              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Focused today</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-            <Wallet size={16} className="text-cream-muted flex-shrink-0" />
+          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
+            <Wallet size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
             <div className="min-w-0">
-              <p className="text-cream text-xs font-bold truncate">R{balance.toFixed(0)}</p>
-              <p className="text-cream-muted text-[10px]">Left in budget</p>
+              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">R{balance.toFixed(0)}</p>
+              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Left in budget</p>
             </div>
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-            <Eye size={16} className="text-cream-muted flex-shrink-0" />
+          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 bg-slate-deep border border-slate-border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2">
+            <Eye size={14} className="text-cream-muted flex-shrink-0 sm:w-4 sm:h-4" />
             <div className="min-w-0">
-              <p className="text-cream text-xs font-bold truncate">{watchCount}</p>
-              <p className="text-cream-muted text-[10px]">Watching</p>
+              <p className="text-cream text-[11px] sm:text-xs font-bold truncate">{watchCount}</p>
+              <p className="text-cream-muted text-[9px] sm:text-[10px] truncate">Watching</p>
             </div>
           </div>
         </div>
@@ -1234,20 +1246,6 @@ export default function MySpace() {
         {tab === 'Budget' && <BudgetSection userId={currentUser.id} />}
         {tab === 'Pomodoro' && <PomodoroSection userId={currentUser.id} />}
         {tab === 'Watchlist' && <WatchlistSection userId={currentUser.id} />}
-      </div>
-
-      <div className="px-4 mt-4">
-        <div className="bg-cream/95 border border-slate-border rounded-2xl p-4 flex items-center gap-3">
-          <img
-            src="/images/myspace/myspace-snapshot-milestones.png"
-            alt="A path winding up a mountain to a flag at the summit"
-            className="w-24 h-14 sm:w-40 sm:h-24 object-contain flex-shrink-0"
-          />
-          <div className="min-w-0">
-            <p className="text-slate-deep font-bold text-sm sm:text-base">Consistency is your superpower.</p>
-            <p className="text-slate-deep/70 text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
-          </div>
-        </div>
       </div>
 
       <BottomNav />
