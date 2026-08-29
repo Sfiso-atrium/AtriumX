@@ -88,3 +88,12 @@ html.bw-mode body {
   background-image: none !important;
   background-color: #F4F4F5 !important;
 }
+
+/* Several menus/lists use hover:bg-slate-deep or hover:bg-slate-card for
+   the hover highlight. The overrides above only match the plain classes,
+   not their :hover variants, so hovering in bw-mode was still showing
+   the original dark navy background. Hover now shows no color at all. */
+.bw-mode .hover\:bg-slate-deep:hover,
+.bw-mode .hover\:bg-slate-card:hover {
+  background-color: transparent !important;
+}
