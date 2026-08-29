@@ -1,11 +1,11 @@
 // src/pages/StudyGroupsList.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Copy, Check, X } from 'lucide-react'
+import { ArrowLeft, Plus, Copy, Check, X, Link2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   StudyGroup, StudyGroupWithActivity,
-  getStudyGroupsForUserWithActivity, createStudyGroup,
+  getStudyGroupsForUserWithActivity, createStudyGroup, joinStudyGroup,
 } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 import BottomNav from '../components/common/BottomNav'
@@ -14,14 +14,27 @@ import GroupAvatarImage from '../components/common/GroupAvatarImage'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+// Accepts the full invite link (…#/student?join=<id>, wherever the id
+// falls in the pasted text) or just the bare id on its own.
+function extractGroupId(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  const fromLink = trimmed.match(/[?&]join=([^&\s]+)/)
+  if (fromLink) return decodeURIComponent(fromLink[1])
+  if (/^[0-9a-f-]{20,}$/i.test(trimmed)) return trimmed
+  return null
+}
+
 export default function StudyGroupsList() {
   const navigate = useNavigate()
-  const { currentUser, isLoadingAuth } = useApp()
+  const { currentUser, isLoadingAuth, showToast } = useApp()
   const [groups, setGroups] = useState<StudyGroupWithActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [newGroup, setNewGroup] = useState<StudyGroup | null>(null)
   const [copied, setCopied] = useState(false)
+  const [joinInput, setJoinInput] = useState('')
+  const [joining, setJoining] = useState(false)
 
   const load = () => {
     if (!currentUser) return
@@ -80,6 +93,18 @@ export default function StudyGroupsList() {
     load()
   }
 
+  const handleJoinByLink = async () => {
+    if (!currentUser) return
+    const groupId = extractGroupId(joinInput)
+    if (!groupId) { showToast("That doesn't look like a group link.", 'error'); return }
+    setJoining(true)
+    const { error } = await joinStudyGroup(groupId, currentUser.id)
+    setJoining(false)
+    if (error) { showToast("Couldn't find that group — check the link and try again.", 'error'); return }
+    setJoinInput('')
+    navigate(`/group/${groupId}`)
+  }
+
   const inviteLink = (groupId: string) => `${window.location.origin}/#/student?join=${groupId}`
 
   const handleCopy = (groupId: string) => {
@@ -110,6 +135,27 @@ export default function StudyGroupsList() {
           >
             <Plus size={14} /> New
           </button>
+        </div>
+
+        <div className="px-4 pt-4 pb-1">
+          <p className="text-cream-muted text-xs font-bold mb-1.5">Have an invite link?</p>
+          <div className="flex gap-2">
+            <input
+              value={joinInput}
+              onChange={e => setJoinInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleJoinByLink() }}
+              placeholder="Paste a group invite link"
+              className="flex-1 min-w-0 bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+            />
+            <button
+              onClick={handleJoinByLink}
+              disabled={joining || !joinInput.trim()}
+              className="flex-shrink-0 flex items-center gap-1.5 bg-teal-primary hover:opacity-90 disabled:opacity-40 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-opacity"
+            >
+              <Link2 size={15} />
+              {joining ? 'Joining…' : 'Join'}
+            </button>
+          </div>
         </div>
 
         {groups.length === 0 ? (
