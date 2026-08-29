@@ -563,7 +563,7 @@ function PomodoroSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       {celebrate && <GoldPaperFall />}
       <TabIntro tab="Pomodoro" />
-      <section className="relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-6 sm:p-8">
+      <section className="pomodoro-card relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-6 sm:p-8">
         <div className="absolute inset-x-0 bottom-0 h-24 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(13,148,136,0.25),transparent_65%)]" />
         </div>
@@ -725,11 +725,13 @@ function PomodoroSection({ userId }: { userId: string }) {
           <p className="text-cream font-bold text-sm sm:text-base">Consistency is your superpower.</p>
           <p className="text-cream-muted text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
         </div>
-        <img
-          src="/images/myspace/myspace-snapshot-milestones.png"
-          alt="A path winding up a mountain to a flag at the summit"
-          className="w-40 h-24 sm:w-64 sm:h-36 object-contain flex-shrink-0"
-        />
+        <div className="w-44 h-28 sm:w-72 sm:h-40 rounded-xl overflow-hidden flex-shrink-0">
+          <img
+            src="/images/myspace/myspace-snapshot-milestones.png"
+            alt="A path winding up a mountain to a flag at the summit"
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
     </div>
   )
