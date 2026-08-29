@@ -135,8 +135,8 @@ export const PLAN_TIERS = {
   // here — these values are what the tier grants once upgrades are wired
   // up, and are also what the reply/chat gates (migration 014) check
   // against right now.
-noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 1, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
-  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 2, maxPhotos: 2, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
+noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
+  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 2, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
   campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner' },
 } as const
 
