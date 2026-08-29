@@ -137,7 +137,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
         <img
           src="/images/myspace/myspace-deadlines-checklist.png"
           alt="A checklist notepad and alarm clock"
-          className="w-20 h-16 sm:w-28 sm:h-24 object-contain flex-shrink-0"
+          className="w-28 h-20 sm:w-40 sm:h-32 object-contain flex-shrink-0"
         />
       </div>
       <SectionCard>
@@ -308,7 +308,7 @@ function BudgetSection({ userId }: { userId: string }) {
         <img
           src="/images/myspace/myspace-budget-piggybank.png"
           alt="A piggy bank with Rand coins and a wallet"
-          className="w-20 h-14 sm:w-28 sm:h-20 object-contain flex-shrink-0"
+          className="w-28 h-20 sm:w-40 sm:h-28 object-contain flex-shrink-0"
         />
       </div>
       <SectionCard>
@@ -728,7 +728,7 @@ function PomodoroSection({ userId }: { userId: string }) {
         <img
           src="/images/myspace/myspace-snapshot-milestones.png"
           alt="A path winding up a mountain to a flag at the summit"
-          className="w-24 h-14 sm:w-40 sm:h-24 object-contain flex-shrink-0"
+          className="w-32 h-20 sm:w-56 sm:h-32 object-contain flex-shrink-0"
         />
       </div>
     </div>
@@ -1134,7 +1134,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
         <img
           src="/images/myspace/myspace-hero-desk.png"
           alt="A cosy study desk with books, a lamp, coffee, and a laptop"
-          className="w-20 sm:w-36 md:w-44 object-contain object-right flex-shrink-0 self-center"
+          className="w-28 sm:w-48 md:w-56 object-contain object-right flex-shrink-0 self-center"
         />
       </div>
     </div>
