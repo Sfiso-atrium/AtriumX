@@ -76,17 +76,15 @@ function TabIntro({ tab }: { tab: Tab }) {
 function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 text-center overflow-hidden">
+      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 text-center">
         <div className="flex justify-end mb-1">
           <button onClick={onClose} className="text-cream-muted hover:text-cream">
             <X size={18} />
           </button>
         </div>
-        <img
-          src="/images/myspace/myspace-intro-summit.png"
-          alt=""
-          className="w-full h-28 sm:h-36 object-contain mx-auto mb-3"
-        />
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-primary/40 to-sapphire-light/40 border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
+          <Sparkles size={24} className="text-teal-light" />
+        </div>
         <h2 className="font-serif text-xl text-cream mb-2">Welcome to My Space!</h2>
         <p className="text-cream-muted text-sm mb-5 leading-relaxed">
           This is your own corner of AtriumX — separate from the marketplace and just for you. Track deadlines,
@@ -132,14 +130,6 @@ function DeadlinesSection({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <TabIntro tab="Deadlines" />
-      <div className="bg-cream/95 border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-        <img
-          src="/images/myspace/myspace-deadlines-checklist.png"
-          alt="A checklist notepad and alarm clock"
-          className="w-20 h-16 sm:w-28 sm:h-24 object-contain flex-shrink-0"
-        />
-        <p className="text-slate-deep text-sm font-bold leading-snug">Tick them off one by one — that's all a deadline list needs to be.</p>
-      </div>
       <SectionCard>
         <p className="text-cream font-bold text-sm mb-3">Add a deadline</p>
         <div className="flex flex-col gap-2">
@@ -303,14 +293,6 @@ function BudgetSection({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <TabIntro tab="Budget" />
-      <div className="bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-        <img
-          src="/images/myspace/myspace-budget-piggybank.png"
-          alt="A piggy bank with Rand coins and a wallet"
-          className="w-20 h-14 sm:w-28 sm:h-20 object-contain flex-shrink-0"
-        />
-        <p className="text-cream text-sm font-bold leading-snug">Every rand logged is one less surprise at month-end.</p>
-      </div>
       <SectionCard>
         <p className="text-cream-muted text-xs mb-1">Balance</p>
         <p className={`text-2xl font-serif font-bold ${balance >= 0 ? 'text-teal-light' : 'text-red-400'}`}>
@@ -1071,17 +1053,8 @@ function TodaySnapshot({ userId }: { userId: string }) {
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-sapphire-light/20 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full bg-teal-primary/20 blur-3xl pointer-events-none" />
       <div className="relative">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
-            <p className="text-cream-muted text-xs">Stay consistent, your future self is counting on you.</p>
-          </div>
-          <img
-            src="/images/myspace/myspace-hero-desk.png"
-            alt="A cosy study desk with books, a lamp, coffee, and a laptop"
-            className="w-16 h-11 sm:w-32 sm:h-20 md:w-48 md:h-28 object-contain object-right flex-shrink-0"
-          />
-        </div>
+        <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
+        <p className="text-cream-muted text-xs mb-3">Stay consistent, your future self is counting on you.</p>
         <div className="flex gap-2">
           <div className="flex-1 min-w-0 flex items-center gap-2 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
             <CalendarClock size={16} className="text-cream-muted flex-shrink-0" />
@@ -1222,20 +1195,6 @@ export default function MySpace() {
         {tab === 'Budget' && <BudgetSection userId={currentUser.id} />}
         {tab === 'Pomodoro' && <PomodoroSection userId={currentUser.id} />}
         {tab === 'Watchlist' && <WatchlistSection userId={currentUser.id} />}
-      </div>
-
-      <div className="px-4 mt-4">
-        <div className="bg-cream/95 border border-slate-border rounded-2xl p-4 flex items-center gap-3">
-          <img
-            src="/images/myspace/myspace-snapshot-milestones.png"
-            alt="A path winding up a mountain to a flag at the summit"
-            className="w-24 h-14 sm:w-40 sm:h-24 object-contain flex-shrink-0"
-          />
-          <div className="min-w-0">
-            <p className="text-slate-deep font-bold text-sm sm:text-base">Consistency is your superpower.</p>
-            <p className="text-slate-deep/70 text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
-          </div>
-        </div>
       </div>
 
       <BottomNav />
