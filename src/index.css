@@ -74,3 +74,17 @@ html.bw-mode body {
 .bw-mode .text-cream-muted {
   color: #52525B !important;
 }
+
+.bw-mode .text-slate-border {
+  color: #D4D4D8 !important;
+}
+
+/* The Pomodoro timer card uses a gradient background (Tailwind's
+   from-/to- utilities set background-image, not background-color), so the
+   plain .bg-slate-card / .bg-slate-deep overrides above don't touch it —
+   it was staying dark navy in bw-mode while its text switched to
+   near-black, making the timer unreadable. */
+.bw-mode .pomodoro-card {
+  background-image: none !important;
+  background-color: #F4F4F5 !important;
+}
