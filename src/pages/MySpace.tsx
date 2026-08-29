@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Calendar, ClipboardList, Plus } from 'lucide-react'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, Lock, Users, Calendar, ClipboardList, Plus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -76,27 +76,38 @@ function TabIntro({ tab }: { tab: Tab }) {
 function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 text-center">
-        <div className="flex justify-end mb-1">
-          <button onClick={onClose} className="text-cream-muted hover:text-cream">
+      <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm overflow-hidden text-center">
+        <div className="relative h-28">
+          <img
+            src="/images/myspace/myspace-intro-summit.png"
+            alt=""
+            className="w-full h-full object-cover"
+            style={{
+              maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+            }}
+          />
+          <button onClick={onClose} className="absolute top-2 right-2 text-cream-muted hover:text-cream bg-slate-deep/60 rounded-full p-1">
             <X size={18} />
           </button>
         </div>
-        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-primary/40 to-sapphire-light/40 border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
-          <Sparkles size={24} className="text-teal-light" />
+        <div className="px-6 pb-6">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-primary/40 to-sapphire-light/40 border border-teal-light/30 flex items-center justify-center mx-auto mb-4">
+            <Sparkles size={24} className="text-teal-light" />
+          </div>
+          <h2 className="font-serif text-xl text-cream mb-2">Welcome to My Space!</h2>
+          <p className="text-cream-muted text-sm mb-5 leading-relaxed">
+            This is your own corner of AtriumX — separate from the marketplace and just for you. Track deadlines,
+            plan a study timetable, log your budget, run focus sessions, and watch your watchlist for you.
+            Every tab has a quick line at the top telling you what it's for. Let's get you organised. 🎓
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
+          >
+            Let's go
+          </button>
         </div>
-        <h2 className="font-serif text-xl text-cream mb-2">Welcome to My Space!</h2>
-        <p className="text-cream-muted text-sm mb-5 leading-relaxed">
-          This is your own corner of AtriumX — separate from the marketplace and just for you. Track deadlines,
-          plan a study timetable, log your budget, run focus sessions, and watch your watchlist for you.
-          Every tab has a quick line at the top telling you what it's for. Let's get you organised. 🎓
-        </p>
-        <button
-          onClick={onClose}
-          className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
-        >
-          Let's go
-        </button>
       </div>
     </div>
   )
@@ -146,8 +157,16 @@ function DeadlinesSection({ userId }: { userId: string }) {
       </SectionCard>
 
       {!loading && items.length === 0 && (
-        <div className="flex flex-col items-center gap-2 py-8">
-          <PartyPopper size={28} className="text-cream-muted" />
+        <div className="flex flex-col items-center gap-2 py-6">
+          <img
+            src="/images/myspace/myspace-deadlines-checklist.png"
+            alt=""
+            className="w-32 h-auto"
+            style={{
+              maskImage: 'radial-gradient(circle at 50% 45%, black 55%, transparent 90%)',
+              WebkitMaskImage: 'radial-gradient(circle at 50% 45%, black 55%, transparent 90%)',
+            }}
+          />
           <p className="text-cream-muted text-sm text-center">No deadlines yet — add your first one above.</p>
         </div>
       )}
@@ -294,10 +313,21 @@ function BudgetSection({ userId }: { userId: string }) {
     <div className="flex flex-col gap-3">
       <TabIntro tab="Budget" />
       <SectionCard>
-        <p className="text-cream-muted text-xs mb-1">Balance</p>
-        <p className={`text-2xl font-serif font-bold ${balance >= 0 ? 'text-teal-light' : 'text-red-400'}`}>
-          R{balance.toFixed(2)}
-        </p>
+        <div className="relative">
+          <img
+            src="/images/myspace/myspace-budget-piggybank.png"
+            alt=""
+            className="absolute -right-2 -top-2 w-20 h-20 object-contain pointer-events-none"
+            style={{
+              maskImage: 'radial-gradient(circle at 60% 40%, black 50%, transparent 90%)',
+              WebkitMaskImage: 'radial-gradient(circle at 60% 40%, black 50%, transparent 90%)',
+            }}
+          />
+          <p className="text-cream-muted text-xs mb-1">Balance</p>
+          <p className={`text-2xl font-serif font-bold ${balance >= 0 ? 'text-teal-light' : 'text-red-400'}`}>
+            R{balance.toFixed(2)}
+          </p>
+        </div>
       </SectionCard>
 
       <SectionCard>
@@ -1052,6 +1082,15 @@ function TodaySnapshot({ userId }: { userId: string }) {
     <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-3xl p-5 mx-4 mt-3">
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-sapphire-light/20 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full bg-teal-primary/20 blur-3xl pointer-events-none" />
+      <img
+        src="/images/myspace/myspace-snapshot-milestones.png"
+        alt=""
+        className="absolute -right-6 -bottom-8 w-44 h-auto opacity-25 pointer-events-none"
+        style={{
+          maskImage: 'radial-gradient(circle at 65% 60%, black 30%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(circle at 65% 60%, black 30%, transparent 75%)',
+        }}
+      />
       <div className="relative">
         <p className="text-cream font-serif text-lg mb-1">Hey {firstName} 👋</p>
         <p className="text-cream-muted text-xs mb-3">Stay consistent, your future self is counting on you.</p>
@@ -1160,6 +1199,18 @@ export default function MySpace() {
         >
           {currentUser.avatar_initials}
         </button>
+      </div>
+
+      <div className="relative h-28 mx-4 mt-3 rounded-2xl overflow-hidden">
+        <img
+          src="/images/myspace/myspace-hero-desk.png"
+          alt=""
+          className="w-full h-full object-cover"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+          }}
+        />
       </div>
 
       <TodaySnapshot userId={currentUser.id} />
