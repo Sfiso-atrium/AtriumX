@@ -223,10 +223,10 @@ export default function FocusMode() {
           <>
             {/* STUDY card — lamp/plant photo bled into the right edge, text on the left */}
             <div
-              className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 bg-contain bg-no-repeat bg-right transition-all ${phase === 'study' ? theme.activeCard : theme.cardBg}`}
+              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] bg-cover bg-no-repeat bg-right transition-all ${phase === 'study' ? theme.activeCard : theme.cardBg}`}
               style={{ backgroundImage: `url(${theme.studyImage})` }}
             >
-              <div className="relative max-w-[65%] sm:max-w-[60%]">
+              <div className="relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center">
                 <p
                   className="text-[11px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"
                   style={{ color: theme.studyLabel }}
@@ -256,10 +256,10 @@ export default function FocusMode() {
 
             {/* BREAK card — armchair/cushion photo bled into the right edge */}
             <div
-              className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 bg-contain bg-no-repeat bg-right transition-all ${phase === 'break' ? theme.activeCard : theme.cardBg}`}
+              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] bg-cover bg-no-repeat bg-right transition-all ${phase === 'break' ? theme.activeCard : theme.cardBg}`}
               style={{ backgroundImage: `url(${theme.breakImage})` }}
             >
-              <div className="relative max-w-[65%] sm:max-w-[60%]">
+              <div className="relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center">
                 <p
                   className="text-[11px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"
                   style={{ color: theme.breakLabel }}
