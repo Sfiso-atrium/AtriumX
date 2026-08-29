@@ -1,6 +1,6 @@
 // src/hooks/useFocusSession.ts
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { addStudyMinutes } from '../services/dataService'
+import { addStudyMinutes, addStudySession, getTodayStudySessions } from '../services/dataService'
 
 export type FocusPhase = 'idle' | 'study' | 'break' | 'done'
 
@@ -48,6 +48,15 @@ export function useFocusSession(userId: string) {
   const [, forceTick] = useState(0)
   const creditedSecondsRef = useRef(readNum(KEYS.creditedSeconds, 0))
   const completedRef = useRef(false)
+
+  // Sessions completed today — a real, ever-increasing count fetched from
+  // (and credited to) the same study_log row as minutes, so it survives
+  // refreshes and stays in sync across the Pomodoro widget and Focus Mode.
+  const [sessionsToday, setSessionsToday] = useState(0)
+  useEffect(() => {
+    if (!userId) return
+    getTodayStudySessions(userId).then(setSessionsToday)
+  }, [userId])
 
   const running = startedAt !== null
   const totalSeconds = (phase === 'break' ? breakMinutes : focusMinutes) * 60
@@ -118,6 +127,7 @@ export function useFocusSession(userId: string) {
           persistStartedAt(Date.now())
           completedRef.current = false
         })
+        if (userId) addStudySession(userId).then(setSessionsToday)
       } else if (phase === 'break') {
         persistAccumulated(0)
         persistStartedAt(null)
@@ -174,7 +184,7 @@ export function useFocusSession(userId: string) {
   const secs = String(secondsLeft % 60).padStart(2, '0')
 
   return {
-    phase, running, focusMinutes, breakMinutes, secondsLeft, mins, secs, totalSeconds,
+    phase, running, focusMinutes, breakMinutes, secondsLeft, mins, secs, totalSeconds, sessionsToday,
     start, toggle, reset, setFocusMinutes, setBreakMinutes,
   }
 }
