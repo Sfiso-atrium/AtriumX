@@ -1386,6 +1386,28 @@ export async function addStudyMinutes(userId: string, minutes: number): Promise<
   return data as number
 }
 
+export async function getStudySessionsForDate(userId: string, dateStr: string): Promise<number> {
+  const { data } = await supabase
+    .from('study_log')
+    .select('sessions')
+    .eq('user_id', userId)
+    .eq('log_date', dateStr)
+    .maybeSingle()
+  return data?.sessions ?? 0
+}
+
+export async function getTodayStudySessions(userId: string): Promise<number> {
+  return getStudySessionsForDate(userId, localDateString())
+}
+
+export async function addStudySession(userId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('increment_study_sessions', {
+    p_log_date: localDateString(),
+  })
+  if (error) throw error
+  return data as number
+}
+
 export interface Watchlist {
   id: string
   user_id: string
