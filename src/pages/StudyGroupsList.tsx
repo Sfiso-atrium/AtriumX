@@ -179,24 +179,39 @@ export default function StudyGroupsList() {
                     : 'No messages yet')
 
               return (
-                <button
+                <div
                   key={g.id}
-                  onClick={() => navigate(`/group/${g.id}`)}
-                  className="w-full flex items-center gap-3 px-4 py-3 border-b border-slate-border text-left hover:bg-slate-card transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 border-b border-slate-border hover:bg-slate-card transition-colors"
                 >
-                  <div className="relative flex-shrink-0">
-                    <GroupAvatarImage path={g.avatar_url} size={44} />
-                    {unread > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-deep">
-                        {unread > 9 ? '9+' : unread}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-cream font-bold text-sm truncate">{g.name}</p>
-                    <p className="text-cream-muted text-xs truncate">{preview}</p>
-                  </div>
-                </button>
+                  <button
+                    onClick={() => navigate(`/group/${g.id}`)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <GroupAvatarImage path={g.avatar_url} size={44} />
+                      {unread > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-deep">
+                          {unread > 9 ? '9+' : unread}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-cream font-bold text-sm truncate">{g.name}</p>
+                      <p className="text-cream-muted text-xs truncate">{preview}</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      navigator.clipboard.writeText(inviteLink(g.id))
+                      showToast('Invite link copied.', 'success')
+                    }}
+                    aria-label="Copy group invite link"
+                    className="flex-shrink-0 text-cream-muted hover:text-cream transition-colors p-1"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
               )
             })}
           </div>
