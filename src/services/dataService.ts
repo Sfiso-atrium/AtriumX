@@ -1528,6 +1528,7 @@ export interface StudyGroupMessage {
   content: string | null
   image_url: string | null
   sent_at: string
+  type: 'text' | 'system'
   sender?: { id: string; full_name: string; avatar_initials: string; avatar_color: string }
 }
 
@@ -1739,6 +1740,23 @@ export async function joinStudyGroup(
   // Already a member (unique constraint) isn't a real error for this flow.
   if (error && !error.message.includes('duplicate')) return { error: error.message }
   return { error: null }
+}
+
+// Removes the member's own row — RLS (study_group_members_delete_self)
+// already only allows deleting your own membership. Once this row is
+// gone, getStudyGroupsForUserWithActivity naturally stops returning the
+// group (it queries from this same table), and the time-gated message
+// policy means rejoining later via the invite link starts a fresh
+// joined_at rather than restoring old access.
+export async function leaveStudyGroup(
+  groupId: string, userId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('study_group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
+  return { error: error ? error.message : null }
 }
 
 export async function getStudyGroupMembers(groupId: string): Promise<StudyGroupMember[]> {
