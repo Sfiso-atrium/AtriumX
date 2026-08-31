@@ -720,17 +720,14 @@ function PomodoroSection({ userId }: { userId: string }) {
         />
       </button>
 
-      <div className="bg-slate-card rounded-2xl p-4 flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-cream font-bold text-sm sm:text-base">Consistency is your superpower.</p>
-          <p className="text-cream-muted text-xs sm:text-sm">Show up today, thank yourself tomorrow.</p>
-        </div>
-        <div className="w-44 h-28 sm:w-72 sm:h-40 rounded-xl overflow-hidden flex-shrink-0">
-          <img
-            src="/images/myspace/myspace-snapshot-milestones.png"
-            alt="A path winding up a mountain to a flag at the summit"
-            className="w-full h-full object-cover"
-          />
+      <div
+        className="relative overflow-hidden rounded-2xl min-h-[150px] sm:min-h-[190px] bg-cover bg-center"
+        style={{ backgroundImage: `url(/images/myspace/myspace-snapshot-milestones.png)` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+        <div className="relative h-full flex flex-col justify-end p-4">
+          <p className="text-white font-bold text-sm sm:text-base drop-shadow-md">Consistency is your superpower.</p>
+          <p className="text-white/85 text-xs sm:text-sm drop-shadow-md">Show up today, thank yourself tomorrow.</p>
         </div>
       </div>
     </div>
