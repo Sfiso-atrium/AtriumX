@@ -5,7 +5,24 @@ import App from './App'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
-registerSW({ immediate: true })
+// Checks for a newer version every 30 minutes while the app is open, not
+// just once at launch. A browser tab naturally gets a fresh update-check
+// on every reload; an installed app can sit open for hours without ever
+// reloading, so without this it would only ever notice a new version the
+// next time someone fully closes and reopens it.
+const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000
+
+registerSW({
+  immediate: true,
+  onRegisteredSW(swUrl, registration) {
+    if (!registration) return
+    setInterval(async () => {
+      if (registration.installing || !navigator.onLine) return
+      const resp = await fetch(swUrl, { cache: 'no-store' })
+      if (resp.status === 200) await registration.update()
+    }, UPDATE_CHECK_INTERVAL_MS)
+  },
+})
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
