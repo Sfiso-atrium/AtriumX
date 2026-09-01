@@ -150,7 +150,6 @@ export default function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <p className="text-cream-muted text-sm">No new notifications yet.</p>
-              <p className="text-cream-muted text-xs mt-1">You will be notified when your listing is approved or someone rates you.</p>
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
