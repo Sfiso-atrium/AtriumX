@@ -721,7 +721,7 @@ function PomodoroSection({ userId }: { userId: string }) {
       </button>
 
       <div
-        className="relative overflow-hidden rounded-2xl aspect-[1967/800] min-h-[150px] bg-cover bg-center"
+        className="relative overflow-hidden rounded-2xl aspect-[1967/800] min-h-[150px] max-w-2xl mx-auto bg-cover bg-center"
         style={{ backgroundImage: `url(/images/myspace/myspace-snapshot-milestones.png)` }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
@@ -1133,7 +1133,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
         <img
           src="/images/myspace/myspace-hero-desk.png"
           alt="A cosy study desk with books, a lamp, coffee, and a laptop"
-          className="w-32 sm:w-56 md:w-64 object-cover object-right flex-shrink-0 self-stretch rounded-xl"
+          className="w-32 sm:w-56 md:w-64 min-h-[150px] sm:min-h-0 object-cover object-right flex-shrink-0 self-stretch rounded-xl"
         />
       </div>
     </div>
