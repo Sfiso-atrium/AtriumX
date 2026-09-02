@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Calendar, ClipboardList, Plus, NotebookText, Paperclip, Download } from 'lucide-react'
+import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Calendar, ClipboardList, Plus, NotebookText } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -14,10 +14,6 @@ import {
   StudyPrepNote, getStudyPrepNotes, createStudyPrepNote, setStudyPrepClarified,
   getUnreadStudyGroupCount,
 } from '../services/dataService'
-import {
-  NotebookEntry, NotebookAttachment, hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
-  listNotebookEntries, createNotebookEntry, deleteNotebookEntry, downloadNotebookAttachment, resetNotebook,
-} from '../services/notebook'
 import BottomNav from '../components/common/BottomNav'
 import NotificationBell from '../components/common/NotificationBell'
 import { useFocusSession } from '../hooks/useFocusSession'
@@ -1062,278 +1058,33 @@ function TimetableSection({ userId }: { userId: string }) {
   )
 }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`
-}
-
-// Notebook: the only tab in My Space that never sends anything readable
-// to Supabase. Every note and file is encrypted on this device before
-// createNotebookEntry/downloadNotebookAttachment touch the network at
-// all — see src/services/notebook.ts and notebookCrypto.ts. The passcode
-// itself never leaves this component; only the key it derives is held,
-// in memory, for the current page session (lifted to the parent so it
-// survives switching tabs, but not a reload).
-function NotebookSection({
-  userId, notebookKey, onUnlock, onLock,
-}: {
-  userId: string
-  notebookKey: CryptoKey | null
-  onUnlock: (key: CryptoKey) => void
-  onLock: () => void
-}) {
-  const { showToast } = useApp()
-  const [checking, setChecking] = useState(true)
-  const [setupExists, setSetupExists] = useState(false)
-  const [passcode, setPasscode] = useState('')
-  const [confirmPasscode, setConfirmPasscode] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [confirmingReset, setConfirmingReset] = useState(false)
-
-  const [entries, setEntries] = useState<NotebookEntry[]>([])
-  const [loadingEntries, setLoadingEntries] = useState(false)
-  const [composing, setComposing] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newBody, setNewBody] = useState('')
-  const [newFiles, setNewFiles] = useState<File[]>([])
-  const [saving, setSaving] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    hasNotebookSetup(userId).then(exists => { setSetupExists(exists); setChecking(false) })
-  }, [userId])
-
-  const loadEntries = (key: CryptoKey) => {
-    setLoadingEntries(true)
-    listNotebookEntries(userId, key).then(list => { setEntries(list); setLoadingEntries(false) })
-  }
-
-  useEffect(() => {
-    if (notebookKey) loadEntries(notebookKey)
-  }, [notebookKey])
-
-  const handleSetup = async () => {
-    if (passcode.length < 6) { showToast('Use at least 6 characters for your passcode.', 'error'); return }
-    if (passcode !== confirmPasscode) { showToast("Passcodes don't match.", 'error'); return }
-    setUnlocking(true)
-    const { key, error } = await setupNotebookPasscode(userId, passcode)
-    setUnlocking(false)
-    if (error || !key) { showToast(error || 'Could not set up your notebook.', 'error'); return }
-    setPasscode(''); setConfirmPasscode(''); setSetupExists(true)
-    onUnlock(key)
-    showToast('Notebook set up — this passcode is the only way in, so keep it somewhere safe.', 'success')
-  }
-
-  const handleUnlock = async () => {
-    if (!passcode) return
-    setUnlocking(true)
-    const { key, error } = await unlockNotebook(userId, passcode)
-    setUnlocking(false)
-    if (error || !key) { showToast(error || 'Could not unlock your notebook.', 'error'); return }
-    setPasscode('')
-    onUnlock(key)
-  }
-
-  const handleReset = async () => {
-    await resetNotebook(userId)
-    setSetupExists(false)
-    setConfirmingReset(false)
-    onLock()
-    setEntries([])
-    showToast("Notebook wiped. You can set a new passcode whenever you're ready.", 'info')
-  }
-
-  const handleSave = async () => {
-    if (!notebookKey) return
-    if (!newTitle.trim() && !newBody.trim() && newFiles.length === 0) {
-      showToast('Add a title, some text, or a file first.', 'error'); return
-    }
-    setSaving(true)
-    const { error } = await createNotebookEntry(userId, notebookKey, newTitle.trim() || 'Untitled', newBody.trim(), newFiles)
-    setSaving(false)
-    if (error) { showToast(error, 'error'); return }
-    setNewTitle(''); setNewBody(''); setNewFiles([]); setComposing(false)
-    loadEntries(notebookKey)
-    showToast('Saved to your notebook.', 'success')
-  }
-
-  const handleDelete = async (id: string) => {
-    await deleteNotebookEntry(id, userId)
-    setEntries(prev => prev.filter(e => e.id !== id))
-  }
-
-  const handleOpenAttachment = async (attachment: NotebookAttachment) => {
-    if (!notebookKey) return
-    const blob = await downloadNotebookAttachment(notebookKey, attachment)
-    if (!blob) { showToast('Could not open this file.', 'error'); return }
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = attachment.fileName
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  if (checking) return <div className="text-cream-muted text-sm">Loading…</div>
-
-  // ── Not set up yet ──
-  if (!setupExists) {
-    return (
-      <div className="flex flex-col gap-4">
-        <TabIntro tab="Notebook" />
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-2">
-            <Lock size={16} className="text-teal-light" />
-            <p className="text-cream font-bold text-sm">Set a Notebook passcode</p>
-          </div>
-          <p className="text-cream-muted text-xs mb-3 leading-relaxed">
-            This scrambles everything you write and attach here so only you can ever read it — not
-            even us. There's no "forgot passcode" option: if you lose it, that's it, so pick something
-            you'll actually remember.
-          </p>
-          <div className="flex flex-col gap-2">
-            <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)} placeholder="Choose a passcode"
-              className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-            <input type="password" value={confirmPasscode} onChange={e => setConfirmPasscode(e.target.value)} placeholder="Confirm passcode"
-              className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-            <button onClick={handleSetup} disabled={unlocking}
-              className="bg-ember hover:bg-ember-dark disabled:opacity-60 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">
-              {unlocking ? 'Setting up…' : 'Set up Notebook'}
-            </button>
-          </div>
-        </SectionCard>
-      </div>
-    )
-  }
-
-  // ── Set up, but locked this session ──
-  if (!notebookKey) {
-    return (
-      <div className="flex flex-col gap-4">
-        <TabIntro tab="Notebook" />
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-2">
-            <Lock size={16} className="text-teal-light" />
-            <p className="text-cream font-bold text-sm">Enter your Notebook passcode</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleUnlock()} placeholder="Passcode"
-              className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-            <button onClick={handleUnlock} disabled={unlocking}
-              className="bg-teal-primary hover:opacity-85 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">
-              {unlocking ? 'Unlocking…' : 'Unlock'}
-            </button>
-          </div>
-
-          {!confirmingReset ? (
-            <button onClick={() => setConfirmingReset(true)} className="text-cream-muted hover:text-red-400 text-xs mt-3 transition-colors">
-              Forgot your passcode?
-            </button>
-          ) : (
-            <div className="mt-3 pt-3 border-t border-slate-border">
-              <p className="text-red-400 text-xs mb-2 leading-relaxed">
-                There's no way to recover a lost passcode. The only option is wiping everything in your
-                notebook and starting fresh with a new one. This cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button onClick={handleReset} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs transition-colors">
-                  Wipe and start over
-                </button>
-                <button onClick={() => setConfirmingReset(false)} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-xs transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </SectionCard>
-      </div>
-    )
-  }
-
-  // ── Unlocked ──
+// Notebook: a launch card into its own page (/notebook), same pattern as
+// "Enter Focus Mode" below — the actual passcode/notes experience needs
+// room to breathe, so it isn't crammed into this tab.
+function NotebookSection() {
+  const navigate = useNavigate()
   return (
     <div className="flex flex-col gap-4">
       <TabIntro tab="Notebook" />
-
-      <div className="flex items-center justify-between">
-        <button onClick={() => setComposing(v => !v)}
-          className="flex items-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors">
-          <Plus size={16} /> New note
-        </button>
-        <button onClick={onLock} className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-xs transition-colors">
-          <Lock size={14} /> Lock
-        </button>
-      </div>
-
-      {composing && (
-        <SectionCard>
-          <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title"
-            className="w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light mb-2" />
-          <textarea value={newBody} onChange={e => setNewBody(e.target.value)} placeholder="Write your note…" rows={4}
-            className="w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none mb-2" />
-
-          {newFiles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {newFiles.map((f, i) => (
-                <span key={i} className="flex items-center gap-1 bg-slate-deep border border-slate-border rounded-lg px-2 py-1 text-xs text-cream-muted">
-                  {f.name}
-                  <button onClick={() => setNewFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-400">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          <input ref={fileInputRef} type="file" multiple className="hidden"
-            onChange={e => { if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]); e.target.value = '' }} />
-
-          <div className="flex gap-2">
-            <button onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 border border-slate-border text-cream-muted hover:border-teal-light hover:text-teal-light font-bold px-3 py-2 rounded-xl text-xs transition-colors">
-              <Paperclip size={14} /> Attach
-            </button>
-            <button onClick={handleSave} disabled={saving}
-              className="flex-1 bg-teal-primary hover:opacity-85 disabled:opacity-60 text-white font-bold py-2 rounded-xl text-sm transition-colors">
-              {saving ? 'Saving…' : 'Save note'}
-            </button>
+      <button
+        onClick={() => navigate('/notebook')}
+        className="group w-full flex items-center justify-between bg-gold hover:bg-gold-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-gold/20"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+            <NotebookText size={19} />
           </div>
-        </SectionCard>
-      )}
-
-      {loadingEntries ? (
-        <p className="text-cream-muted text-sm">Loading your notes…</p>
-      ) : entries.length === 0 ? (
-        <p className="text-cream-muted text-sm">No notes yet — your first one is one tap away.</p>
-      ) : (
-        entries.map(entry => (
-          <SectionCard key={entry.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-cream font-bold text-sm truncate">{entry.title}</p>
-                {entry.body && <p className="text-cream-muted text-sm mt-1 whitespace-pre-wrap">{entry.body}</p>}
-              </div>
-              <DeleteBtn onClick={() => handleDelete(entry.id)} />
-            </div>
-
-            {entry.attachments.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {entry.attachments.map(a => (
-                  <button key={a.id} onClick={() => handleOpenAttachment(a)}
-                    className="flex items-center gap-1.5 bg-slate-deep border border-slate-border hover:border-teal-light rounded-lg px-2.5 py-1.5 text-xs text-cream-muted hover:text-teal-light transition-colors">
-                    <Download size={12} /> {a.fileName} · {formatBytes(a.sizeBytes)}
-                  </button>
-                ))}
-              </div>
-            )}
-          </SectionCard>
-        ))
-      )}
+          <div className="text-left">
+            <p className="font-bold text-sm">Open Notebook</p>
+            <p className="text-xs opacity-70">Private notes, locked with your own passcode.</p>
+          </div>
+        </div>
+        <ChevronDown size={18} className="-rotate-90 group-hover:translate-x-1 transition-transform" />
+      </button>
     </div>
   )
 }
+
 
 // The one "signature" moment for My Space: a quiet gradient panel (built
 // entirely from colors already in the app's palette — no new tokens) that
@@ -1412,7 +1163,6 @@ export default function MySpace() {
   const [tab, setTab] = useState<Tab>('Deadlines')
   const [showIntro, setShowIntro] = useState(false)
   const [unreadGroups, setUnreadGroups] = useState(0)
-  const [notebookKey, setNotebookKey] = useState<CryptoKey | null>(null)
 
   useEffect(() => {
     if (!currentUser) return
@@ -1512,14 +1262,7 @@ export default function MySpace() {
         {tab === 'Budget' && <BudgetSection userId={currentUser.id} />}
         {tab === 'Pomodoro' && <PomodoroSection userId={currentUser.id} />}
         {tab === 'Watchlist' && <WatchlistSection userId={currentUser.id} />}
-        {tab === 'Notebook' && (
-          <NotebookSection
-            userId={currentUser.id}
-            notebookKey={notebookKey}
-            onUnlock={setNotebookKey}
-            onLock={() => setNotebookKey(null)}
-          />
-        )}
+        {tab === 'Notebook' && <NotebookSection />}
       </div>
 
       <BottomNav />
