@@ -1,9 +1,10 @@
 // src/components/common/GroupSpacePanel.tsx
 import { useState, useEffect } from 'react'
-import { X, Trash2, PartyPopper, Clock, BookOpen } from 'lucide-react'
+import { X, Trash2, PartyPopper, Clock, BookOpen, Check, XCircle } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import {
   GroupDeadline, getGroupDeadlines, createGroupDeadline, deleteGroupDeadline,
+  respondToGroupDeadline, getMyGroupDeadlineStatuses,
   GroupScheduleEntry, getGroupScheduleEntries, createGroupScheduleEntry, deleteGroupScheduleEntry,
   GroupStudyCourse, getGroupStudyCourses, createGroupStudyCourse, deleteGroupStudyCourse,
   GroupStudyPrepNote, getGroupStudyPrepNotes, createGroupStudyPrepNote, setGroupStudyPrepClarified,
@@ -62,17 +63,26 @@ export default function GroupSpacePanel({
   )
 }
 
-function GroupDeadlinesTab({ groupId }: { groupId: string }) {
-  const { currentUser, showToast } = useApp()
   const [items, setItems] = useState<GroupDeadline[]>([])
+  const [myStatus, setMyStatus] = useState<Record<string, 'pending' | 'done' | 'not_affected'>>({})
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const load = () => getGroupDeadlines(groupId).then(d => { setItems(d); setLoading(false) })
+  const load = () => {
+    getGroupDeadlines(groupId).then(d => { setItems(d); setLoading(false) })
+    if (currentUser) getMyGroupDeadlineStatuses(groupId, currentUser.id).then(setMyStatus)
+  }
   useEffect(() => { load() }, [groupId])
 
+  const handleRespond = async (deadlineId: string, status: 'done' | 'not_affected') => {
+    if (!currentUser) return
+    setMyStatus(prev => ({ ...prev, [deadlineId]: status })) // optimistic
+    const { error } = await respondToGroupDeadline(deadlineId, currentUser.id, status)
+    if (error) { showToast(error, 'error'); setMyStatus(prev => ({ ...prev, [deadlineId]: 'pending' })); return }
+    showToast(status === 'done' ? 'Marked as done.' : "Marked as not affecting you.", 'success')
+  }
   const handleAdd = async () => {
     if (!currentUser) return
     if (!title.trim() || !dueAt) { showToast('Add a title and a due date.', 'error'); return }
@@ -115,6 +125,7 @@ function GroupDeadlinesTab({ groupId }: { groupId: string }) {
       {items.map(d => {
         const due = new Date(d.due_at)
         const soon = due.getTime() - Date.now() < 24 * 60 * 60 * 1000
+        const status = myStatus[d.id] || 'pending'
         return (
           <div key={d.id} className={`bg-slate-card border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-ember' : 'border-slate-border border-l-teal-light/40'}`}>
             <div className="flex items-start justify-between gap-3">
@@ -127,6 +138,27 @@ function GroupDeadlinesTab({ groupId }: { groupId: string }) {
               </div>
               <DeleteBtn onClick={() => handleDelete(d.id)} />
             </div>
+
+            {status === 'pending' ? (
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => handleRespond(d.id, 'done')}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-teal-light/10 hover:bg-teal-light/20 text-teal-light font-bold py-2 rounded-xl text-xs transition-colors"
+                >
+                  <Check size={14} /> Mark done
+                </button>
+                <button
+                  onClick={() => handleRespond(d.id, 'not_affected')}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-slate-deep hover:bg-slate-border text-cream-muted font-bold py-2 rounded-xl text-xs transition-colors"
+                >
+                  <XCircle size={14} /> Doesn't affect me
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs mt-3 text-cream-muted">
+                {status === 'done' ? '✓ You marked this done.' : "You marked this as not affecting you."}
+              </p>
+            )}
           </div>
         )
       })}
