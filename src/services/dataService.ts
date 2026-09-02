@@ -1911,6 +1911,21 @@ export async function respondToGroupDeadline(
   return { error: error ? error.message : null }
 }
 
+// One row per deadline for just the current user, keyed by deadline_id -
+// what the Deadlines tab needs to know which cards still show the
+// mark-done/not-affected buttons vs. which are already responded to.
+export async function getMyGroupDeadlineStatuses(
+  groupId: string, userId: string
+): Promise<Record<string, 'pending' | 'done' | 'not_affected'>> {
+  const { data, error } = await supabase
+    .from('study_group_deadline_status')
+    .select('deadline_id, status')
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
+  if (error || !data) return {}
+  return Object.fromEntries(data.map(row => [row.deadline_id, row.status])) as Record<string, 'pending' | 'done' | 'not_affected'>
+}
+
 // ── GROUP POMODORO (migration 031) ───────────────────────────────────────
 // Deliberately no "is this running" column on the row itself — see the
 // migration comment. Every one of these helpers derives state from
