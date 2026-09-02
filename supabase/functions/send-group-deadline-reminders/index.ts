@@ -3,7 +3,7 @@
 // Invoked every 5 minutes by pg_cron via pg_net (see supabase/cron.sql),
 // the same way send-study-reminders already runs. Checks every pending
 // group-deadline status row against four reminder tiers (2 days, 1 day,
-// 10 hours, 1 hour before due_at), and for whichever tier a row has just
+// 10 hours, 2 hours before due_at), and for whichever tier a row has just
 // entered, sends an in-app notification plus a real Web Push notification
 // — then logs it in study_notification_log so the next tick never
 // double-sends. Rows that are 'done' or 'not_affected' are never touched.
@@ -32,7 +32,7 @@ const TIERS: { minutes: number; wording: (title: string) => string }[] = [
   { minutes: 2880, wording: t => `⏳ 2 days left on "${t}". Plenty of time, just don't forget.` },
   { minutes: 1440, wording: t => `📌 "${t}" is due tomorrow. Worth locking in today.` },
   { minutes: 600, wording: t => `⏰ 10 hours left on "${t}" — how's it looking?` },
-  { minutes: 60, wording: t => `🚨 1 hour left on "${t}". Last call.` },
+  { minutes: 120, wording: t => `🚨 2 hours left on "${t}". Last call.` },
 ]
 
 interface StatusRow {
