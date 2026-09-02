@@ -63,6 +63,8 @@ export default function GroupSpacePanel({
   )
 }
 
+function GroupDeadlinesTab({ groupId }: { groupId: string }) {
+  const { currentUser, showToast } = useApp()
   const [items, setItems] = useState<GroupDeadline[]>([])
   const [myStatus, setMyStatus] = useState<Record<string, 'pending' | 'done' | 'not_affected'>>({})
   const [title, setTitle] = useState('')
