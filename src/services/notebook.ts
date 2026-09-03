@@ -40,7 +40,7 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
 export interface NotebookEntry {
   id: string
   title: string
-  body: string
+  pages: string[]
   style: NotebookStyle
   createdAt: string
   updatedAt: string
@@ -106,13 +106,15 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
   const entries: NotebookEntry[] = []
   for (const row of entryRows) {
     let title = '(could not decrypt)'
-    let body = ''
+    let pages: string[] = ['']
     let style = DEFAULT_NOTEBOOK_STYLE
     try {
       const plain = await decryptText(key, row.ciphertext, row.iv)
-      const parsed = JSON.parse(plain) as { title: string; body: string; style?: NotebookStyle }
+      const parsed = JSON.parse(plain) as { title: string; body?: string; pages?: string[]; style?: NotebookStyle }
       title = parsed.title
-      body = parsed.body
+      // Notes saved before pages existed only have a single `body` string -
+      // treat that as a one-page note rather than losing it or erroring.
+      pages = parsed.pages && parsed.pages.length > 0 ? parsed.pages : [parsed.body ?? '']
       // Entries saved before styling existed have no `style` in their
       // decrypted JSON - fall back to the default rather than leaving it
       // undefined, since the page reads entry.style.background directly.
@@ -123,7 +125,7 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
     entries.push({
       id: row.id,
       title,
-      body,
+      pages,
       style,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -139,9 +141,9 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
 }
 
 export async function createNotebookEntry(
-  userId: string, key: CryptoKey, title: string, body: string, style: NotebookStyle, files: File[]
+  userId: string, key: CryptoKey, title: string, pages: string[], style: NotebookStyle, files: File[]
 ): Promise<{ error: string | null }> {
-  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, body, style }))
+  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, pages, style }))
   const { data: entryRow, error } = await supabase
     .from('notebook_entries')
     .insert({ user_id: userId, ciphertext, iv })
@@ -178,10 +180,10 @@ export async function createNotebookEntry(
 // there's no database trigger for it - this is also what brings an
 // edited note back to the top of the list, which sorts by updated_at.
 export async function updateNotebookEntry(
-  entryId: string, userId: string, key: CryptoKey, title: string, body: string,
+  entryId: string, userId: string, key: CryptoKey, title: string, pages: string[],
   style: NotebookStyle, newFiles: File[], removedAttachmentIds: string[]
 ): Promise<{ error: string | null }> {
-  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, body, style }))
+  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, pages, style }))
   const { error } = await supabase
     .from('notebook_entries')
     .update({ ciphertext, iv, updated_at: new Date().toISOString() })
