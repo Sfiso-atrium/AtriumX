@@ -20,10 +20,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight, Search, Pencil, Copy, Tag } from 'lucide-react'
+import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight, Search, Pencil, Copy, Tag, PenLine, Eraser } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  NotebookEntry, NotebookAttachment, NotebookStyle, DEFAULT_NOTEBOOK_STYLE,
+  NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE, emptyTextPage,
   hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
   downloadNotebookAttachment, resetNotebook,
@@ -59,11 +59,14 @@ function countWords(text: string): number {
 
 // Shared by "copy as text" and "download .txt" so both exports stay
 // identical - multi-page notes get a plain page separator, single-page
-// notes are just the title followed by the body.
-function buildNoteText(title: string, pages: string[]): string {
+// notes are just the title followed by the body. Drawing pages have no
+// text of their own, so they're represented with a plain placeholder -
+// a .txt file can't hold the image itself.
+function buildNoteText(title: string, pages: NotebookPageData[]): string {
+  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : p.text
   const body = pages.length > 1
-    ? pages.map((p, i) => `--- Page ${i + 1} ---\n${p}`).join('\n\n')
-    : (pages[0] || '')
+    ? pages.map((p, i) => `--- Page ${i + 1} ---\n${pageText(p)}`).join('\n\n')
+    : (pageText(pages[0]) || '')
   return `${title || 'Untitled'}\n\n${body}`
 }
 
@@ -159,6 +162,89 @@ function AttachmentChip({
   )
 }
 
+// Freehand drawing for a single page. Keyed by page index in the parent
+// (see `key={currentPageIndex}` below) so switching pages remounts this
+// fresh - the canvas only needs to load `initialDrawing` once, draw
+// locally at full speed, and hand back a finished PNG data URL on
+// pointer-up rather than re-rendering from that data URL on every stroke.
+function DrawingCanvas({
+  initialDrawing, strokeColor, onChange,
+}: {
+  initialDrawing: string | null
+  strokeColor: string
+  onChange: (dataUrl: string) => void
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isDrawingRef = useRef(false)
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx || !initialDrawing) return
+    const img = new Image()
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    img.src = initialDrawing
+    // Intentionally runs once on mount only - see comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height),
+    }
+  }
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    isDrawingRef.current = true
+    lastPointRef.current = pointFromEvent(e)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return
+    const ctx = canvasRef.current!.getContext('2d')
+    if (!ctx) return
+    const point = pointFromEvent(e)
+    const last = lastPointRef.current
+    if (last) {
+      ctx.strokeStyle = strokeColor
+      ctx.lineWidth = 3
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      ctx.moveTo(last.x, last.y)
+      ctx.lineTo(point.x, point.y)
+      ctx.stroke()
+    }
+    lastPointRef.current = point
+  }
+
+  const handlePointerUp = () => {
+    if (!isDrawingRef.current) return
+    isDrawingRef.current = false
+    lastPointRef.current = null
+    onChange(canvasRef.current!.toDataURL('image/png'))
+  }
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={700}
+      height={450}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      className="w-full flex-1 min-h-[35vh] rounded-lg touch-none"
+      style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+    />
+  )
+}
+
 export default function NotebookPage() {
   const navigate = useNavigate()
   const { currentUser, showToast } = useApp()
@@ -182,7 +268,7 @@ export default function NotebookPage() {
   const [readOnly, setReadOnly] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
-  const [newPages, setNewPages] = useState<string[]>([''])
+  const [newPages, setNewPages] = useState<NotebookPageData[]>([emptyTextPage()])
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [style, setStyle] = useState<NotebookStyle>(DEFAULT_NOTEBOOK_STYLE)
   const [newTags, setNewTags] = useState<string[]>([])
@@ -192,7 +278,7 @@ export default function NotebookPage() {
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
   const [stylePanel, setStylePanel] = useState<'font' | 'style' | 'tags' | null>(null)
-  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: string[]; style: NotebookStyle; tags: string[] } | null>(null)
+  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: NotebookPageData[]; style: NotebookStyle; tags: string[] } | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -298,11 +384,11 @@ export default function NotebookPage() {
 
   const openNewNote = () => {
     setEditingEntryId(null)
-    setNewTitle(''); setNewPages(['']); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
+    setNewTitle(''); setNewPages([emptyTextPage()]); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
     setNewTags([]); setTagInput('')
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot({ title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE, tags: [] })
+    setInitialSnapshot({ title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE, tags: [] })
     setReadOnly(false)
     setComposing(true)
   }
@@ -313,7 +399,7 @@ export default function NotebookPage() {
   // readOnly off.
   const openEditNote = (entry: NotebookEntry) => {
     setEditingEntryId(entry.id)
-    const pages = entry.pages.length > 0 ? entry.pages : ['']
+    const pages = entry.pages.length > 0 ? entry.pages : [emptyTextPage()]
     setNewTitle(entry.title); setNewPages(pages); setCurrentPageIndex(0); setStyle(entry.style)
     setNewTags(entry.tags); setTagInput('')
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
@@ -331,7 +417,7 @@ export default function NotebookPage() {
     if (!recoverableDraft) return
     const draft = recoverableDraft
     const original = draft.editingEntryId ? entries.find(e => e.id === draft.editingEntryId) : undefined
-    const pages = draft.pages.length > 0 ? draft.pages : ['']
+    const pages = draft.pages.length > 0 ? draft.pages : [emptyTextPage()]
     setEditingEntryId(draft.editingEntryId)
     setNewTitle(draft.title); setNewPages(pages)
     setCurrentPageIndex(Math.min(draft.currentPageIndex ?? 0, pages.length - 1))
@@ -342,8 +428,8 @@ export default function NotebookPage() {
     setStylePanel(null)
     setInitialSnapshot(
       original
-        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [''], style: original.style, tags: original.tags }
-        : { title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE, tags: [] }
+        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [emptyTextPage()], style: original.style, tags: original.tags }
+        : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE, tags: [] }
     )
     setRecoverableDraft(null)
     setReadOnly(false)
@@ -357,13 +443,13 @@ export default function NotebookPage() {
 
   const handleSave = async () => {
     if (!notebookKey) return
-    const hasPageText = newPages.some(p => p.trim())
-    if (!newTitle.trim() && !hasPageText && newFiles.length === 0 && existingAttachments.length === 0) {
-      showToast('Add a title, some text, or a file first.', 'error'); return
+    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : p.text.trim())
+    if (!newTitle.trim() && !hasPageContent && newFiles.length === 0 && existingAttachments.length === 0) {
+      showToast('Add a title, some text or a drawing, or a file first.', 'error'); return
     }
     setSaving(true)
     const title = newTitle.trim() || 'Untitled'
-    const pages = newPages.map(p => p.trim())
+    const pages = newPages.map(p => ({ ...p, text: p.text.trim() }))
     // Catches a tag someone typed but never hit Enter on before saving.
     const pendingTag = tagInput.trim()
     const tags = pendingTag && !newTags.includes(pendingTag) ? [...newTags, pendingTag] : newTags
@@ -430,7 +516,7 @@ export default function NotebookPage() {
       if (activeTagFilter && !e.tags.includes(activeTagFilter)) return false
       if (!searchQuery.trim()) return true
       const q = searchQuery.trim().toLowerCase()
-      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.toLowerCase().includes(q))
+      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && p.text.toLowerCase().includes(q))
     })
     .slice()
     .sort((a, b) => {
@@ -731,27 +817,76 @@ export default function NotebookPage() {
                   className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none"
                 />
               )}
-              {readOnly ? (
-                <div
-                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                  className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
-                >
-                  {newPages[currentPageIndex] || <span className="opacity-50">This page is empty.</span>}
+              {!readOnly && (
+                <div className="flex gap-1.5 mb-2">
+                  <button
+                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'text' } : p))}
+                    style={{ color: style.textColor }}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'text' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                  >
+                    <Type size={12} /> Text
+                  </button>
+                  <button
+                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing' } : p))}
+                    style={{ color: style.textColor }}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'drawing' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                  >
+                    <PenLine size={12} /> Draw
+                  </button>
+                  {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
+                    <button
+                      onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p))}
+                      style={{ color: style.textColor }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-current/15 text-xs font-bold opacity-50 hover:opacity-80 transition-opacity"
+                    >
+                      <Eraser size={12} /> Clear
+                    </button>
+                  )}
                 </div>
+              )}
+
+              {readOnly ? (
+                newPages[currentPageIndex].type === 'drawing' ? (
+                  newPages[currentPageIndex].drawing ? (
+                    <img
+                      src={newPages[currentPageIndex].drawing!} alt="Page drawing"
+                      className="flex-1 w-full min-h-[35vh] object-contain rounded-lg"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                    />
+                  ) : (
+                    <div style={{ color: style.textColor }} className="flex-1 w-full min-h-[35vh] flex items-center justify-center opacity-50 text-sm">
+                      This page is a blank drawing.
+                    </div>
+                  )
+                ) : (
+                  <div
+                    style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                    className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
+                  >
+                    {newPages[currentPageIndex].text || <span className="opacity-50">This page is empty.</span>}
+                  </div>
+                )
+              ) : newPages[currentPageIndex].type === 'drawing' ? (
+                <DrawingCanvas
+                  key={currentPageIndex}
+                  initialDrawing={newPages[currentPageIndex].drawing}
+                  strokeColor={style.textColor}
+                  onChange={dataUrl => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: dataUrl } : p))}
+                />
               ) : (
                 <textarea
-                  value={newPages[currentPageIndex]}
-                  onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? e.target.value : p))}
+                  value={newPages[currentPageIndex].text}
+                  onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: e.target.value } : p))}
                   placeholder="Write as much as you want…"
                   style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
                   className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
                 />
               )}
 
-              {!readOnly && (
+              {!readOnly && newPages[currentPageIndex].type === 'text' && (
                 <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
-                  <span>{countWords(newPages[currentPageIndex])} words</span>
-                  <span>{newPages[currentPageIndex].length} characters</span>
+                  <span>{countWords(newPages[currentPageIndex].text)} words</span>
+                  <span>{newPages[currentPageIndex].text.length} characters</span>
                 </div>
               )}
 
@@ -777,7 +912,7 @@ export default function NotebookPage() {
                     <span className="w-6" />
                   ) : (
                     <button
-                      onClick={() => { setNewPages(prev => [...prev, '']); setCurrentPageIndex(newPages.length) }}
+                      onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
                       style={{ color: style.textColor }}
                       className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
                     >
@@ -894,10 +1029,20 @@ export default function NotebookPage() {
                             </span>
                           )}
                         </div>
-                        {entry.pages[0] && (
-                          <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
-                            {entry.pages[0]}
-                          </p>
+                        {entry.pages[0]?.type === 'drawing' ? (
+                          entry.pages[0].drawing && (
+                            <img
+                              src={entry.pages[0].drawing} alt="Note drawing preview"
+                              className="mt-2 h-20 rounded-lg object-cover"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                            />
+                          )
+                        ) : (
+                          entry.pages[0]?.text && (
+                            <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
+                              {entry.pages[0].text}
+                            </p>
+                          )
                         )}
                         {entry.tags.length > 0 && (
                           <div onClick={e => e.stopPropagation()} className="flex flex-wrap gap-1.5 mt-2">
