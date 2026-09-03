@@ -37,10 +37,25 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
   textColor: '#F0F4F8',
 }
 
+// A note is one or more pages, and each page is either written text or a
+// freehand drawing (PenLine mode in NotebookPage.tsx) - never both at
+// once, so a page only ever carries the field for its own type.
+// `drawing` holds a PNG data URL from the canvas, or null before
+// anything's been drawn on that page yet.
+export interface NotebookPageData {
+  type: 'text' | 'drawing'
+  text: string
+  drawing: string | null
+}
+
+export function emptyTextPage(): NotebookPageData {
+  return { type: 'text', text: '', drawing: null }
+}
+
 export interface NotebookEntry {
   id: string
   title: string
-  pages: string[]
+  pages: NotebookPageData[]
   style: NotebookStyle
   tags: string[]
   createdAt: string
@@ -91,6 +106,21 @@ export async function unlockNotebook(
   return { key, error: null }
 }
 
+// Three possible shapes can show up here depending on when a note was
+// saved: oldest notes have only a single `body` string (pre-pages),
+// pre-drawing notes have `pages` as plain strings, and current notes have
+// `pages` as NotebookPageData objects. All three normalize to the same
+// NotebookPageData[] shape so the rest of the app only ever deals with one.
+function normalizePages(raw: unknown, legacyBody?: string): NotebookPageData[] {
+  if (Array.isArray(raw) && raw.length > 0) {
+    if (typeof raw[0] === 'string') {
+      return (raw as string[]).map(text => ({ type: 'text' as const, text, drawing: null }))
+    }
+    return raw as NotebookPageData[]
+  }
+  return [{ type: 'text', text: legacyBody ?? '', drawing: null }]
+}
+
 export async function listNotebookEntries(userId: string, key: CryptoKey): Promise<NotebookEntry[]> {
   const { data: entryRows, error } = await supabase
     .from('notebook_entries')
@@ -107,16 +137,14 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
   const entries: NotebookEntry[] = []
   for (const row of entryRows) {
     let title = '(could not decrypt)'
-    let pages: string[] = ['']
+    let pages: NotebookPageData[] = [emptyTextPage()]
     let style = DEFAULT_NOTEBOOK_STYLE
     let tags: string[] = []
     try {
       const plain = await decryptText(key, row.ciphertext, row.iv)
-      const parsed = JSON.parse(plain) as { title: string; body?: string; pages?: string[]; style?: NotebookStyle; tags?: string[] }
+      const parsed = JSON.parse(plain) as { title: string; body?: string; pages?: unknown; style?: NotebookStyle; tags?: string[] }
       title = parsed.title
-      // Notes saved before pages existed only have a single `body` string -
-      // treat that as a one-page note rather than losing it or erroring.
-      pages = parsed.pages && parsed.pages.length > 0 ? parsed.pages : [parsed.body ?? '']
+      pages = normalizePages(parsed.pages, parsed.body)
       // Entries saved before styling existed have no `style` in their
       // decrypted JSON - fall back to the default rather than leaving it
       // undefined, since the page reads entry.style.background directly.
@@ -146,7 +174,7 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
 }
 
 export async function createNotebookEntry(
-  userId: string, key: CryptoKey, title: string, pages: string[], style: NotebookStyle, tags: string[], files: File[]
+  userId: string, key: CryptoKey, title: string, pages: NotebookPageData[], style: NotebookStyle, tags: string[], files: File[]
 ): Promise<{ error: string | null }> {
   const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, pages, style, tags }))
   const { data: entryRow, error } = await supabase
@@ -185,7 +213,7 @@ export async function createNotebookEntry(
 // there's no database trigger for it - this is also what brings an
 // edited note back to the top of the list, which sorts by updated_at.
 export async function updateNotebookEntry(
-  entryId: string, userId: string, key: CryptoKey, title: string, pages: string[],
+  entryId: string, userId: string, key: CryptoKey, title: string, pages: NotebookPageData[],
   style: NotebookStyle, tags: string[], newFiles: File[], removedAttachmentIds: string[]
 ): Promise<{ error: string | null }> {
   const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, pages, style, tags }))
