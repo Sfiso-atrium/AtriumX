@@ -13,12 +13,12 @@
 // there's nothing to key drafts by beyond that.
 
 import { encryptText, decryptText } from './notebookCrypto'
-import { NotebookStyle } from './notebook'
+import { NotebookStyle, NotebookPageData } from './notebook'
 
 export interface NotebookDraft {
   editingEntryId: string | null
   title: string
-  pages: string[]
+  pages: NotebookPageData[]
   currentPageIndex: number
   style: NotebookStyle
   tags: string[]
