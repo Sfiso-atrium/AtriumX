@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight, Search, Pencil, Copy, Tag } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   NotebookEntry, NotebookAttachment, NotebookStyle, DEFAULT_NOTEBOOK_STYLE,
@@ -34,6 +34,37 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+// "Last edited X ago" label on note cards - coarse buckets are enough
+// here, this isn't a precise timestamp, just a glance-able freshness cue.
+function formatRelativeTime(iso: string): string {
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (sec < 60) return 'just now'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.floor(hr / 24)
+  if (day < 30) return `${day}d ago`
+  const month = Math.floor(day / 30)
+  if (month < 12) return `${month}mo ago`
+  return `${Math.floor(month / 12)}y ago`
+}
+
+function countWords(text: string): number {
+  const trimmed = text.trim()
+  return trimmed ? trimmed.split(/\s+/).length : 0
+}
+
+// Shared by "copy as text" and "download .txt" so both exports stay
+// identical - multi-page notes get a plain page separator, single-page
+// notes are just the title followed by the body.
+function buildNoteText(title: string, pages: string[]): string {
+  const body = pages.length > 1
+    ? pages.map((p, i) => `--- Page ${i + 1} ---\n${p}`).join('\n\n')
+    : (pages[0] || '')
+  return `${title || 'Untitled'}\n\n${body}`
 }
 
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
@@ -148,19 +179,25 @@ export default function NotebookPage() {
   // Compose/edit view - editingEntryId is null for a brand-new note, or
   // an existing note's id when opened for editing.
   const [composing, setComposing] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [newPages, setNewPages] = useState<string[]>([''])
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [style, setStyle] = useState<NotebookStyle>(DEFAULT_NOTEBOOK_STYLE)
+  const [newTags, setNewTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
   const [existingAttachments, setExistingAttachments] = useState<NotebookAttachment[]>([])
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
-  const [stylePanel, setStylePanel] = useState<'font' | 'style' | null>(null)
-  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: string[]; style: NotebookStyle } | null>(null)
+  const [stylePanel, setStylePanel] = useState<'font' | 'style' | 'tags' | null>(null)
+  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: string[]; style: NotebookStyle; tags: string[] } | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -190,6 +227,7 @@ export default function NotebookPage() {
     newTitle !== initialSnapshot.title ||
     JSON.stringify(newPages) !== JSON.stringify(initialSnapshot.pages) ||
     JSON.stringify(style) !== JSON.stringify(initialSnapshot.style) ||
+    JSON.stringify(newTags) !== JSON.stringify(initialSnapshot.tags) ||
     newFiles.length > 0 ||
     removedAttachmentIds.length > 0
   )
@@ -211,11 +249,11 @@ export default function NotebookPage() {
     if (!currentUser || !notebookKey || !isDirty) return
     const interval = setInterval(() => {
       saveDraft(currentUser.id, notebookKey, {
-        editingEntryId, title: newTitle, pages: newPages, currentPageIndex, style, savedAt: Date.now(),
+        editingEntryId, title: newTitle, pages: newPages, currentPageIndex, style, tags: newTags, savedAt: Date.now(),
       })
     }, 4000)
     return () => clearInterval(interval)
-  }, [currentUser, notebookKey, isDirty, editingEntryId, newTitle, newPages, currentPageIndex, style])
+  }, [currentUser, notebookKey, isDirty, editingEntryId, newTitle, newPages, currentPageIndex, style, newTags])
 
   // Covers the browser-level exits our own in-app confirm dialog can't
   // catch — closing the tab, refreshing, or navigating away by URL.
@@ -261,19 +299,27 @@ export default function NotebookPage() {
   const openNewNote = () => {
     setEditingEntryId(null)
     setNewTitle(''); setNewPages(['']); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
+    setNewTags([]); setTagInput('')
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot({ title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE })
+    setInitialSnapshot({ title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE, tags: [] })
+    setReadOnly(false)
     setComposing(true)
   }
 
+  // Opens straight into a read-only glance view rather than the editor -
+  // tapping a note card shouldn't put you one accidental keystroke away
+  // from changing it. The "Edit" button in that view is what flips
+  // readOnly off.
   const openEditNote = (entry: NotebookEntry) => {
     setEditingEntryId(entry.id)
     const pages = entry.pages.length > 0 ? entry.pages : ['']
     setNewTitle(entry.title); setNewPages(pages); setCurrentPageIndex(0); setStyle(entry.style)
+    setNewTags(entry.tags); setTagInput('')
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot({ title: entry.title, pages, style: entry.style })
+    setInitialSnapshot({ title: entry.title, pages, style: entry.style, tags: entry.tags })
+    setReadOnly(true)
     setComposing(true)
   }
 
@@ -290,15 +336,17 @@ export default function NotebookPage() {
     setNewTitle(draft.title); setNewPages(pages)
     setCurrentPageIndex(Math.min(draft.currentPageIndex ?? 0, pages.length - 1))
     setStyle(draft.style)
+    setNewTags(draft.tags ?? []); setTagInput('')
     setExistingAttachments(original?.attachments ?? [])
     setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
     setInitialSnapshot(
       original
-        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [''], style: original.style }
-        : { title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE }
+        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [''], style: original.style, tags: original.tags }
+        : { title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE, tags: [] }
     )
     setRecoverableDraft(null)
+    setReadOnly(false)
     setComposing(true)
   }
 
@@ -316,9 +364,12 @@ export default function NotebookPage() {
     setSaving(true)
     const title = newTitle.trim() || 'Untitled'
     const pages = newPages.map(p => p.trim())
+    // Catches a tag someone typed but never hit Enter on before saving.
+    const pendingTag = tagInput.trim()
+    const tags = pendingTag && !newTags.includes(pendingTag) ? [...newTags, pendingTag] : newTags
     const { error } = editingEntryId
-      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, pages, style, newFiles, removedAttachmentIds)
-      : await createNotebookEntry(currentUser.id, notebookKey, title, pages, style, newFiles)
+      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, pages, style, tags, newFiles, removedAttachmentIds)
+      : await createNotebookEntry(currentUser.id, notebookKey, title, pages, style, tags, newFiles)
     setSaving(false)
     if (error) { showToast(error, 'error'); return }
     clearDraft(currentUser.id)
@@ -346,7 +397,47 @@ export default function NotebookPage() {
     if (isDirty) { setConfirmDiscard(true); return }
     setComposing(false)
   }
-  const title = composing ? (editingEntryId ? 'Edit note' : 'New note') : 'Notebook'
+  const title = composing ? (readOnly ? 'Note' : (editingEntryId ? 'Edit note' : 'New note')) : 'Notebook'
+
+  const enterEditMode = () => setReadOnly(false)
+
+  const handleCopyNote = async () => {
+    try {
+      await navigator.clipboard.writeText(buildNoteText(newTitle, newPages))
+      showToast('Copied note text to clipboard.', 'success')
+    } catch {
+      showToast('Could not copy — try again.', 'error')
+    }
+  }
+
+  const handleDownloadNote = () => {
+    const blob = new Blob([buildNoteText(newTitle, newPages)], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(newTitle.trim() || 'note').replace(/[^\w-]+/g, '_')}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Search, tag filter, and sort are all client-side over the
+  // already-decrypted list - nothing here ever leaves the device, same
+  // as the rest of the feature.
+  const allTags = Array.from(new Set(entries.flatMap(e => e.tags))).sort()
+
+  const visibleEntries = entries
+    .filter(e => {
+      if (activeTagFilter && !e.tags.includes(activeTagFilter)) return false
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.trim().toLowerCase()
+      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.toLowerCase().includes(q))
+    })
+    .slice()
+    .sort((a, b) => {
+      if (sortMode === 'title') return a.title.localeCompare(b.title)
+      if (sortMode === 'oldest') return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
 
   return (
     <div className="h-[100dvh] bg-slate-deep flex flex-col overflow-hidden">
@@ -355,7 +446,11 @@ export default function NotebookPage() {
           <X size={20} />
         </button>
         <span className="text-cream font-bold flex-1">{title}</span>
-        {composing ? (
+        {composing && readOnly ? (
+          <button onClick={enterEditMode} className="flex items-center gap-1.5 text-teal-light hover:opacity-80 font-bold text-sm transition-opacity">
+            <Pencil size={14} /> Edit
+          </button>
+        ) : composing ? (
           <button onClick={handleSave} disabled={saving} className="text-teal-light hover:opacity-80 disabled:opacity-50 font-bold text-sm transition-opacity">
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -397,7 +492,42 @@ export default function NotebookPage() {
       {/* Toolbar sits outside the scroll area, directly under the top bar,
           so the "did my file attach?" chips are always visible without
           scrolling — the bug being fixed here. */}
-      {composing && notebookKey && (
+      {composing && notebookKey && readOnly && (
+        // Preview toolbar - no styling or attach controls here, just a
+        // way out into edit mode and the export actions, so glancing at a
+        // note never leaves you one keystroke from changing it.
+        <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4 pt-3">
+          <div className="flex items-center gap-4 mb-3 pb-3 border-b border-slate-border">
+            <button onClick={enterEditMode} className="flex items-center gap-1.5 text-teal-light hover:opacity-80 font-bold text-xs transition-opacity">
+              <Pencil size={13} /> Edit
+            </button>
+            <button onClick={handleCopyNote} className="flex items-center gap-1.5 text-cream-muted hover:text-cream font-bold text-xs transition-colors">
+              <Copy size={13} /> Copy text
+            </button>
+            <button onClick={handleDownloadNote} className="flex items-center gap-1.5 text-cream-muted hover:text-cream font-bold text-xs transition-colors">
+              <Download size={13} /> Download .txt
+            </button>
+          </div>
+          {newTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {newTags.map(t => (
+                <span key={t} className="flex items-center gap-1 bg-slate-deep border border-slate-border rounded-full px-2.5 py-1 text-xs text-cream-muted">
+                  <Tag size={10} /> {t}
+                </span>
+              ))}
+            </div>
+          )}
+          {existingAttachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {existingAttachments.map(a => (
+                <AttachmentChip key={a.id} attachment={a} notebookKey={notebookKey} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {composing && notebookKey && !readOnly && (
         <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4 pt-3">
           <div className="flex items-center gap-5 mb-3 border-b border-slate-border">
             <button
@@ -414,7 +544,44 @@ export default function NotebookPage() {
               <Palette size={13} /> Style
               {stylePanel === 'style' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
             </button>
+            <button
+              onClick={() => setStylePanel(p => p === 'tags' ? null : 'tags')}
+              className={`relative flex items-center gap-1.5 pb-2.5 text-xs font-bold transition-colors ${stylePanel === 'tags' ? 'text-teal-light' : 'text-cream-muted hover:text-cream'}`}
+            >
+              <Tag size={13} /> Tags{newTags.length > 0 ? ` (${newTags.length})` : ''}
+              {stylePanel === 'tags' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
+            </button>
           </div>
+
+          {stylePanel === 'tags' && (
+            <div className="flex flex-col gap-2 mb-3">
+              {newTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {newTags.map(t => (
+                    <span key={t} className="flex items-center gap-1 bg-slate-deep border border-slate-border rounded-full pl-2.5 pr-1.5 py-1 text-xs text-cream-muted">
+                      {t}
+                      <button onClick={() => setNewTags(prev => prev.filter(x => x !== t))} className="hover:text-red-400 p-0.5">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key !== 'Enter') return
+                  e.preventDefault()
+                  const t = tagInput.trim()
+                  if (t && !newTags.includes(t)) setNewTags(prev => [...prev, t])
+                  setTagInput('')
+                }}
+                placeholder="Add a tag and press Enter"
+                className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+              />
+            </div>
+          )}
 
           {stylePanel === 'font' && (
             <div className="flex gap-2 flex-wrap mb-3">
@@ -550,18 +717,43 @@ export default function NotebookPage() {
               style={{ backgroundColor: style.background }}
               className="flex-1 flex flex-col rounded-2xl p-4 min-h-[45vh]"
             >
-              <input
-                value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title"
-                style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none"
-              />
-              <textarea
-                value={newPages[currentPageIndex]}
-                onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? e.target.value : p))}
-                placeholder="Write as much as you want…"
-                style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
-              />
+              {readOnly ? (
+                <p
+                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                  className="w-full border-b border-current/15 pb-2 mb-2 text-lg font-bold"
+                >
+                  {newTitle || 'Untitled'}
+                </p>
+              ) : (
+                <input
+                  value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title"
+                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                  className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none"
+                />
+              )}
+              {readOnly ? (
+                <div
+                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                  className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
+                >
+                  {newPages[currentPageIndex] || <span className="opacity-50">This page is empty.</span>}
+                </div>
+              ) : (
+                <textarea
+                  value={newPages[currentPageIndex]}
+                  onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? e.target.value : p))}
+                  placeholder="Write as much as you want…"
+                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                  className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
+                />
+              )}
+
+              {!readOnly && (
+                <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
+                  <span>{countWords(newPages[currentPageIndex])} words</span>
+                  <span>{newPages[currentPageIndex].length} characters</span>
+                </div>
+              )}
 
               {/* Page navigation — a note is one or more pages; "skip to
                   the next one" is exactly the Next/Add page control below. */}
@@ -581,13 +773,17 @@ export default function NotebookPage() {
                 </span>
 
                 {currentPageIndex === newPages.length - 1 ? (
-                  <button
-                    onClick={() => { setNewPages(prev => [...prev, '']); setCurrentPageIndex(newPages.length) }}
-                    style={{ color: style.textColor }}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
-                  >
-                    <Plus size={14} /> Add page
-                  </button>
+                  readOnly ? (
+                    <span className="w-6" />
+                  ) : (
+                    <button
+                      onClick={() => { setNewPages(prev => [...prev, '']); setCurrentPageIndex(newPages.length) }}
+                      style={{ color: style.textColor }}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                    >
+                      <Plus size={14} /> Add page
+                    </button>
+                  )
                 ) : (
                   <button
                     onClick={() => setCurrentPageIndex(i => Math.min(newPages.length - 1, i + 1))}
@@ -632,12 +828,56 @@ export default function NotebookPage() {
                 <Plus size={16} /> New note
               </button>
 
+              {!loadingEntries && entries.length > 0 && (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted pointer-events-none" />
+                    <input
+                      value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search notes…"
+                      className="w-full bg-slate-card border border-slate-border rounded-xl pl-8 pr-3 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                    />
+                  </div>
+                  <select
+                    value={sortMode} onChange={e => setSortMode(e.target.value as typeof sortMode)}
+                    className="bg-slate-card border border-slate-border rounded-xl px-2 text-xs text-cream-muted focus:outline-none focus:border-teal-light"
+                  >
+                    <option value="updated">Last edited</option>
+                    <option value="title">Title A–Z</option>
+                    <option value="oldest">Oldest first</option>
+                  </select>
+                </div>
+              )}
+
+              {allTags.length > 0 && (
+                <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
+                  <button
+                    onClick={() => setActiveTagFilter(null)}
+                    className={`flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${!activeTagFilter ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                  >
+                    All
+                  </button>
+                  {allTags.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setActiveTagFilter(prev => prev === t ? null : t)}
+                      className={`flex-shrink-0 flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${activeTagFilter === t ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                    >
+                      <Tag size={10} /> {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {loadingEntries ? (
                 <p className="text-cream-muted text-sm">Loading your notes…</p>
               ) : entries.length === 0 ? (
                 <p className="text-cream-muted text-sm">No notes yet — your first one is one tap away.</p>
+              ) : visibleEntries.length === 0 ? (
+                <p className="text-cream-muted text-sm">
+                  {activeTagFilter ? `No notes tagged "${activeTagFilter}".` : `No notes match "${searchQuery}".`}
+                </p>
               ) : (
-                entries.map(entry => (
+                visibleEntries.map(entry => (
                   <Card key={entry.id} onClick={() => openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -659,6 +899,23 @@ export default function NotebookPage() {
                             {entry.pages[0]}
                           </p>
                         )}
+                        {entry.tags.length > 0 && (
+                          <div onClick={e => e.stopPropagation()} className="flex flex-wrap gap-1.5 mt-2">
+                            {entry.tags.map(t => (
+                              <button
+                                key={t}
+                                onClick={() => setActiveTagFilter(t)}
+                                style={{ color: entry.style.textColor, borderColor: `${entry.style.textColor}30` }}
+                                className="flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 opacity-70 hover:opacity-100"
+                              >
+                                <Tag size={9} /> {t}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <p style={{ color: entry.style.textColor }} className="text-[10px] font-bold opacity-50 mt-2">
+                          Edited {formatRelativeTime(entry.updatedAt)}
+                        </p>
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
