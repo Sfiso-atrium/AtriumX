@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon } from 'lucide-react'
+import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   NotebookEntry, NotebookAttachment, NotebookStyle, DEFAULT_NOTEBOOK_STYLE,
@@ -28,6 +28,7 @@ import {
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
   downloadNotebookAttachment, resetNotebook,
 } from '../services/notebook'
+import { NotebookDraft, saveDraft, hasDraft, loadDraft, clearDraft } from '../services/notebookDraft'
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`
@@ -141,19 +142,25 @@ export default function NotebookPage() {
 
   const [entries, setEntries] = useState<NotebookEntry[]>([])
   const [loadingEntries, setLoadingEntries] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Compose/edit view - editingEntryId is null for a brand-new note, or
   // an existing note's id when opened for editing.
   const [composing, setComposing] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
-  const [newBody, setNewBody] = useState('')
+  const [newPages, setNewPages] = useState<string[]>([''])
+  const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [style, setStyle] = useState<NotebookStyle>(DEFAULT_NOTEBOOK_STYLE)
   const [existingAttachments, setExistingAttachments] = useState<NotebookAttachment[]>([])
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
-  const [stylePanel, setStylePanel] = useState<'font' | 'textColor' | 'background' | null>(null)
+  const [stylePanel, setStylePanel] = useState<'font' | 'style' | null>(null)
+  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: string[]; style: NotebookStyle } | null>(null)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -175,6 +182,49 @@ export default function NotebookPage() {
     if (notebookKey) loadEntries(notebookKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notebookKey])
+
+  // Unsaved changes while composing — true once the draft differs from
+  // whatever it was when the note was opened (blank, for a new note; the
+  // saved values, for an existing one).
+  const isDirty = composing && initialSnapshot !== null && (
+    newTitle !== initialSnapshot.title ||
+    JSON.stringify(newPages) !== JSON.stringify(initialSnapshot.pages) ||
+    JSON.stringify(style) !== JSON.stringify(initialSnapshot.style) ||
+    newFiles.length > 0 ||
+    removedAttachmentIds.length > 0
+  )
+
+  // Draft recovery — on unlock, check for a leftover autosaved draft (tab
+  // crashed / phone died / browser closed mid-note last time) and offer
+  // to resume it, rather than silently discarding or silently resuming.
+  useEffect(() => {
+    if (!currentUser || !notebookKey) return
+    if (!hasDraft(currentUser.id)) return
+    loadDraft(currentUser.id, notebookKey).then(draft => { if (draft) setRecoverableDraft(draft) })
+  }, [currentUser, notebookKey])
+
+  // Autosave — every few seconds while there's an actual unsaved change
+  // to protect, bank an encrypted local draft. This is a data-loss net
+  // only; it never touches Supabase, and gets cleared the moment the note
+  // is actually saved or the draft is explicitly discarded.
+  useEffect(() => {
+    if (!currentUser || !notebookKey || !isDirty) return
+    const interval = setInterval(() => {
+      saveDraft(currentUser.id, notebookKey, {
+        editingEntryId, title: newTitle, pages: newPages, currentPageIndex, style, savedAt: Date.now(),
+      })
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [currentUser, notebookKey, isDirty, editingEntryId, newTitle, newPages, currentPageIndex, style])
+
+  // Covers the browser-level exits our own in-app confirm dialog can't
+  // catch — closing the tab, refreshing, or navigating away by URL.
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   if (!currentUser) return null
 
@@ -210,41 +260,80 @@ export default function NotebookPage() {
 
   const openNewNote = () => {
     setEditingEntryId(null)
-    setNewTitle(''); setNewBody(''); setStyle(DEFAULT_NOTEBOOK_STYLE)
+    setNewTitle(''); setNewPages(['']); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
+    setInitialSnapshot({ title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE })
     setComposing(true)
   }
 
   const openEditNote = (entry: NotebookEntry) => {
     setEditingEntryId(entry.id)
-    setNewTitle(entry.title); setNewBody(entry.body); setStyle(entry.style)
+    const pages = entry.pages.length > 0 ? entry.pages : ['']
+    setNewTitle(entry.title); setNewPages(pages); setCurrentPageIndex(0); setStyle(entry.style)
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
+    setInitialSnapshot({ title: entry.title, pages, style: entry.style })
     setComposing(true)
+  }
+
+  // Resuming a recovered draft loads its text/style back into the
+  // composer, but the "original" snapshot (for isDirty / autosave) stays
+  // whatever was actually saved to Supabase — the draft itself counts as
+  // an unsaved change, same as if the person had just typed it now.
+  const resumeDraft = () => {
+    if (!recoverableDraft) return
+    const draft = recoverableDraft
+    const original = draft.editingEntryId ? entries.find(e => e.id === draft.editingEntryId) : undefined
+    const pages = draft.pages.length > 0 ? draft.pages : ['']
+    setEditingEntryId(draft.editingEntryId)
+    setNewTitle(draft.title); setNewPages(pages)
+    setCurrentPageIndex(Math.min(draft.currentPageIndex ?? 0, pages.length - 1))
+    setStyle(draft.style)
+    setExistingAttachments(original?.attachments ?? [])
+    setRemovedAttachmentIds([]); setNewFiles([])
+    setStylePanel(null)
+    setInitialSnapshot(
+      original
+        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [''], style: original.style }
+        : { title: '', pages: [''], style: DEFAULT_NOTEBOOK_STYLE }
+    )
+    setRecoverableDraft(null)
+    setComposing(true)
+  }
+
+  const discardRecoveredDraft = () => {
+    if (currentUser) clearDraft(currentUser.id)
+    setRecoverableDraft(null)
   }
 
   const handleSave = async () => {
     if (!notebookKey) return
-    if (!newTitle.trim() && !newBody.trim() && newFiles.length === 0 && existingAttachments.length === 0) {
+    const hasPageText = newPages.some(p => p.trim())
+    if (!newTitle.trim() && !hasPageText && newFiles.length === 0 && existingAttachments.length === 0) {
       showToast('Add a title, some text, or a file first.', 'error'); return
     }
     setSaving(true)
     const title = newTitle.trim() || 'Untitled'
-    const body = newBody.trim()
+    const pages = newPages.map(p => p.trim())
     const { error } = editingEntryId
-      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, body, style, newFiles, removedAttachmentIds)
-      : await createNotebookEntry(currentUser.id, notebookKey, title, body, style, newFiles)
+      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, pages, style, newFiles, removedAttachmentIds)
+      : await createNotebookEntry(currentUser.id, notebookKey, title, pages, style, newFiles)
     setSaving(false)
     if (error) { showToast(error, 'error'); return }
+    clearDraft(currentUser.id)
     setComposing(false)
     loadEntries(notebookKey)
     showToast(editingEntryId ? 'Note updated.' : 'Saved to your notebook.', 'success')
   }
 
   const handleDelete = async (id: string) => {
+    setDeleting(true)
     await deleteNotebookEntry(id, currentUser.id)
     setEntries(prev => prev.filter(e => e.id !== id))
+    setDeleting(false)
+    setConfirmDeleteId(null)
+    showToast('Note deleted.', 'info')
   }
 
   const handleRemoveExistingAttachment = (attachmentId: string) => {
@@ -252,7 +341,11 @@ export default function NotebookPage() {
     setRemovedAttachmentIds(prev => [...prev, attachmentId])
   }
 
-  const closeButtonAction = composing ? () => setComposing(false) : () => navigate('/space')
+  const closeButtonAction = () => {
+    if (!composing) { navigate('/space'); return }
+    if (isDirty) { setConfirmDiscard(true); return }
+    setComposing(false)
+  }
   const title = composing ? (editingEntryId ? 'Edit note' : 'New note') : 'Notebook'
 
   return (
@@ -267,40 +360,64 @@ export default function NotebookPage() {
             {saving ? 'Saving…' : 'Save'}
           </button>
         ) : notebookKey ? (
-          <button onClick={() => setNotebookKey(null)} className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-xs transition-colors">
+          <button onClick={() => { setNotebookKey(null); setConfirmDeleteId(null) }} className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-xs transition-colors">
             <Lock size={14} /> Lock
           </button>
         ) : null}
       </div>
+
+      {confirmDiscard && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
+          onClick={() => setConfirmDiscard(false)}
+        >
+          <div onClick={e => e.stopPropagation()} className="bg-slate-card border border-slate-border rounded-2xl p-5 max-w-sm w-full">
+            <p className="text-cream font-bold text-sm mb-1">Discard this note?</p>
+            <p className="text-cream-muted text-xs mb-4 leading-relaxed">
+              You have unsaved changes. Closing now will lose them for good.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setConfirmDiscard(false); setComposing(false); clearDraft(currentUser.id) }}
+                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                Discard changes
+              </button>
+              <button
+                onClick={() => setConfirmDiscard(false)}
+                className="flex-1 border border-slate-border text-cream-muted hover:text-cream font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                Keep editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toolbar sits outside the scroll area, directly under the top bar,
           so the "did my file attach?" chips are always visible without
           scrolling — the bug being fixed here. */}
       {composing && notebookKey && (
         <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4 pt-3">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-5 mb-3 border-b border-slate-border">
             <button
               onClick={() => setStylePanel(p => p === 'font' ? null : 'font')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${stylePanel === 'font' ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+              className={`relative flex items-center gap-1.5 pb-2.5 text-xs font-bold transition-colors ${stylePanel === 'font' ? 'text-teal-light' : 'text-cream-muted hover:text-cream'}`}
             >
               <Type size={13} /> Font
+              {stylePanel === 'font' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
             </button>
             <button
-              onClick={() => setStylePanel(p => p === 'textColor' ? null : 'textColor')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${stylePanel === 'textColor' ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+              onClick={() => setStylePanel(p => p === 'style' ? null : 'style')}
+              className={`relative flex items-center gap-1.5 pb-2.5 text-xs font-bold transition-colors ${stylePanel === 'style' ? 'text-teal-light' : 'text-cream-muted hover:text-cream'}`}
             >
-              <Palette size={13} /> Text color
-            </button>
-            <button
-              onClick={() => setStylePanel(p => p === 'background' ? null : 'background')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${stylePanel === 'background' ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-            >
-              <PaintBucket size={13} /> Background
+              <Palette size={13} /> Style
+              {stylePanel === 'style' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
             </button>
           </div>
 
           {stylePanel === 'font' && (
-            <div className="flex gap-2 flex-wrap mb-2">
+            <div className="flex gap-2 flex-wrap mb-3">
               {FONT_OPTIONS.map(f => (
                 <button
                   key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
@@ -311,24 +428,30 @@ export default function NotebookPage() {
               ))}
             </div>
           )}
-          {stylePanel === 'textColor' && (
-            <div className="flex gap-2 flex-wrap mb-2">
-              {TEXT_COLOR_OPTIONS.map(c => (
-                <button
-                  key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
-                  className={`w-8 h-8 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                />
-              ))}
-            </div>
-          )}
-          {stylePanel === 'background' && (
-            <div className="flex gap-2 flex-wrap mb-2">
-              {BACKGROUND_OPTIONS.map(c => (
-                <button
-                  key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
-                  className={`w-8 h-8 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                />
-              ))}
+          {stylePanel === 'style' && (
+            <div className="flex flex-col gap-2.5 mb-3">
+              <div>
+                <p className="text-cream-muted text-[11px] font-bold mb-1.5">Text color</p>
+                <div className="flex gap-2 flex-wrap">
+                  {TEXT_COLOR_OPTIONS.map(c => (
+                    <button
+                      key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
+                      className={`w-8 h-8 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-cream-muted text-[11px] font-bold mb-1.5">Background</p>
+                <div className="flex gap-2 flex-wrap">
+                  {BACKGROUND_OPTIONS.map(c => (
+                    <button
+                      key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
+                      className={`w-8 h-8 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -433,15 +556,77 @@ export default function NotebookPage() {
                 className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none"
               />
               <textarea
-                value={newBody} onChange={e => setNewBody(e.target.value)} placeholder="Write as much as you want…"
+                value={newPages[currentPageIndex]}
+                onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? e.target.value : p))}
+                placeholder="Write as much as you want…"
                 style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
                 className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
               />
+
+              {/* Page navigation — a note is one or more pages; "skip to
+                  the next one" is exactly the Next/Add page control below. */}
+              <div className="flex items-center justify-between pt-3 mt-1 border-t border-current/15">
+                <button
+                  onClick={() => setCurrentPageIndex(i => Math.max(0, i - 1))}
+                  disabled={currentPageIndex === 0}
+                  style={{ color: style.textColor }}
+                  className="p-1.5 rounded-lg opacity-70 hover:opacity-100 disabled:opacity-25 transition-opacity"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={17} />
+                </button>
+
+                <span style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }} className="text-xs font-bold opacity-70">
+                  Page {currentPageIndex + 1} of {newPages.length}
+                </span>
+
+                {currentPageIndex === newPages.length - 1 ? (
+                  <button
+                    onClick={() => { setNewPages(prev => [...prev, '']); setCurrentPageIndex(newPages.length) }}
+                    style={{ color: style.textColor }}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    <Plus size={14} /> Add page
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setCurrentPageIndex(i => Math.min(newPages.length - 1, i + 1))}
+                    style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                )}
+              </div>
             </div>
 
           ) : (
             // ── Notes list ──
             <div className="flex flex-col gap-4">
+              {recoverableDraft && (
+                <div className="bg-teal-primary/10 border border-teal-light/30 rounded-2xl p-4">
+                  <p className="text-cream font-bold text-sm mb-1">Resume where you left off?</p>
+                  <p className="text-cream-muted text-xs mb-3 leading-relaxed">
+                    Found an unsaved draft{recoverableDraft.title ? ` — "${recoverableDraft.title}"` : ''} from last time, saved automatically before it could be lost.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={resumeDraft}
+                      className="flex-1 bg-teal-primary hover:opacity-85 text-white font-bold py-2 rounded-xl text-xs transition-colors"
+                    >
+                      Resume draft
+                    </button>
+                    <button
+                      onClick={discardRecoveredDraft}
+                      className="flex-1 border border-slate-border text-cream-muted hover:text-cream font-bold py-2 rounded-xl text-xs transition-colors"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <button onClick={openNewNote}
                 className="flex items-center justify-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl text-sm transition-colors">
                 <Plus size={16} /> New note
@@ -456,23 +641,60 @@ export default function NotebookPage() {
                   <Card key={entry.id} onClick={() => openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="font-bold text-sm truncate">
-                          {entry.title}
-                        </p>
-                        {entry.body && (
+                        <div className="flex items-center gap-2">
+                          <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="font-bold text-sm truncate">
+                            {entry.title}
+                          </p>
+                          {entry.pages.length > 1 && (
+                            <span
+                              style={{ color: entry.style.textColor, borderColor: `${entry.style.textColor}30` }}
+                              className="flex-shrink-0 text-[10px] font-bold border rounded-full px-1.5 py-0.5 opacity-70"
+                            >
+                              {entry.pages.length} pages
+                            </span>
+                          )}
+                        </div>
+                        {entry.pages[0] && (
                           <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
-                            {entry.body}
+                            {entry.pages[0]}
                           </p>
                         )}
                       </div>
                       <button
-                        onClick={e => { e.stopPropagation(); handleDelete(entry.id) }}
+                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
                         style={{ color: entry.style.textColor }}
                         className="opacity-60 hover:opacity-100 hover:!text-red-400 transition-colors flex-shrink-0"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
+
+                    {confirmDeleteId === entry.id && (
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        className="mt-3 pt-3 border-t border-current/15"
+                      >
+                        <p style={{ color: entry.style.textColor }} className="text-xs opacity-90 mb-2">
+                          Delete this note for good? It's encrypted, so once it's gone — even we can't get it back.
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDelete(entry.id)}
+                            disabled={deleting}
+                            className="flex-1 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-60 text-red-400 font-bold py-2 rounded-xl text-xs transition-colors"
+                          >
+                            {deleting ? 'Deleting…' : 'Delete note'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            style={{ borderColor: `${entry.style.textColor}40`, color: entry.style.textColor }}
+                            className="flex-1 border font-bold py-2 rounded-xl text-xs transition-colors opacity-80 hover:opacity-100"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {entry.attachments.length > 0 && (
                       <div onClick={e => e.stopPropagation()} className="flex flex-wrap gap-2 mt-3">
