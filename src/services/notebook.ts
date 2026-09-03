@@ -20,10 +20,28 @@ export interface NotebookAttachment {
   iv: string
 }
 
+// Presentation only - never sensitive, but still folded into the same
+// encrypted {title, body, style} JSON blob as everything else in the
+// note, rather than a plaintext database column. Keeps the "nothing
+// readable reaches Supabase" rule true without exception, and means no
+// schema change was needed to add this.
+export interface NotebookStyle {
+  font: 'sans' | 'serif' | 'handwritten' | 'mono'
+  background: string
+  textColor: string
+}
+
+export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
+  font: 'sans',
+  background: '#111827',
+  textColor: '#F0F4F8',
+}
+
 export interface NotebookEntry {
   id: string
   title: string
   body: string
+  style: NotebookStyle
   createdAt: string
   updatedAt: string
   attachments: NotebookAttachment[]
@@ -89,11 +107,16 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
   for (const row of entryRows) {
     let title = '(could not decrypt)'
     let body = ''
+    let style = DEFAULT_NOTEBOOK_STYLE
     try {
       const plain = await decryptText(key, row.ciphertext, row.iv)
-      const parsed = JSON.parse(plain) as { title: string; body: string }
+      const parsed = JSON.parse(plain) as { title: string; body: string; style?: NotebookStyle }
       title = parsed.title
       body = parsed.body
+      // Entries saved before styling existed have no `style` in their
+      // decrypted JSON - fall back to the default rather than leaving it
+      // undefined, since the page reads entry.style.background directly.
+      if (parsed.style) style = parsed.style
     } catch {
       // Wrong key or corrupted row - surface it plainly rather than crash the list.
     }
@@ -101,6 +124,7 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
       id: row.id,
       title,
       body,
+      style,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       attachments: (attachmentRows || [])
@@ -115,9 +139,9 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
 }
 
 export async function createNotebookEntry(
-  userId: string, key: CryptoKey, title: string, body: string, files: File[]
+  userId: string, key: CryptoKey, title: string, body: string, style: NotebookStyle, files: File[]
 ): Promise<{ error: string | null }> {
-  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, body }))
+  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, body, style }))
   const { data: entryRow, error } = await supabase
     .from('notebook_entries')
     .insert({ user_id: userId, ciphertext, iv })
@@ -138,6 +162,58 @@ export async function createNotebookEntry(
 
     const { error: attachError } = await supabase.from('notebook_attachments').insert({
       entry_id: entryRow.id, user_id: userId, storage_path: path,
+      file_name: file.name, mime_type: file.type || 'application/octet-stream',
+      iv: encrypted.iv, size_bytes: file.size,
+    })
+    if (attachError) return { error: `Note saved, but "${file.name}" could not be attached: ${attachError.message}` }
+  }
+  return { error: null }
+}
+
+// Edits an existing note in place: re-encrypts {title, body, style} as one
+// new blob (there's no partial update of ciphertext - any change means
+// re-encrypting the whole thing), removes any attachments the student
+// took off the note, then uploads and attaches any new files, the same
+// way createNotebookEntry does. updatedAt is bumped explicitly since
+// there's no database trigger for it - this is also what brings an
+// edited note back to the top of the list, which sorts by updated_at.
+export async function updateNotebookEntry(
+  entryId: string, userId: string, key: CryptoKey, title: string, body: string,
+  style: NotebookStyle, newFiles: File[], removedAttachmentIds: string[]
+): Promise<{ error: string | null }> {
+  const { ciphertext, iv } = await encryptText(key, JSON.stringify({ title, body, style }))
+  const { error } = await supabase
+    .from('notebook_entries')
+    .update({ ciphertext, iv, updated_at: new Date().toISOString() })
+    .eq('id', entryId)
+    .eq('user_id', userId)
+  if (error) return { error: error.message }
+
+  if (removedAttachmentIds.length > 0) {
+    const { data: toRemove } = await supabase
+      .from('notebook_attachments')
+      .select('id, storage_path')
+      .in('id', removedAttachmentIds)
+      .eq('user_id', userId)
+    if (toRemove && toRemove.length > 0) {
+      await supabase.storage.from('notebook-files').remove(toRemove.map(a => a.storage_path))
+      await supabase.from('notebook_attachments').delete().in('id', toRemove.map(a => a.id))
+    }
+  }
+
+  for (const rawFile of newFiles) {
+    const file = rawFile.type.startsWith('image/') ? await compressImageForUpload(rawFile) : rawFile
+    const plainBytes = await file.arrayBuffer()
+    const encrypted = await encryptBytes(key, plainBytes)
+    const path = `${userId}/${crypto.randomUUID()}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('notebook-files')
+      .upload(path, new Blob([encrypted.ciphertext]), { contentType: 'application/octet-stream' })
+    if (uploadError) return { error: `Note saved, but "${file.name}" failed to upload: ${uploadError.message}` }
+
+    const { error: attachError } = await supabase.from('notebook_attachments').insert({
+      entry_id: entryId, user_id: userId, storage_path: path,
       file_name: file.name, mime_type: file.type || 'application/octet-stream',
       iv: encrypted.iv, size_bytes: file.size,
     })
