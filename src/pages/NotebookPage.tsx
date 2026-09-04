@@ -20,7 +20,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon, ChevronLeft, ChevronRight, Search, Pencil, Copy, Tag, PenLine, Eraser } from 'lucide-react'
+import {
+  X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon,
+  ChevronLeft, ChevronRight, Search, Pencil, Copy, PenLine, Eraser,
+  Bold, Italic, List, Heading1, Undo2, Redo2,
+} from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE, emptyTextPage,
@@ -61,13 +65,81 @@ function countWords(text: string): number {
 // identical - multi-page notes get a plain page separator, single-page
 // notes are just the title followed by the body. Drawing pages have no
 // text of their own, so they're represented with a plain placeholder -
-// a .txt file can't hold the image itself.
+// a .txt file can't hold the image itself. Exported as the raw Markdown
+// source (not the rendered version) - a .txt file has no way to show
+// bold/italic/bullets/headings as anything other than their plain symbols.
 function buildNoteText(title: string, pages: NotebookPageData[]): string {
   const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : p.text
   const body = pages.length > 1
     ? pages.map((p, i) => `--- Page ${i + 1} ---\n${pageText(p)}`).join('\n\n')
     : (pageText(pages[0]) || '')
   return `${title || 'Untitled'}\n\n${body}`
+}
+
+// ── Basic Markdown-style formatting ──
+//
+// Deliberately a source editor, not a WYSIWYG one: the textarea always
+// shows the raw **bold**/*italic*/- bullet/# heading syntax while editing
+// (so what you type is exactly what's stored, easy to reason about, and
+// needs no rich-text editing library), and it's only rendered into actual
+// bold text/bullets/headings in the read-only preview view. Typing the
+// syntax by hand always works too - the toolbar buttons are a shortcut
+// for wrapping/prefixing the current selection, not the only way in.
+
+// Inline spans within one line: **bold** before *italic* so "**x**" isn't
+// misread as an empty italic run followed by stray asterisks.
+function renderInline(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  let remaining = text
+  let key = 0
+  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/
+  while (remaining.length > 0) {
+    const match = remaining.match(pattern)
+    if (!match || match.index === undefined) { parts.push(remaining); break }
+    if (match.index > 0) parts.push(remaining.slice(0, match.index))
+    if (match[1] !== undefined) parts.push(<strong key={key++}>{match[1]}</strong>)
+    else parts.push(<em key={key++}>{match[2]}</em>)
+    remaining = remaining.slice(match.index + match[0].length)
+  }
+  return parts
+}
+
+// Block-level: groups consecutive "- "/"* " lines into one <ul>, "# "/"##
+// "/"### " lines into headings, everything else into paragraphs.
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n')
+  const blocks: React.ReactNode[] = []
+  let bulletBuffer: string[] = []
+  let key = 0
+
+  const flushBullets = () => {
+    if (bulletBuffer.length === 0) return
+    blocks.push(
+      <ul key={`ul-${key++}`} className="list-disc pl-5 my-1 space-y-0.5">
+        {bulletBuffer.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
+      </ul>
+    )
+    bulletBuffer = []
+  }
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,3})\s+(.*)$/)
+    const bulletMatch = line.match(/^[-*]\s+(.*)$/)
+    if (headingMatch) {
+      flushBullets()
+      const level = headingMatch[1].length
+      const sizeClass = level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
+      blocks.push(<p key={key++} className={`${sizeClass} font-bold mt-2 mb-1`}>{renderInline(headingMatch[2])}</p>)
+    } else if (bulletMatch) {
+      bulletBuffer.push(bulletMatch[1])
+    } else {
+      flushBullets()
+      if (line.trim() === '') blocks.push(<div key={key++} className="h-3" />)
+      else blocks.push(<p key={key++} className="mb-1">{renderInline(line)}</p>)
+    }
+  }
+  flushBullets()
+  return blocks
 }
 
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
@@ -245,6 +317,16 @@ function DrawingCanvas({
   )
 }
 
+// One point in the note-level undo/redo history - the whole note as a
+// unit (title + every page + style), not per-field. This is deliberately
+// separate from the browser's native textarea undo, which only covers one
+// field and forgets everything the moment focus moves to another page.
+interface NoteSnapshot {
+  title: string
+  pages: NotebookPageData[]
+  style: NotebookStyle
+}
+
 export default function NotebookPage() {
   const navigate = useNavigate()
   const { currentUser, showToast } = useApp()
@@ -271,20 +353,26 @@ export default function NotebookPage() {
   const [newPages, setNewPages] = useState<NotebookPageData[]>([emptyTextPage()])
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [style, setStyle] = useState<NotebookStyle>(DEFAULT_NOTEBOOK_STYLE)
-  const [newTags, setNewTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState('')
   const [existingAttachments, setExistingAttachments] = useState<NotebookAttachment[]>([])
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
-  const [stylePanel, setStylePanel] = useState<'font' | 'style' | 'tags' | null>(null)
-  const [initialSnapshot, setInitialSnapshot] = useState<{ title: string; pages: NotebookPageData[]; style: NotebookStyle; tags: string[] } | null>(null)
+  const [stylePanel, setStylePanel] = useState<'font' | 'style' | null>(null)
+  const [initialSnapshot, setInitialSnapshot] = useState<NoteSnapshot | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
-  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Undo/redo - a stack of whole-note snapshots, separate from initialSnapshot
+  // (which is only used to detect unsaved changes / dirtiness).
+  const [undoStack, setUndoStack] = useState<NoteSnapshot[]>([])
+  const [redoStack, setRedoStack] = useState<NoteSnapshot[]>([])
+  const lastSnapshotRef = useRef<NoteSnapshot | null>(null)
+  const skipHistoryRef = useRef(false)
+  const historyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!currentUser) navigate('/student')
@@ -313,7 +401,6 @@ export default function NotebookPage() {
     newTitle !== initialSnapshot.title ||
     JSON.stringify(newPages) !== JSON.stringify(initialSnapshot.pages) ||
     JSON.stringify(style) !== JSON.stringify(initialSnapshot.style) ||
-    JSON.stringify(newTags) !== JSON.stringify(initialSnapshot.tags) ||
     newFiles.length > 0 ||
     removedAttachmentIds.length > 0
   )
@@ -335,11 +422,11 @@ export default function NotebookPage() {
     if (!currentUser || !notebookKey || !isDirty) return
     const interval = setInterval(() => {
       saveDraft(currentUser.id, notebookKey, {
-        editingEntryId, title: newTitle, pages: newPages, currentPageIndex, style, tags: newTags, savedAt: Date.now(),
+        editingEntryId, title: newTitle, pages: newPages, currentPageIndex, style, savedAt: Date.now(),
       })
     }, 4000)
     return () => clearInterval(interval)
-  }, [currentUser, notebookKey, isDirty, editingEntryId, newTitle, newPages, currentPageIndex, style, newTags])
+  }, [currentUser, notebookKey, isDirty, editingEntryId, newTitle, newPages, currentPageIndex, style])
 
   // Covers the browser-level exits our own in-app confirm dialog can't
   // catch — closing the tab, refreshing, or navigating away by URL.
@@ -349,6 +436,25 @@ export default function NotebookPage() {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
+
+  // Undo/redo history capture — debounced so rapid typing banks one
+  // history entry per pause rather than one per keystroke. Tracks the
+  // whole note (title + pages + style) as a single unit.
+  useEffect(() => {
+    if (!composing || readOnly) return
+    if (skipHistoryRef.current) { skipHistoryRef.current = false; return }
+    if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current)
+    historyDebounceRef.current = setTimeout(() => {
+      const snapshot: NoteSnapshot = { title: newTitle, pages: newPages, style }
+      const prev = lastSnapshotRef.current
+      if (prev && JSON.stringify(prev) === JSON.stringify(snapshot)) return
+      if (prev) setUndoStack(stack => [...stack, prev])
+      setRedoStack([])
+      lastSnapshotRef.current = snapshot
+    }, 600)
+    return () => { if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newTitle, newPages, style, composing, readOnly])
 
   if (!currentUser) return null
 
@@ -382,13 +488,23 @@ export default function NotebookPage() {
     showToast("Notebook wiped. You can set a new passcode whenever you're ready.", 'info')
   }
 
+  // Resets undo/redo history to a clean slate anchored on `snapshot` -
+  // shared by openNewNote/openEditNote/resumeDraft so every entry point
+  // into the composer starts with an empty, correctly-anchored history.
+  const resetHistory = (snapshot: NoteSnapshot) => {
+    setUndoStack([]); setRedoStack([])
+    lastSnapshotRef.current = snapshot
+    skipHistoryRef.current = false
+  }
+
   const openNewNote = () => {
     setEditingEntryId(null)
-    setNewTitle(''); setNewPages([emptyTextPage()]); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
-    setNewTags([]); setTagInput('')
+    const startPages = [emptyTextPage()]
+    setNewTitle(''); setNewPages(startPages); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot({ title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE, tags: [] })
+    setInitialSnapshot({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
+    resetHistory({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
     setReadOnly(false)
     setComposing(true)
   }
@@ -401,10 +517,10 @@ export default function NotebookPage() {
     setEditingEntryId(entry.id)
     const pages = entry.pages.length > 0 ? entry.pages : [emptyTextPage()]
     setNewTitle(entry.title); setNewPages(pages); setCurrentPageIndex(0); setStyle(entry.style)
-    setNewTags(entry.tags); setTagInput('')
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot({ title: entry.title, pages, style: entry.style, tags: entry.tags })
+    setInitialSnapshot({ title: entry.title, pages, style: entry.style })
+    resetHistory({ title: entry.title, pages, style: entry.style })
     setReadOnly(true)
     setComposing(true)
   }
@@ -422,15 +538,17 @@ export default function NotebookPage() {
     setNewTitle(draft.title); setNewPages(pages)
     setCurrentPageIndex(Math.min(draft.currentPageIndex ?? 0, pages.length - 1))
     setStyle(draft.style)
-    setNewTags(draft.tags ?? []); setTagInput('')
     setExistingAttachments(original?.attachments ?? [])
     setRemovedAttachmentIds([]); setNewFiles([])
     setStylePanel(null)
-    setInitialSnapshot(
-      original
-        ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [emptyTextPage()], style: original.style, tags: original.tags }
-        : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE, tags: [] }
-    )
+    const original_snapshot: NoteSnapshot = original
+      ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [emptyTextPage()], style: original.style }
+      : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE }
+    setInitialSnapshot(original_snapshot)
+    // History is anchored on the resumed draft itself (not the original
+    // saved note) - undoing from here should step back through the
+    // draft's own edit history first, same as if this session never lost focus.
+    resetHistory({ title: draft.title, pages, style: draft.style })
     setRecoverableDraft(null)
     setReadOnly(false)
     setComposing(true)
@@ -439,6 +557,72 @@ export default function NotebookPage() {
   const discardRecoveredDraft = () => {
     if (currentUser) clearDraft(currentUser.id)
     setRecoverableDraft(null)
+  }
+
+  const handleUndo = () => {
+    if (undoStack.length === 0 || !lastSnapshotRef.current) return
+    const current = lastSnapshotRef.current
+    const previous = undoStack[undoStack.length - 1]
+    setUndoStack(stack => stack.slice(0, -1))
+    setRedoStack(stack => [...stack, current])
+    skipHistoryRef.current = true
+    setNewTitle(previous.title)
+    setNewPages(previous.pages)
+    setStyle(previous.style)
+    setCurrentPageIndex(i => Math.min(i, previous.pages.length - 1))
+    lastSnapshotRef.current = previous
+  }
+
+  const handleRedo = () => {
+    if (redoStack.length === 0 || !lastSnapshotRef.current) return
+    const current = lastSnapshotRef.current
+    const next = redoStack[redoStack.length - 1]
+    setRedoStack(stack => stack.slice(0, -1))
+    setUndoStack(stack => [...stack, current])
+    skipHistoryRef.current = true
+    setNewTitle(next.title)
+    setNewPages(next.pages)
+    setStyle(next.style)
+    setCurrentPageIndex(i => Math.min(i, next.pages.length - 1))
+    lastSnapshotRef.current = next
+  }
+
+  // Wraps the current textarea selection in prefix/suffix (bold, italic) -
+  // works on a selection or, with none, just inserts the markers at the
+  // cursor for the next thing typed.
+  const applyInlineWrap = (prefix: string, suffix: string = prefix) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { selectionStart, selectionEnd, value } = textarea
+    const selected = value.slice(selectionStart, selectionEnd)
+    const newText = value.slice(0, selectionStart) + prefix + selected + suffix + value.slice(selectionEnd)
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + selected.length)
+    })
+  }
+
+  // Toggles a line-start prefix (bullet, heading) across every line the
+  // selection touches - clicking again with the same lines selected
+  // removes it, so the toolbar button doubles as on/off.
+  const applyLinePrefix = (prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { selectionStart, selectionEnd, value } = textarea
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+    const nextBreak = value.indexOf('\n', selectionEnd)
+    const lineEnd = nextBreak === -1 ? value.length : nextBreak
+    const lines = value.slice(lineStart, lineEnd).split('\n')
+    const allPrefixed = lines.every(l => l.startsWith(prefix))
+    const newLines = allPrefixed ? lines.map(l => l.slice(prefix.length)) : lines.map(l => (l.startsWith(prefix) ? l : prefix + l))
+    const newBlock = newLines.join('\n')
+    const newText = value.slice(0, lineStart) + newBlock + value.slice(lineEnd)
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(lineStart, lineStart + newBlock.length)
+    })
   }
 
   const handleSave = async () => {
@@ -450,12 +634,9 @@ export default function NotebookPage() {
     setSaving(true)
     const title = newTitle.trim() || 'Untitled'
     const pages = newPages.map(p => ({ ...p, text: p.text.trim() }))
-    // Catches a tag someone typed but never hit Enter on before saving.
-    const pendingTag = tagInput.trim()
-    const tags = pendingTag && !newTags.includes(pendingTag) ? [...newTags, pendingTag] : newTags
     const { error } = editingEntryId
-      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, pages, style, tags, newFiles, removedAttachmentIds)
-      : await createNotebookEntry(currentUser.id, notebookKey, title, pages, style, tags, newFiles)
+      ? await updateNotebookEntry(editingEntryId, currentUser.id, notebookKey, title, pages, style, newFiles, removedAttachmentIds)
+      : await createNotebookEntry(currentUser.id, notebookKey, title, pages, style, newFiles)
     setSaving(false)
     if (error) { showToast(error, 'error'); return }
     clearDraft(currentUser.id)
@@ -506,14 +687,10 @@ export default function NotebookPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Search, tag filter, and sort are all client-side over the
-  // already-decrypted list - nothing here ever leaves the device, same
-  // as the rest of the feature.
-  const allTags = Array.from(new Set(entries.flatMap(e => e.tags))).sort()
-
+  // Search and sort are client-side over the already-decrypted list -
+  // nothing here ever leaves the device, same as the rest of the feature.
   const visibleEntries = entries
     .filter(e => {
-      if (activeTagFilter && !e.tags.includes(activeTagFilter)) return false
       if (!searchQuery.trim()) return true
       const q = searchQuery.trim().toLowerCase()
       return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && p.text.toLowerCase().includes(q))
@@ -594,15 +771,6 @@ export default function NotebookPage() {
               <Download size={13} /> Download .txt
             </button>
           </div>
-          {newTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {newTags.map(t => (
-                <span key={t} className="flex items-center gap-1 bg-slate-deep border border-slate-border rounded-full px-2.5 py-1 text-xs text-cream-muted">
-                  <Tag size={10} /> {t}
-                </span>
-              ))}
-            </div>
-          )}
           {existingAttachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {existingAttachments.map(a => (
@@ -630,44 +798,7 @@ export default function NotebookPage() {
               <Palette size={13} /> Style
               {stylePanel === 'style' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
             </button>
-            <button
-              onClick={() => setStylePanel(p => p === 'tags' ? null : 'tags')}
-              className={`relative flex items-center gap-1.5 pb-2.5 text-xs font-bold transition-colors ${stylePanel === 'tags' ? 'text-teal-light' : 'text-cream-muted hover:text-cream'}`}
-            >
-              <Tag size={13} /> Tags{newTags.length > 0 ? ` (${newTags.length})` : ''}
-              {stylePanel === 'tags' && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-teal-light rounded-full" />}
-            </button>
           </div>
-
-          {stylePanel === 'tags' && (
-            <div className="flex flex-col gap-2 mb-3">
-              {newTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {newTags.map(t => (
-                    <span key={t} className="flex items-center gap-1 bg-slate-deep border border-slate-border rounded-full pl-2.5 pr-1.5 py-1 text-xs text-cream-muted">
-                      {t}
-                      <button onClick={() => setNewTags(prev => prev.filter(x => x !== t))} className="hover:text-red-400 p-0.5">
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <input
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key !== 'Enter') return
-                  e.preventDefault()
-                  const t = tagInput.trim()
-                  if (t && !newTags.includes(t)) setNewTags(prev => [...prev, t])
-                  setTagInput('')
-                }}
-                placeholder="Add a tag and press Enter"
-                className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
-              />
-            </div>
-          )}
 
           {stylePanel === 'font' && (
             <div className="flex gap-2 flex-wrap mb-3">
@@ -817,8 +948,9 @@ export default function NotebookPage() {
                   className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none"
                 />
               )}
+
               {!readOnly && (
-                <div className="flex gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5 mb-2">
                   <button
                     onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'text' } : p))}
                     style={{ color: style.textColor }}
@@ -842,6 +974,65 @@ export default function NotebookPage() {
                       <Eraser size={12} /> Clear
                     </button>
                   )}
+
+                  <div className="flex-1" />
+
+                  {/* Note-level undo/redo - separate from the browser's own
+                      per-field undo, which forgets everything the moment
+                      you switch pages. Works for drawing changes too,
+                      since a page's whole state (including its drawing)
+                      is part of each history snapshot. */}
+                  <button
+                    onClick={handleUndo}
+                    disabled={undoStack.length === 0}
+                    style={{ color: style.textColor }}
+                    className="p-1.5 rounded-full opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
+                    aria-label="Undo"
+                  >
+                    <Undo2 size={15} />
+                  </button>
+                  <button
+                    onClick={handleRedo}
+                    disabled={redoStack.length === 0}
+                    style={{ color: style.textColor }}
+                    className="p-1.5 rounded-full opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
+                    aria-label="Redo"
+                  >
+                    <Redo2 size={15} />
+                  </button>
+                </div>
+              )}
+
+              {!readOnly && newPages[currentPageIndex].type === 'text' && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <button
+                    onClick={() => applyInlineWrap('**')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Bold"
+                  >
+                    <Bold size={13} />
+                  </button>
+                  <button
+                    onClick={() => applyInlineWrap('*')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Italic"
+                  >
+                    <Italic size={13} />
+                  </button>
+                  <button
+                    onClick={() => applyLinePrefix('- ')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Bullet list"
+                  >
+                    <List size={13} />
+                  </button>
+                  <button
+                    onClick={() => applyLinePrefix('# ')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Heading"
+                  >
+                    <Heading1 size={13} />
+                  </button>
                 </div>
               )}
 
@@ -861,9 +1052,9 @@ export default function NotebookPage() {
                 ) : (
                   <div
                     style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                    className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
+                    className="flex-1 w-full min-h-[35vh] leading-relaxed"
                   >
-                    {newPages[currentPageIndex].text || <span className="opacity-50">This page is empty.</span>}
+                    {newPages[currentPageIndex].text ? renderMarkdown(newPages[currentPageIndex].text) : <span className="opacity-50">This page is empty.</span>}
                   </div>
                 )
               ) : newPages[currentPageIndex].type === 'drawing' ? (
@@ -875,9 +1066,10 @@ export default function NotebookPage() {
                 />
               ) : (
                 <textarea
+                  ref={textareaRef}
                   value={newPages[currentPageIndex].text}
                   onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: e.target.value } : p))}
-                  placeholder="Write as much as you want…"
+                  placeholder="Write as much as you want… (Markdown-style: **bold**, *italic*, - bullets, # heading)"
                   style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
                   className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
                 />
@@ -983,34 +1175,12 @@ export default function NotebookPage() {
                 </div>
               )}
 
-              {allTags.length > 0 && (
-                <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
-                  <button
-                    onClick={() => setActiveTagFilter(null)}
-                    className={`flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${!activeTagFilter ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-                  >
-                    All
-                  </button>
-                  {allTags.map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setActiveTagFilter(prev => prev === t ? null : t)}
-                      className={`flex-shrink-0 flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${activeTagFilter === t ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-                    >
-                      <Tag size={10} /> {t}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {loadingEntries ? (
                 <p className="text-cream-muted text-sm">Loading your notes…</p>
               ) : entries.length === 0 ? (
                 <p className="text-cream-muted text-sm">No notes yet — your first one is one tap away.</p>
               ) : visibleEntries.length === 0 ? (
-                <p className="text-cream-muted text-sm">
-                  {activeTagFilter ? `No notes tagged "${activeTagFilter}".` : `No notes match "${searchQuery}".`}
-                </p>
+                <p className="text-cream-muted text-sm">No notes match "{searchQuery}".</p>
               ) : (
                 visibleEntries.map(entry => (
                   <Card key={entry.id} onClick={() => openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
@@ -1043,20 +1213,6 @@ export default function NotebookPage() {
                               {entry.pages[0].text}
                             </p>
                           )
-                        )}
-                        {entry.tags.length > 0 && (
-                          <div onClick={e => e.stopPropagation()} className="flex flex-wrap gap-1.5 mt-2">
-                            {entry.tags.map(t => (
-                              <button
-                                key={t}
-                                onClick={() => setActiveTagFilter(t)}
-                                style={{ color: entry.style.textColor, borderColor: `${entry.style.textColor}30` }}
-                                className="flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 opacity-70 hover:opacity-100"
-                              >
-                                <Tag size={9} /> {t}
-                              </button>
-                            ))}
-                          </div>
                         )}
                         <p style={{ color: entry.style.textColor }} className="text-[10px] font-bold opacity-50 mt-2">
                           Edited {formatRelativeTime(entry.updatedAt)}
