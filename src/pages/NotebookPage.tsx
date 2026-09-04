@@ -18,7 +18,7 @@
 // fold, and the content area scrolls independently so nothing at the
 // bottom (the attach button, in particular) can get stranded off-screen.
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon,
@@ -239,13 +239,21 @@ function AttachmentChip({
 // fresh - the canvas only needs to load `initialDrawing` once, draw
 // locally at full speed, and hand back a finished PNG data URL on
 // pointer-up rather than re-rendering from that data URL on every stroke.
-function DrawingCanvas({
-  initialDrawing, strokeColor, onChange,
-}: {
+// Clearing is exposed as an imperative handle rather than driven off a
+// prop, because the canvas's pixels live in the browser's own canvas
+// bitmap, not in React state — flipping `drawing` to null in the parent
+// has nothing to redraw against, so the button needs to reach in and
+// wipe the actual canvas directly.
+export interface DrawingCanvasHandle {
+  clear: () => void
+}
+
+const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
   initialDrawing: string | null
   strokeColor: string
+  mode: 'pen' | 'eraser'
   onChange: (dataUrl: string) => void
-}) {
+}>(function DrawingCanvas({ initialDrawing, strokeColor, mode, onChange }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
@@ -260,6 +268,16 @@ function DrawingCanvas({
     // Intentionally runs once on mount only - see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useImperativeHandle(ref, () => ({
+    clear: () => {
+      const canvas = canvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (!canvas || !ctx) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      onChange('')
+    },
+  }))
 
   const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!
@@ -283,8 +301,13 @@ function DrawingCanvas({
     const point = pointFromEvent(e)
     const last = lastPointRef.current
     if (last) {
+      // Eraser is a pen that paints in "destination-out" instead of a
+      // color - wherever the stroke passes, it punches a transparent hole
+      // in whatever's already drawn there, rather than only being able to
+      // wipe the whole page at once.
+      ctx.globalCompositeOperation = mode === 'eraser' ? 'destination-out' : 'source-over'
       ctx.strokeStyle = strokeColor
-      ctx.lineWidth = 3
+      ctx.lineWidth = mode === 'eraser' ? 22 : 3
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.beginPath()
@@ -315,7 +338,7 @@ function DrawingCanvas({
       style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
     />
   )
-}
+})
 
 // One point in the note-level undo/redo history - the whole note as a
 // unit (title + every page + style), not per-field. This is deliberately
@@ -365,6 +388,8 @@ export default function NotebookPage() {
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const drawingCanvasRef = useRef<DrawingCanvasHandle>(null)
+  const [drawMode, setDrawMode] = useState<'pen' | 'eraser'>('pen')
 
   // Undo/redo - a stack of whole-note snapshots, separate from initialSnapshot
   // (which is only used to detect unsaved changes / dirtiness).
@@ -455,6 +480,8 @@ export default function NotebookPage() {
     return () => { if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTitle, newPages, style, composing, readOnly])
+
+  useEffect(() => { setDrawMode('pen') }, [currentPageIndex])
 
   if (!currentUser) return null
 
@@ -965,13 +992,31 @@ export default function NotebookPage() {
                   >
                     <PenLine size={12} /> Draw
                   </button>
+                  {newPages[currentPageIndex].type === 'drawing' && (
+                    <>
+                      <button
+                        onClick={() => setDrawMode('pen')}
+                        style={{ color: style.textColor }}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawMode === 'pen' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                      >
+                        <PenLine size={12} /> Pen
+                      </button>
+                      <button
+                        onClick={() => setDrawMode('eraser')}
+                        style={{ color: style.textColor }}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawMode === 'eraser' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                      >
+                        <Eraser size={12} /> Eraser
+                      </button>
+                    </>
+                  )}
                   {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
                     <button
-                      onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p))}
+                      onClick={() => drawingCanvasRef.current?.clear()}
                       style={{ color: style.textColor }}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-current/15 text-xs font-bold opacity-50 hover:opacity-80 transition-opacity"
                     >
-                      <Eraser size={12} /> Clear
+                      <Trash2 size={12} /> Clear
                     </button>
                   )}
 
@@ -1006,6 +1051,7 @@ export default function NotebookPage() {
               {!readOnly && newPages[currentPageIndex].type === 'text' && (
                 <div className="flex items-center gap-1.5 mb-2">
                   <button
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => applyInlineWrap('**')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Bold"
@@ -1013,6 +1059,7 @@ export default function NotebookPage() {
                     <Bold size={13} />
                   </button>
                   <button
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => applyInlineWrap('*')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Italic"
@@ -1020,6 +1067,7 @@ export default function NotebookPage() {
                     <Italic size={13} />
                   </button>
                   <button
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => applyLinePrefix('- ')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Bullet list"
@@ -1027,6 +1075,7 @@ export default function NotebookPage() {
                     <List size={13} />
                   </button>
                   <button
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => applyLinePrefix('# ')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Heading"
@@ -1059,9 +1108,11 @@ export default function NotebookPage() {
                 )
               ) : newPages[currentPageIndex].type === 'drawing' ? (
                 <DrawingCanvas
+                  ref={drawingCanvasRef}
                   key={currentPageIndex}
                   initialDrawing={newPages[currentPageIndex].drawing}
                   strokeColor={style.textColor}
+                  mode={drawMode}
                   onChange={dataUrl => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: dataUrl } : p))}
                 />
               ) : (
