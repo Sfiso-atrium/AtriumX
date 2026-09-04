@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon,
   ChevronLeft, ChevronRight, Search, Pencil, Copy, PenLine, Eraser,
-  Bold, Italic, List, Heading1, Undo2, Redo2,
+  Bold, Italic, Undo2, Redo2,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
@@ -61,86 +61,33 @@ function countWords(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
+// Page text is now formatted HTML (see RichTextEditor below), not markdown
+// source - anywhere that needs the plain words (word count, search,
+// export, card previews) needs to strip the markup first. Block-level
+// tags are turned into line breaks first so "<div>foo</div><div>bar</div>"
+// reads as two words, not one merged "foobar".
+function stripHtml(html: string): string {
+  const withBreaks = html.replace(/<(br|\/div|\/p)\s*\/?>/gi, '\n')
+  const div = document.createElement('div')
+  div.innerHTML = withBreaks
+  return (div.textContent || '').trim()
+}
+
 // Shared by "copy as text" and "download .txt" so both exports stay
 // identical - multi-page notes get a plain page separator, single-page
 // notes are just the title followed by the body. Drawing pages have no
 // text of their own, so they're represented with a plain placeholder -
-// a .txt file can't hold the image itself. Exported as the raw Markdown
-// source (not the rendered version) - a .txt file has no way to show
-// bold/italic/bullets/headings as anything other than their plain symbols.
+// a .txt file can't hold the image itself. Formatting (bold/italic) has
+// no plain-text equivalent, so the export is just the plain words.
 function buildNoteText(title: string, pages: NotebookPageData[]): string {
-  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : p.text
+  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : stripHtml(p.text)
   const body = pages.length > 1
     ? pages.map((p, i) => `--- Page ${i + 1} ---\n${pageText(p)}`).join('\n\n')
     : (pageText(pages[0]) || '')
   return `${title || 'Untitled'}\n\n${body}`
 }
 
-// ── Basic Markdown-style formatting ──
-//
-// Deliberately a source editor, not a WYSIWYG one: the textarea always
-// shows the raw **bold**/*italic*/- bullet/# heading syntax while editing
-// (so what you type is exactly what's stored, easy to reason about, and
-// needs no rich-text editing library), and it's only rendered into actual
-// bold text/bullets/headings in the read-only preview view. Typing the
-// syntax by hand always works too - the toolbar buttons are a shortcut
-// for wrapping/prefixing the current selection, not the only way in.
 
-// Inline spans within one line: **bold** before *italic* so "**x**" isn't
-// misread as an empty italic run followed by stray asterisks.
-function renderInline(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = []
-  let remaining = text
-  let key = 0
-  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/
-  while (remaining.length > 0) {
-    const match = remaining.match(pattern)
-    if (!match || match.index === undefined) { parts.push(remaining); break }
-    if (match.index > 0) parts.push(remaining.slice(0, match.index))
-    if (match[1] !== undefined) parts.push(<strong key={key++}>{match[1]}</strong>)
-    else parts.push(<em key={key++}>{match[2]}</em>)
-    remaining = remaining.slice(match.index + match[0].length)
-  }
-  return parts
-}
-
-// Block-level: groups consecutive "- "/"* " lines into one <ul>, "# "/"##
-// "/"### " lines into headings, everything else into paragraphs.
-function renderMarkdown(text: string): React.ReactNode {
-  const lines = text.split('\n')
-  const blocks: React.ReactNode[] = []
-  let bulletBuffer: string[] = []
-  let key = 0
-
-  const flushBullets = () => {
-    if (bulletBuffer.length === 0) return
-    blocks.push(
-      <ul key={`ul-${key++}`} className="list-disc pl-5 my-1 space-y-0.5">
-        {bulletBuffer.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
-      </ul>
-    )
-    bulletBuffer = []
-  }
-
-  for (const line of lines) {
-    const headingMatch = line.match(/^(#{1,3})\s+(.*)$/)
-    const bulletMatch = line.match(/^[-*]\s+(.*)$/)
-    if (headingMatch) {
-      flushBullets()
-      const level = headingMatch[1].length
-      const sizeClass = level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
-      blocks.push(<p key={key++} className={`${sizeClass} font-bold mt-2 mb-1`}>{renderInline(headingMatch[2])}</p>)
-    } else if (bulletMatch) {
-      bulletBuffer.push(bulletMatch[1])
-    } else {
-      flushBullets()
-      if (line.trim() === '') blocks.push(<div key={key++} className="h-3" />)
-      else blocks.push(<p key={key++} className="mb-1">{renderInline(line)}</p>)
-    }
-  }
-  flushBullets()
-  return blocks
-}
 
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
   { key: 'sans', label: 'Sans', stack: "'DM Sans', system-ui, sans-serif" },
@@ -340,6 +287,74 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
   )
 })
 
+// Live-formatting text editor for a page: selecting text and hitting
+// Bold/Italic makes it actually bold/italic on the spot, rather than
+// showing raw **markdown** syntax while editing. Keyed by the parent
+// (page index + an undo/redo revision counter) so it only reloads its
+// content from `initialHtml` on a page switch or an undo/redo step -
+// never on every keystroke, which would otherwise reset the caret
+// mid-typing since contentEditable owns its own DOM once mounted.
+export interface RichTextEditorHandle {
+  applyFormat: (command: 'bold' | 'italic') => void
+}
+
+const RichTextEditor = forwardRef<RichTextEditorHandle, {
+  initialHtml: string
+  textColor: string
+  fontFamily: string
+  placeholder: string
+  onChange: (html: string) => void
+}>(function RichTextEditor({ initialHtml, textColor, fontFamily, placeholder, onChange }, ref) {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const [isEmpty, setIsEmpty] = useState(() => stripHtml(initialHtml).length === 0)
+
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = initialHtml
+    setIsEmpty(stripHtml(initialHtml).length === 0)
+    // Intentionally runs once on mount only - see comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const syncFromDom = () => {
+    const html = editorRef.current?.innerHTML ?? ''
+    setIsEmpty(stripHtml(html).length === 0)
+    onChange(html)
+  }
+
+  useImperativeHandle(ref, () => ({
+    applyFormat: command => {
+      // The toolbar button's onMouseDown already keeps focus on the editor
+      // (see the Bold/Italic buttons below) so the selection made before
+      // tapping the button is still live here - re-focusing is just a
+      // defensive fallback.
+      editorRef.current?.focus()
+      document.execCommand(command)
+      syncFromDom()
+    },
+  }))
+
+  return (
+    <div className="relative flex-1 flex">
+      {isEmpty && (
+        <span
+          style={{ color: textColor, fontFamily }}
+          className="absolute inset-0 pointer-events-none opacity-50 leading-relaxed"
+        >
+          {placeholder}
+        </span>
+      )}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={syncFromDom}
+        style={{ color: textColor, fontFamily }}
+        className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none leading-relaxed whitespace-pre-wrap"
+      />
+    </div>
+  )
+})
+
 // One point in the note-level undo/redo history - the whole note as a
 // unit (title + every page + style), not per-field. This is deliberately
 // separate from the browser's native textarea undo, which only covers one
@@ -387,8 +402,9 @@ export default function NotebookPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const richEditorRef = useRef<RichTextEditorHandle>(null)
   const drawingCanvasRef = useRef<DrawingCanvasHandle>(null)
+  const [editorRevision, setEditorRevision] = useState(0)
   const [drawMode, setDrawMode] = useState<'pen' | 'eraser'>('pen')
 
   // Undo/redo - a stack of whole-note snapshots, separate from initialSnapshot
@@ -598,6 +614,10 @@ export default function NotebookPage() {
     setStyle(previous.style)
     setCurrentPageIndex(i => Math.min(i, previous.pages.length - 1))
     lastSnapshotRef.current = previous
+    // The rich text editor and drawing canvas each own their own DOM once
+    // mounted (so ordinary typing/drawing doesn't fight React re-renders) -
+    // bumping this forces them to remount and reload the restored content.
+    setEditorRevision(r => r + 1)
   }
 
   const handleRedo = () => {
@@ -612,49 +632,12 @@ export default function NotebookPage() {
     setStyle(next.style)
     setCurrentPageIndex(i => Math.min(i, next.pages.length - 1))
     lastSnapshotRef.current = next
-  }
-
-  // Wraps the current textarea selection in prefix/suffix (bold, italic) -
-  // works on a selection or, with none, just inserts the markers at the
-  // cursor for the next thing typed.
-  const applyInlineWrap = (prefix: string, suffix: string = prefix) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const { selectionStart, selectionEnd, value } = textarea
-    const selected = value.slice(selectionStart, selectionEnd)
-    const newText = value.slice(0, selectionStart) + prefix + selected + suffix + value.slice(selectionEnd)
-    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + selected.length)
-    })
-  }
-
-  // Toggles a line-start prefix (bullet, heading) across every line the
-  // selection touches - clicking again with the same lines selected
-  // removes it, so the toolbar button doubles as on/off.
-  const applyLinePrefix = (prefix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const { selectionStart, selectionEnd, value } = textarea
-    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
-    const nextBreak = value.indexOf('\n', selectionEnd)
-    const lineEnd = nextBreak === -1 ? value.length : nextBreak
-    const lines = value.slice(lineStart, lineEnd).split('\n')
-    const allPrefixed = lines.every(l => l.startsWith(prefix))
-    const newLines = allPrefixed ? lines.map(l => l.slice(prefix.length)) : lines.map(l => (l.startsWith(prefix) ? l : prefix + l))
-    const newBlock = newLines.join('\n')
-    const newText = value.slice(0, lineStart) + newBlock + value.slice(lineEnd)
-    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(lineStart, lineStart + newBlock.length)
-    })
+    setEditorRevision(r => r + 1)
   }
 
   const handleSave = async () => {
     if (!notebookKey) return
-    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : p.text.trim())
+    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : stripHtml(p.text).length > 0)
     if (!newTitle.trim() && !hasPageContent && newFiles.length === 0 && existingAttachments.length === 0) {
       showToast('Add a title, some text or a drawing, or a file first.', 'error'); return
     }
@@ -720,7 +703,7 @@ export default function NotebookPage() {
     .filter(e => {
       if (!searchQuery.trim()) return true
       const q = searchQuery.trim().toLowerCase()
-      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && p.text.toLowerCase().includes(q))
+      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && stripHtml(p.text).toLowerCase().includes(q))
     })
     .slice()
     .sort((a, b) => {
@@ -1052,7 +1035,7 @@ export default function NotebookPage() {
                 <div className="flex items-center gap-1.5 mb-2">
                   <button
                     onMouseDown={e => e.preventDefault()}
-                    onClick={() => applyInlineWrap('**')} style={{ color: style.textColor }}
+                    onClick={() => richEditorRef.current?.applyFormat('bold')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Bold"
                   >
@@ -1060,27 +1043,11 @@ export default function NotebookPage() {
                   </button>
                   <button
                     onMouseDown={e => e.preventDefault()}
-                    onClick={() => applyInlineWrap('*')} style={{ color: style.textColor }}
+                    onClick={() => richEditorRef.current?.applyFormat('italic')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Italic"
                   >
                     <Italic size={13} />
-                  </button>
-                  <button
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => applyLinePrefix('- ')} style={{ color: style.textColor }}
-                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
-                    aria-label="Bullet list"
-                  >
-                    <List size={13} />
-                  </button>
-                  <button
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => applyLinePrefix('# ')} style={{ color: style.textColor }}
-                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
-                    aria-label="Heading"
-                  >
-                    <Heading1 size={13} />
                   </button>
                 </div>
               )}
@@ -1101,35 +1068,40 @@ export default function NotebookPage() {
                 ) : (
                   <div
                     style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                    className="flex-1 w-full min-h-[35vh] leading-relaxed"
+                    className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
                   >
-                    {newPages[currentPageIndex].text ? renderMarkdown(newPages[currentPageIndex].text) : <span className="opacity-50">This page is empty.</span>}
+                    {stripHtml(newPages[currentPageIndex].text).length > 0 ? (
+                      <div dangerouslySetInnerHTML={{ __html: newPages[currentPageIndex].text }} />
+                    ) : (
+                      <span className="opacity-50">This page is empty.</span>
+                    )}
                   </div>
                 )
               ) : newPages[currentPageIndex].type === 'drawing' ? (
                 <DrawingCanvas
                   ref={drawingCanvasRef}
-                  key={currentPageIndex}
+                  key={`${currentPageIndex}-${editorRevision}`}
                   initialDrawing={newPages[currentPageIndex].drawing}
                   strokeColor={style.textColor}
                   mode={drawMode}
                   onChange={dataUrl => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: dataUrl } : p))}
                 />
               ) : (
-                <textarea
-                  ref={textareaRef}
-                  value={newPages[currentPageIndex].text}
-                  onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: e.target.value } : p))}
-                  placeholder="Write as much as you want… (Markdown-style: **bold**, *italic*, - bullets, # heading)"
-                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                  className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
+                <RichTextEditor
+                  ref={richEditorRef}
+                  key={`${currentPageIndex}-${editorRevision}`}
+                  initialHtml={newPages[currentPageIndex].text}
+                  textColor={style.textColor}
+                  fontFamily={FONT_STACK[style.font]}
+                  placeholder="Write as much as you want…"
+                  onChange={html => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: html } : p))}
                 />
               )}
 
               {!readOnly && newPages[currentPageIndex].type === 'text' && (
                 <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
-                  <span>{countWords(newPages[currentPageIndex].text)} words</span>
-                  <span>{newPages[currentPageIndex].text.length} characters</span>
+                  <span>{countWords(stripHtml(newPages[currentPageIndex].text))} words</span>
+                  <span>{stripHtml(newPages[currentPageIndex].text).length} characters</span>
                 </div>
               )}
 
@@ -1259,9 +1231,9 @@ export default function NotebookPage() {
                             />
                           )
                         ) : (
-                          entry.pages[0]?.text && (
+                          stripHtml(entry.pages[0]?.text ?? '') && (
                             <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
-                              {entry.pages[0].text}
+                              {stripHtml(entry.pages[0].text)}
                             </p>
                           )
                         )}
