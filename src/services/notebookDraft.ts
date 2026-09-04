@@ -21,7 +21,6 @@ export interface NotebookDraft {
   pages: NotebookPageData[]
   currentPageIndex: number
   style: NotebookStyle
-  tags: string[]
   savedAt: number
 }
 
