@@ -18,16 +18,17 @@
 // fold, and the content area scrolls independently so nothing at the
 // bottom (the attach button, in particular) can get stranded off-screen.
 
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  X, Lock, Plus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Search, Pencil, Copy, PenLine, Eraser,
-  Bold, Italic, Undo2, Redo2,
+  X, Lock, Plus, Minus, Paperclip, Download, Trash2, Type, Palette, Image as ImageIcon,
+  ChevronLeft, ChevronRight, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
+  Bold, Italic, List, Heading1, Undo2, Redo2,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE, emptyTextPage,
+  NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE,
+  DEFAULT_DRAWING_BACKGROUND, emptyTextPage,
   hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
   downloadNotebookAttachment, resetNotebook,
@@ -61,33 +62,86 @@ function countWords(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
-// Page text is now formatted HTML (see RichTextEditor below), not markdown
-// source - anywhere that needs the plain words (word count, search,
-// export, card previews) needs to strip the markup first. Block-level
-// tags are turned into line breaks first so "<div>foo</div><div>bar</div>"
-// reads as two words, not one merged "foobar".
-function stripHtml(html: string): string {
-  const withBreaks = html.replace(/<(br|\/div|\/p)\s*\/?>/gi, '\n')
-  const div = document.createElement('div')
-  div.innerHTML = withBreaks
-  return (div.textContent || '').trim()
-}
-
 // Shared by "copy as text" and "download .txt" so both exports stay
 // identical - multi-page notes get a plain page separator, single-page
 // notes are just the title followed by the body. Drawing pages have no
 // text of their own, so they're represented with a plain placeholder -
-// a .txt file can't hold the image itself. Formatting (bold/italic) has
-// no plain-text equivalent, so the export is just the plain words.
+// a .txt file can't hold the image itself. Exported as the raw Markdown
+// source (not the rendered version) - a .txt file has no way to show
+// bold/italic/bullets/headings as anything other than their plain symbols.
 function buildNoteText(title: string, pages: NotebookPageData[]): string {
-  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : stripHtml(p.text)
+  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : p.text
   const body = pages.length > 1
     ? pages.map((p, i) => `--- Page ${i + 1} ---\n${pageText(p)}`).join('\n\n')
     : (pageText(pages[0]) || '')
   return `${title || 'Untitled'}\n\n${body}`
 }
 
+// ── Basic Markdown-style formatting ──
+//
+// Deliberately a source editor, not a WYSIWYG one: the textarea always
+// shows the raw **bold**/*italic*/- bullet/# heading syntax while editing
+// (so what you type is exactly what's stored, easy to reason about, and
+// needs no rich-text editing library), and it's only rendered into actual
+// bold text/bullets/headings in the read-only preview view. Typing the
+// syntax by hand always works too - the toolbar buttons are a shortcut
+// for wrapping/prefixing the current selection, not the only way in.
 
+// Inline spans within one line: **bold** before *italic* so "**x**" isn't
+// misread as an empty italic run followed by stray asterisks.
+function renderInline(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  let remaining = text
+  let key = 0
+  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/
+  while (remaining.length > 0) {
+    const match = remaining.match(pattern)
+    if (!match || match.index === undefined) { parts.push(remaining); break }
+    if (match.index > 0) parts.push(remaining.slice(0, match.index))
+    if (match[1] !== undefined) parts.push(<strong key={key++}>{match[1]}</strong>)
+    else parts.push(<em key={key++}>{match[2]}</em>)
+    remaining = remaining.slice(match.index + match[0].length)
+  }
+  return parts
+}
+
+// Block-level: groups consecutive "- "/"* " lines into one <ul>, "# "/"##
+// "/"### " lines into headings, everything else into paragraphs.
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n')
+  const blocks: React.ReactNode[] = []
+  let bulletBuffer: string[] = []
+  let key = 0
+
+  const flushBullets = () => {
+    if (bulletBuffer.length === 0) return
+    blocks.push(
+      <ul key={`ul-${key++}`} className="list-disc pl-5 my-1 space-y-0.5">
+        {bulletBuffer.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
+      </ul>
+    )
+    bulletBuffer = []
+  }
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,3})\s+(.*)$/)
+    const bulletMatch = line.match(/^[-*]\s+(.*)$/)
+    if (headingMatch) {
+      flushBullets()
+      const level = headingMatch[1].length
+      const sizeClass = level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
+      blocks.push(<p key={key++} className={`${sizeClass} font-bold mt-2 mb-1`}>{renderInline(headingMatch[2])}</p>)
+    } else if (bulletMatch) {
+      bulletBuffer.push(bulletMatch[1])
+    } else {
+      flushBullets()
+      if (line.trim() === '') blocks.push(<div key={key++} className="h-3" />)
+      else blocks.push(<p key={key++} className="mb-1">{renderInline(line)}</p>)
+    }
+  }
+  flushBullets()
+  return blocks
+}
 
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
   { key: 'sans', label: 'Sans', stack: "'DM Sans', system-ui, sans-serif" },
@@ -186,21 +240,23 @@ function AttachmentChip({
 // fresh - the canvas only needs to load `initialDrawing` once, draw
 // locally at full speed, and hand back a finished PNG data URL on
 // pointer-up rather than re-rendering from that data URL on every stroke.
-// Clearing is exposed as an imperative handle rather than driven off a
-// prop, because the canvas's pixels live in the browser's own canvas
-// bitmap, not in React state — flipping `drawing` to null in the parent
-// has nothing to redraw against, so the button needs to reach in and
-// wipe the actual canvas directly.
-export interface DrawingCanvasHandle {
-  clear: () => void
-}
-
-const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
+//
+// The canvas itself is always transparent - `backgroundColor` is CSS on
+// the element, not baked into the saved PNG. That's what makes the
+// eraser actually work (destination-out punches real transparent holes,
+// which just reveal whatever background color is showing behind it) and
+// lets the background be changed later without touching anything already
+// drawn.
+function DrawingCanvas({
+  initialDrawing, strokeColor, strokeWidth, tool, backgroundColor, onChange,
+}: {
   initialDrawing: string | null
   strokeColor: string
-  mode: 'pen' | 'eraser'
+  strokeWidth: number
+  tool: 'pen' | 'eraser'
+  backgroundColor: string
   onChange: (dataUrl: string) => void
-}>(function DrawingCanvas({ initialDrawing, strokeColor, mode, onChange }, ref) {
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
@@ -215,16 +271,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
     // Intentionally runs once on mount only - see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useImperativeHandle(ref, () => ({
-    clear: () => {
-      const canvas = canvasRef.current
-      const ctx = canvas?.getContext('2d')
-      if (!canvas || !ctx) return
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      onChange('')
-    },
-  }))
 
   const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!
@@ -248,13 +294,13 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
     const point = pointFromEvent(e)
     const last = lastPointRef.current
     if (last) {
-      // Eraser is a pen that paints in "destination-out" instead of a
-      // color - wherever the stroke passes, it punches a transparent hole
-      // in whatever's already drawn there, rather than only being able to
-      // wipe the whole page at once.
-      ctx.globalCompositeOperation = mode === 'eraser' ? 'destination-out' : 'source-over'
+      // destination-out erases wherever the stroke passes (the actual
+      // color doesn't matter, only its opacity) - source-over is normal
+      // drawing. Both tools share the same size control on purpose, so
+      // adjusting size behaves predictably regardless of which tool is active.
+      ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over'
       ctx.strokeStyle = strokeColor
-      ctx.lineWidth = mode === 'eraser' ? 22 : 3
+      ctx.lineWidth = strokeWidth
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.beginPath()
@@ -282,78 +328,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, {
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       className="w-full flex-1 min-h-[35vh] rounded-lg touch-none"
-      style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+      style={{ backgroundColor }}
     />
   )
-})
-
-// Live-formatting text editor for a page: selecting text and hitting
-// Bold/Italic makes it actually bold/italic on the spot, rather than
-// showing raw **markdown** syntax while editing. Keyed by the parent
-// (page index + an undo/redo revision counter) so it only reloads its
-// content from `initialHtml` on a page switch or an undo/redo step -
-// never on every keystroke, which would otherwise reset the caret
-// mid-typing since contentEditable owns its own DOM once mounted.
-export interface RichTextEditorHandle {
-  applyFormat: (command: 'bold' | 'italic') => void
 }
-
-const RichTextEditor = forwardRef<RichTextEditorHandle, {
-  initialHtml: string
-  textColor: string
-  fontFamily: string
-  placeholder: string
-  onChange: (html: string) => void
-}>(function RichTextEditor({ initialHtml, textColor, fontFamily, placeholder, onChange }, ref) {
-  const editorRef = useRef<HTMLDivElement>(null)
-  const [isEmpty, setIsEmpty] = useState(() => stripHtml(initialHtml).length === 0)
-
-  useEffect(() => {
-    if (editorRef.current) editorRef.current.innerHTML = initialHtml
-    setIsEmpty(stripHtml(initialHtml).length === 0)
-    // Intentionally runs once on mount only - see comment above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const syncFromDom = () => {
-    const html = editorRef.current?.innerHTML ?? ''
-    setIsEmpty(stripHtml(html).length === 0)
-    onChange(html)
-  }
-
-  useImperativeHandle(ref, () => ({
-    applyFormat: command => {
-      // The toolbar button's onMouseDown already keeps focus on the editor
-      // (see the Bold/Italic buttons below) so the selection made before
-      // tapping the button is still live here - re-focusing is just a
-      // defensive fallback.
-      editorRef.current?.focus()
-      document.execCommand(command)
-      syncFromDom()
-    },
-  }))
-
-  return (
-    <div className="relative flex-1 flex">
-      {isEmpty && (
-        <span
-          style={{ color: textColor, fontFamily }}
-          className="absolute inset-0 pointer-events-none opacity-50 leading-relaxed"
-        >
-          {placeholder}
-        </span>
-      )}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={syncFromDom}
-        style={{ color: textColor, fontFamily }}
-        className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none leading-relaxed whitespace-pre-wrap"
-      />
-    </div>
-  )
-})
 
 // One point in the note-level undo/redo history - the whole note as a
 // unit (title + every page + style), not per-field. This is deliberately
@@ -402,10 +380,15 @@ export default function NotebookPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const richEditorRef = useRef<RichTextEditorHandle>(null)
-  const drawingCanvasRef = useRef<DrawingCanvasHandle>(null)
-  const [editorRevision, setEditorRevision] = useState(0)
-  const [drawMode, setDrawMode] = useState<'pen' | 'eraser'>('pen')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Drawing tool settings - live state for "what the next stroke looks
+  // like", not saved per note (same as any drawing app's current brush).
+  // Only the canvas background is actually persisted, since that's a
+  // property of the page itself rather than a tool setting.
+  const [penColor, setPenColor] = useState('#F0F4F8')
+  const [penSize, setPenSize] = useState(4)
+  const [drawTool, setDrawTool] = useState<'pen' | 'eraser'>('pen')
 
   // Undo/redo - a stack of whole-note snapshots, separate from initialSnapshot
   // (which is only used to detect unsaved changes / dirtiness).
@@ -496,8 +479,6 @@ export default function NotebookPage() {
     return () => { if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTitle, newPages, style, composing, readOnly])
-
-  useEffect(() => { setDrawMode('pen') }, [currentPageIndex])
 
   if (!currentUser) return null
 
@@ -614,10 +595,6 @@ export default function NotebookPage() {
     setStyle(previous.style)
     setCurrentPageIndex(i => Math.min(i, previous.pages.length - 1))
     lastSnapshotRef.current = previous
-    // The rich text editor and drawing canvas each own their own DOM once
-    // mounted (so ordinary typing/drawing doesn't fight React re-renders) -
-    // bumping this forces them to remount and reload the restored content.
-    setEditorRevision(r => r + 1)
   }
 
   const handleRedo = () => {
@@ -632,12 +609,55 @@ export default function NotebookPage() {
     setStyle(next.style)
     setCurrentPageIndex(i => Math.min(i, next.pages.length - 1))
     lastSnapshotRef.current = next
-    setEditorRevision(r => r + 1)
+  }
+
+  // Wraps the current textarea selection in prefix/suffix (bold, italic) -
+  // works on a selection or, with none, just inserts the markers at the
+  // cursor for the next thing typed.
+  const applyInlineWrap = (prefix: string, suffix: string = prefix) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { selectionStart, selectionEnd, value } = textarea
+    const selected = value.slice(selectionStart, selectionEnd)
+    const newText = value.slice(0, selectionStart) + prefix + selected + suffix + value.slice(selectionEnd)
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + selected.length)
+    })
+  }
+
+  // Toggles a line-start prefix (bullet, heading) across every line the
+  // selection touches - clicking again with the same lines selected
+  // removes it, so the toolbar button doubles as on/off.
+  const applyLinePrefix = (prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { selectionStart, selectionEnd, value } = textarea
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+    const nextBreak = value.indexOf('\n', selectionEnd)
+    const lineEnd = nextBreak === -1 ? value.length : nextBreak
+    const lines = value.slice(lineStart, lineEnd).split('\n')
+    const allPrefixed = lines.every(l => l.startsWith(prefix))
+    const newLines = allPrefixed ? lines.map(l => l.slice(prefix.length)) : lines.map(l => (l.startsWith(prefix) ? l : prefix + l))
+    const newBlock = newLines.join('\n')
+    const newText = value.slice(0, lineStart) + newBlock + value.slice(lineEnd)
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(lineStart, lineStart + newBlock.length)
+    })
+  }
+
+  // Sets the current drawing page's own background color - persisted per
+  // page (unlike pen color/size/tool, which are just live tool settings).
+  const setCurrentPageBackground = (color: string) => {
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawingBackground: color } : p))
   }
 
   const handleSave = async () => {
     if (!notebookKey) return
-    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : stripHtml(p.text).length > 0)
+    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : p.text.trim())
     if (!newTitle.trim() && !hasPageContent && newFiles.length === 0 && existingAttachments.length === 0) {
       showToast('Add a title, some text or a drawing, or a file first.', 'error'); return
     }
@@ -703,7 +723,7 @@ export default function NotebookPage() {
     .filter(e => {
       if (!searchQuery.trim()) return true
       const q = searchQuery.trim().toLowerCase()
-      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && stripHtml(p.text).toLowerCase().includes(q))
+      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && p.text.toLowerCase().includes(q))
     })
     .slice()
     .sort((a, b) => {
@@ -969,37 +989,19 @@ export default function NotebookPage() {
                     <Type size={12} /> Text
                   </button>
                   <button
-                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing' } : p))}
+                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing', drawingBackground: p.drawingBackground ?? DEFAULT_DRAWING_BACKGROUND } : p))}
                     style={{ color: style.textColor }}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'drawing' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
                   >
                     <PenLine size={12} /> Draw
                   </button>
-                  {newPages[currentPageIndex].type === 'drawing' && (
-                    <>
-                      <button
-                        onClick={() => setDrawMode('pen')}
-                        style={{ color: style.textColor }}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawMode === 'pen' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                      >
-                        <PenLine size={12} /> Pen
-                      </button>
-                      <button
-                        onClick={() => setDrawMode('eraser')}
-                        style={{ color: style.textColor }}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawMode === 'eraser' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                      >
-                        <Eraser size={12} /> Eraser
-                      </button>
-                    </>
-                  )}
                   {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
                     <button
-                      onClick={() => drawingCanvasRef.current?.clear()}
+                      onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p))}
                       style={{ color: style.textColor }}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-current/15 text-xs font-bold opacity-50 hover:opacity-80 transition-opacity"
                     >
-                      <Trash2 size={12} /> Clear
+                      <RotateCcw size={12} /> Clear
                     </button>
                   )}
 
@@ -1034,21 +1036,124 @@ export default function NotebookPage() {
               {!readOnly && newPages[currentPageIndex].type === 'text' && (
                 <div className="flex items-center gap-1.5 mb-2">
                   <button
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => richEditorRef.current?.applyFormat('bold')} style={{ color: style.textColor }}
+                    onClick={() => applyInlineWrap('**')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Bold"
                   >
                     <Bold size={13} />
                   </button>
                   <button
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => richEditorRef.current?.applyFormat('italic')} style={{ color: style.textColor }}
+                    onClick={() => applyInlineWrap('*')} style={{ color: style.textColor }}
                     className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
                     aria-label="Italic"
                   >
                     <Italic size={13} />
                   </button>
+                  <button
+                    onClick={() => applyLinePrefix('- ')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Bullet list"
+                  >
+                    <List size={13} />
+                  </button>
+                  <button
+                    onClick={() => applyLinePrefix('# ')} style={{ color: style.textColor }}
+                    className="p-1.5 rounded-lg border border-current/15 opacity-70 hover:opacity-100 transition-opacity"
+                    aria-label="Heading"
+                  >
+                    <Heading1 size={13} />
+                  </button>
+                </div>
+              )}
+
+              {!readOnly && newPages[currentPageIndex].type === 'drawing' && (
+                <div className="flex flex-col gap-2.5 mb-3 pb-3 border-b border-current/15">
+                  {/* Pen vs eraser - both share the same size control below,
+                      so switching tools mid-drawing keeps a predictable size. */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setDrawTool('pen')} style={{ color: style.textColor }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                    >
+                      <Pen size={12} /> Pen
+                    </button>
+                    <button
+                      onClick={() => setDrawTool('eraser')} style={{ color: style.textColor }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'eraser' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                    >
+                      <Eraser size={12} /> Eraser
+                    </button>
+                  </div>
+
+                  {/* Size is a free slider plus steppers, not a fixed set
+                      of presets - drag anywhere from 1 to 40px, or nudge
+                      it one pixel at a time with the +/- buttons. */}
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
+                    <button
+                      onClick={() => setPenSize(s => Math.max(1, s - 1))} style={{ color: style.textColor }}
+                      className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                      aria-label="Decrease size"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <input
+                      type="range" min={1} max={40} value={penSize}
+                      onChange={e => setPenSize(Number(e.target.value))}
+                      style={{ accentColor: style.textColor }}
+                      className="flex-1 min-w-0"
+                    />
+                    <button
+                      onClick={() => setPenSize(s => Math.min(40, s + 1))} style={{ color: style.textColor }}
+                      className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                      aria-label="Increase size"
+                    >
+                      <Plus size={13} />
+                    </button>
+                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
+                  </div>
+
+                  {/* Pen color - quick presets plus a real color picker for
+                      any color at all, not just what's swatched here. */}
+                  {drawTool === 'pen' && (
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {TEXT_COLOR_OPTIONS.map(c => (
+                          <button
+                            key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
+                            className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                          />
+                        ))}
+                        <input
+                          type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
+                          className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                          aria-label="Custom pen color"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Canvas background - same idea: presets plus a full
+                      picker, and it's saved per page. */}
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {BACKGROUND_OPTIONS.map(c => (
+                        <button
+                          key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
+                          className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                        onChange={e => setCurrentPageBackground(e.target.value)}
+                        className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                        aria-label="Custom page background color"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1058,50 +1163,49 @@ export default function NotebookPage() {
                     <img
                       src={newPages[currentPageIndex].drawing!} alt="Page drawing"
                       className="flex-1 w-full min-h-[35vh] object-contain rounded-lg"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                      style={{ backgroundColor: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
                     />
                   ) : (
-                    <div style={{ color: style.textColor }} className="flex-1 w-full min-h-[35vh] flex items-center justify-center opacity-50 text-sm">
+                    <div
+                      style={{ color: style.textColor, backgroundColor: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
+                      className="flex-1 w-full min-h-[35vh] flex items-center justify-center opacity-50 text-sm rounded-lg"
+                    >
                       This page is a blank drawing.
                     </div>
                   )
                 ) : (
                   <div
                     style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                    className="flex-1 w-full min-h-[35vh] leading-relaxed whitespace-pre-wrap"
+                    className="flex-1 w-full min-h-[35vh] leading-relaxed"
                   >
-                    {stripHtml(newPages[currentPageIndex].text).length > 0 ? (
-                      <div dangerouslySetInnerHTML={{ __html: newPages[currentPageIndex].text }} />
-                    ) : (
-                      <span className="opacity-50">This page is empty.</span>
-                    )}
+                    {newPages[currentPageIndex].text ? renderMarkdown(newPages[currentPageIndex].text) : <span className="opacity-50">This page is empty.</span>}
                   </div>
                 )
               ) : newPages[currentPageIndex].type === 'drawing' ? (
                 <DrawingCanvas
-                  ref={drawingCanvasRef}
-                  key={`${currentPageIndex}-${editorRevision}`}
+                  key={currentPageIndex}
                   initialDrawing={newPages[currentPageIndex].drawing}
-                  strokeColor={style.textColor}
-                  mode={drawMode}
+                  strokeColor={penColor}
+                  strokeWidth={penSize}
+                  tool={drawTool}
+                  backgroundColor={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
                   onChange={dataUrl => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: dataUrl } : p))}
                 />
               ) : (
-                <RichTextEditor
-                  ref={richEditorRef}
-                  key={`${currentPageIndex}-${editorRevision}`}
-                  initialHtml={newPages[currentPageIndex].text}
-                  textColor={style.textColor}
-                  fontFamily={FONT_STACK[style.font]}
-                  placeholder="Write as much as you want…"
-                  onChange={html => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: html } : p))}
+                <textarea
+                  ref={textareaRef}
+                  value={newPages[currentPageIndex].text}
+                  onChange={e => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: e.target.value } : p))}
+                  placeholder="Write as much as you want… (Markdown-style: **bold**, *italic*, - bullets, # heading)"
+                  style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                  className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none resize-none leading-relaxed placeholder:opacity-50"
                 />
               )}
 
               {!readOnly && newPages[currentPageIndex].type === 'text' && (
                 <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
-                  <span>{countWords(stripHtml(newPages[currentPageIndex].text))} words</span>
-                  <span>{stripHtml(newPages[currentPageIndex].text).length} characters</span>
+                  <span>{countWords(newPages[currentPageIndex].text)} words</span>
+                  <span>{newPages[currentPageIndex].text.length} characters</span>
                 </div>
               )}
 
@@ -1227,13 +1331,13 @@ export default function NotebookPage() {
                             <img
                               src={entry.pages[0].drawing} alt="Note drawing preview"
                               className="mt-2 h-20 rounded-lg object-cover"
-                              style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                              style={{ backgroundColor: entry.pages[0].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
                             />
                           )
                         ) : (
-                          stripHtml(entry.pages[0]?.text ?? '') && (
+                          entry.pages[0]?.text && (
                             <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
-                              {stripHtml(entry.pages[0].text)}
+                              {entry.pages[0].text}
                             </p>
                           )
                         )}
