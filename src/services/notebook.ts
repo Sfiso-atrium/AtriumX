@@ -41,15 +41,22 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
 // freehand drawing (PenLine mode in NotebookPage.tsx) - never both at
 // once, so a page only ever carries the field for its own type.
 // `drawing` holds a PNG data URL from the canvas, or null before
-// anything's been drawn on that page yet.
+// anything's been drawn on that page yet. `drawingBackground` is the
+// canvas's own background color, independent of the note's overall
+// style.background - only meaningful (non-null) on drawing pages, since
+// the canvas itself is transparent and this color is what actually shows
+// through wherever no ink was drawn.
 export interface NotebookPageData {
   type: 'text' | 'drawing'
   text: string
   drawing: string | null
+  drawingBackground: string | null
 }
 
+export const DEFAULT_DRAWING_BACKGROUND = '#FFFFFF'
+
 export function emptyTextPage(): NotebookPageData {
-  return { type: 'text', text: '', drawing: null }
+  return { type: 'text', text: '', drawing: null, drawingBackground: null }
 }
 
 export interface NotebookEntry {
@@ -105,19 +112,26 @@ export async function unlockNotebook(
   return { key, error: null }
 }
 
-// Three possible shapes can show up here depending on when a note was
+// Four possible shapes can show up here depending on when a note was
 // saved: oldest notes have only a single `body` string (pre-pages),
-// pre-drawing notes have `pages` as plain strings, and current notes have
-// `pages` as NotebookPageData objects. All three normalize to the same
-// NotebookPageData[] shape so the rest of the app only ever deals with one.
+// pre-drawing notes have `pages` as plain strings, notes saved before
+// per-page backgrounds have NotebookPageData objects with no
+// `drawingBackground`, and current notes have the full shape. All four
+// normalize to the same NotebookPageData[] shape so the rest of the app
+// only ever deals with one.
 function normalizePages(raw: unknown, legacyBody?: string): NotebookPageData[] {
   if (Array.isArray(raw) && raw.length > 0) {
     if (typeof raw[0] === 'string') {
-      return (raw as string[]).map(text => ({ type: 'text' as const, text, drawing: null }))
+      return (raw as string[]).map(text => ({ type: 'text' as const, text, drawing: null, drawingBackground: null }))
     }
-    return raw as NotebookPageData[]
+    return (raw as Partial<NotebookPageData>[]).map(p => ({
+      type: p.type === 'drawing' ? 'drawing' : 'text',
+      text: p.text ?? '',
+      drawing: p.drawing ?? null,
+      drawingBackground: p.drawingBackground ?? (p.type === 'drawing' ? DEFAULT_DRAWING_BACKGROUND : null),
+    }))
   }
-  return [{ type: 'text', text: legacyBody ?? '', drawing: null }]
+  return [{ type: 'text', text: legacyBody ?? '', drawing: null, drawingBackground: null }]
 }
 
 export async function listNotebookEntries(userId: string, key: CryptoKey): Promise<NotebookEntry[]> {
