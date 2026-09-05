@@ -62,85 +62,28 @@ function countWords(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
+// Gets plain text out of the small HTML the rich-text editor produces -
+// used for word/character counts, search matching, and the .txt export,
+// none of which should see the formatting markup itself.
+function stripHtml(html: string): string {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div.textContent || ''
+}
+
 // Shared by "copy as text" and "download .txt" so both exports stay
 // identical - multi-page notes get a plain page separator, single-page
 // notes are just the title followed by the body. Drawing pages have no
 // text of their own, so they're represented with a plain placeholder -
-// a .txt file can't hold the image itself. Exported as the raw Markdown
-// source (not the rendered version) - a .txt file has no way to show
-// bold/italic/bullets/headings as anything other than their plain symbols.
+// a .txt file can't hold the image itself. Formatting (bold/italic/
+// bullets/headings) doesn't survive into plain text, since .txt has no
+// way to represent it.
 function buildNoteText(title: string, pages: NotebookPageData[]): string {
-  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : p.text
+  const pageText = (p: NotebookPageData) => p.type === 'drawing' ? '[Drawing page]' : stripHtml(p.text)
   const body = pages.length > 1
     ? pages.map((p, i) => `--- Page ${i + 1} ---\n${pageText(p)}`).join('\n\n')
     : (pageText(pages[0]) || '')
   return `${title || 'Untitled'}\n\n${body}`
-}
-
-// ── Basic Markdown-style formatting ──
-//
-// Deliberately a source editor, not a WYSIWYG one: the textarea always
-// shows the raw **bold**/*italic*/- bullet/# heading syntax while editing
-// (so what you type is exactly what's stored, easy to reason about, and
-// needs no rich-text editing library), and it's only rendered into actual
-// bold text/bullets/headings in the read-only preview view. Typing the
-// syntax by hand always works too - the toolbar buttons are a shortcut
-// for wrapping/prefixing the current selection, not the only way in.
-
-// Inline spans within one line: **bold** before *italic* so "**x**" isn't
-// misread as an empty italic run followed by stray asterisks.
-function renderInline(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = []
-  let remaining = text
-  let key = 0
-  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/
-  while (remaining.length > 0) {
-    const match = remaining.match(pattern)
-    if (!match || match.index === undefined) { parts.push(remaining); break }
-    if (match.index > 0) parts.push(remaining.slice(0, match.index))
-    if (match[1] !== undefined) parts.push(<strong key={key++}>{match[1]}</strong>)
-    else parts.push(<em key={key++}>{match[2]}</em>)
-    remaining = remaining.slice(match.index + match[0].length)
-  }
-  return parts
-}
-
-// Block-level: groups consecutive "- "/"* " lines into one <ul>, "# "/"##
-// "/"### " lines into headings, everything else into paragraphs.
-function renderMarkdown(text: string): React.ReactNode {
-  const lines = text.split('\n')
-  const blocks: React.ReactNode[] = []
-  let bulletBuffer: string[] = []
-  let key = 0
-
-  const flushBullets = () => {
-    if (bulletBuffer.length === 0) return
-    blocks.push(
-      <ul key={`ul-${key++}`} className="list-disc pl-5 my-1 space-y-0.5">
-        {bulletBuffer.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
-      </ul>
-    )
-    bulletBuffer = []
-  }
-
-  for (const line of lines) {
-    const headingMatch = line.match(/^(#{1,3})\s+(.*)$/)
-    const bulletMatch = line.match(/^[-*]\s+(.*)$/)
-    if (headingMatch) {
-      flushBullets()
-      const level = headingMatch[1].length
-      const sizeClass = level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
-      blocks.push(<p key={key++} className={`${sizeClass} font-bold mt-2 mb-1`}>{renderInline(headingMatch[2])}</p>)
-    } else if (bulletMatch) {
-      bulletBuffer.push(bulletMatch[1])
-    } else {
-      flushBullets()
-      if (line.trim() === '') blocks.push(<div key={key++} className="h-3" />)
-      else blocks.push(<p key={key++} className="mb-1">{renderInline(line)}</p>)
-    }
-  }
-  flushBullets()
-  return blocks
 }
 
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
@@ -333,6 +276,53 @@ function DrawingCanvas({
   )
 }
 
+// A real formatting surface - actual bold/italic/bullets/headings shown
+// live, never marker characters like ** or # sitting in the text. This
+// replaces an earlier version that inserted literal Markdown syntax into
+// a plain textarea: clicking Bold with nothing selected dropped a pair of
+// ** markers and parked the cursor between them, and if focus moved away
+// (switching pages, clicking elsewhere) before the closing marker got
+// typed into, a stray, unpaired ** was left sitting in the note for good.
+// A contentEditable surface has no such marker to lose track of.
+//
+// Deliberately uncontrolled after mount, same pattern as DrawingCanvas
+// above: `initialHtml` is written into the DOM once via ref, then the
+// browser owns the content directly and onInput syncs it back into React
+// state. Driving this element's children from React on every keystroke
+// (the "obvious" controlled approach) resets the cursor to the start
+// after every character - a well-known contentEditable/React pitfall.
+// Keyed by page index *and* an undo/redo nonce in the parent, so an
+// actual remount (not a prop update) is what makes Undo/Redo visibly
+// restore old content here.
+function RichTextEditor({
+  initialHtml, editableRef, textColor, fontFamily, placeholder, onChange,
+}: {
+  initialHtml: string
+  editableRef: React.RefObject<HTMLDivElement>
+  textColor: string
+  fontFamily: string
+  placeholder: string
+  onChange: (html: string) => void
+}) {
+  useEffect(() => {
+    if (editableRef.current) editableRef.current.innerHTML = initialHtml
+    // Mount-only - see comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div
+      ref={editableRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={e => onChange((e.currentTarget as HTMLDivElement).innerHTML)}
+      data-placeholder={placeholder}
+      style={{ color: textColor, fontFamily }}
+      className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
+    />
+  )
+}
+
 // One point in the note-level undo/redo history - the whole note as a
 // unit (title + every page + style), not per-field. This is deliberately
 // separate from the browser's native textarea undo, which only covers one
@@ -380,7 +370,16 @@ export default function NotebookPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const editableRef = useRef<HTMLDivElement>(null)
+  // Bumped on every Undo/Redo. RichTextEditor is deliberately uncontrolled
+  // after mount (see its own comment), so restoring old content into view
+  // needs an actual remount, not just a prop change - including this in
+  // its `key` (alongside currentPageIndex) forces that remount.
+  const [editorNonce, setEditorNonce] = useState(0)
+  // Which formatting applies at the cursor right now, so the toolbar
+  // buttons can highlight themselves - kept in sync via a selectionchange
+  // listener below rather than re-checked on every render.
+  const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, bullet: false, heading: false })
 
   // Drawing tool settings - live state for "what the next stroke looks
   // like", not saved per note (same as any drawing app's current brush).
@@ -479,6 +478,25 @@ export default function NotebookPage() {
     return () => { if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTitle, newPages, style, composing, readOnly])
+
+  // Keeps the formatting toolbar's highlighted state (which button looks
+  // "active") matched to whatever's actually true at the cursor - e.g.
+  // the Bold button lights up while the cursor sits inside bold text.
+  useEffect(() => {
+    if (!composing || readOnly) return
+    const updateActiveFormats = () => {
+      if (!editableRef.current || !editableRef.current.contains(document.getSelection()?.anchorNode ?? null)) return
+      const blockTag = document.queryCommandValue('formatBlock').toUpperCase()
+      setActiveFormats({
+        bold: document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        bullet: document.queryCommandState('insertUnorderedList'),
+        heading: blockTag === 'H1' || blockTag === 'H2' || blockTag === 'H3',
+      })
+    }
+    document.addEventListener('selectionchange', updateActiveFormats)
+    return () => document.removeEventListener('selectionchange', updateActiveFormats)
+  }, [composing, readOnly, currentPageIndex])
 
   if (!currentUser) return null
 
@@ -611,42 +629,24 @@ export default function NotebookPage() {
     lastSnapshotRef.current = next
   }
 
-  // Wraps the current textarea selection in prefix/suffix (bold, italic) -
-  // works on a selection or, with none, just inserts the markers at the
-  // cursor for the next thing typed.
-  const applyInlineWrap = (prefix: string, suffix: string = prefix) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const { selectionStart, selectionEnd, value } = textarea
-    const selected = value.slice(selectionStart, selectionEnd)
-    const newText = value.slice(0, selectionStart) + prefix + selected + suffix + value.slice(selectionEnd)
-    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + selected.length)
-    })
+  // Reads the editable div's current HTML and syncs it into React state -
+  // called after every toolbar formatting action as a safety net, since
+  // execCommand's native 'input' event isn't 100% guaranteed to fire the
+  // same way across browsers the way a normal keystroke does.
+  const syncCurrentPageFromEditor = () => {
+    if (!editableRef.current) return
+    const html = editableRef.current.innerHTML
+    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: html } : p))
   }
 
-  // Toggles a line-start prefix (bullet, heading) across every line the
-  // selection touches - clicking again with the same lines selected
-  // removes it, so the toolbar button doubles as on/off.
-  const applyLinePrefix = (prefix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const { selectionStart, selectionEnd, value } = textarea
-    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
-    const nextBreak = value.indexOf('\n', selectionEnd)
-    const lineEnd = nextBreak === -1 ? value.length : nextBreak
-    const lines = value.slice(lineStart, lineEnd).split('\n')
-    const allPrefixed = lines.every(l => l.startsWith(prefix))
-    const newLines = allPrefixed ? lines.map(l => l.slice(prefix.length)) : lines.map(l => (l.startsWith(prefix) ? l : prefix + l))
-    const newBlock = newLines.join('\n')
-    const newText = value.slice(0, lineStart) + newBlock + value.slice(lineEnd)
-    setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: newText } : p))
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(lineStart, lineStart + newBlock.length)
-    })
+  const applyBold = () => { editableRef.current?.focus(); document.execCommand('bold'); syncCurrentPageFromEditor() }
+  const applyItalic = () => { editableRef.current?.focus(); document.execCommand('italic'); syncCurrentPageFromEditor() }
+  const applyBulletList = () => { editableRef.current?.focus(); document.execCommand('insertUnorderedList'); syncCurrentPageFromEditor() }
+  const applyHeading = () => {
+    editableRef.current?.focus()
+    const isHeading = document.queryCommandValue('formatBlock').toUpperCase() === 'H3'
+    document.execCommand('formatBlock', false, isHeading ? 'P' : 'H3')
+    syncCurrentPageFromEditor()
   }
 
   // Sets the current drawing page's own background color - persisted per
@@ -657,7 +657,7 @@ export default function NotebookPage() {
 
   const handleSave = async () => {
     if (!notebookKey) return
-    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : p.text.trim())
+    const hasPageContent = newPages.some(p => p.type === 'drawing' ? !!p.drawing : stripHtml(p.text).trim())
     if (!newTitle.trim() && !hasPageContent && newFiles.length === 0 && existingAttachments.length === 0) {
       showToast('Add a title, some text or a drawing, or a file first.', 'error'); return
     }
@@ -723,7 +723,7 @@ export default function NotebookPage() {
     .filter(e => {
       if (!searchQuery.trim()) return true
       const q = searchQuery.trim().toLowerCase()
-      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && p.text.toLowerCase().includes(q))
+      return e.title.toLowerCase().includes(q) || e.pages.some(p => p.type === 'text' && stripHtml(p.text).toLowerCase().includes(q))
     })
     .slice()
     .sort((a, b) => {
