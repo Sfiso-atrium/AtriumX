@@ -384,6 +384,10 @@ export default function NotebookPage() {
   // needs an actual remount, not just a prop change - including this in
   // its `key` (alongside currentPageIndex) forces that remount.
   const [editorNonce, setEditorNonce] = useState(0)
+  // Same idea as editorNonce, for DrawingCanvas: it's also uncontrolled
+  // after mount, so clearing a drawing (or undo/redo landing on a drawing
+  // page) needs a forced remount to actually repaint what's on screen.
+  const [drawingNonce, setDrawingNonce] = useState(0)
   // Which formatting applies at the cursor right now, so the toolbar
   // buttons can highlight themselves - kept in sync via a selectionchange
   // listener below rather than re-checked on every render.
@@ -624,6 +628,7 @@ export default function NotebookPage() {
     setStyle(previous.style)
     setCurrentPageIndex(i => Math.min(i, previous.pages.length - 1))
     setEditorNonce(n => n + 1)
+    setDrawingNonce(n => n + 1)
     lastSnapshotRef.current = previous
   }
 
@@ -639,6 +644,7 @@ export default function NotebookPage() {
     setStyle(next.style)
     setCurrentPageIndex(i => Math.min(i, next.pages.length - 1))
     setEditorNonce(n => n + 1)
+    setDrawingNonce(n => n + 1)
     lastSnapshotRef.current = next
   }
 
@@ -1037,18 +1043,192 @@ export default function NotebookPage() {
       )}
 
       {composing && notebookKey && !readOnly && (
-        <div className="flex-shrink-0 w-full px-4 pt-3">
-          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-border">
+        <div className="flex-shrink-0 w-full pt-3">
+          {/* Row 1: page-level controls, moved off the page itself so the
+              page only ever holds the note's actual content - Text/Draw,
+              page navigation, and note-level undo/redo (works for drawing
+              changes too, since a page's whole state is one snapshot). */}
+          <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border flex-wrap">
             <button
-              onClick={() => setStyleMenuOpen(o => !o)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+              onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'text' } : p))}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'text' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
             >
-              <Palette size={13} /> Style
+              <Type size={12} /> Text
+            </button>
+            <button
+              onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing', drawingBackground: p.drawingBackground ?? DEFAULT_DRAWING_BACKGROUND } : p))}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'drawing' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
+            >
+              <PenLine size={12} /> Draw
+            </button>
+            {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
+              <button
+                onClick={() => { setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p)); setDrawingNonce(n => n + 1) }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-slate-border text-xs font-bold text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <RotateCcw size={12} /> Clear
+              </button>
+            )}
+
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={() => setCurrentPageIndex(i => Math.max(0, i - 1))}
+                disabled={currentPageIndex === 0}
+                className="p-1.5 rounded-lg text-cream-muted opacity-70 hover:opacity-100 disabled:opacity-25 transition-opacity"
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-cream-muted text-xs font-bold opacity-70">
+                Page {currentPageIndex + 1} of {newPages.length}
+              </span>
+              {currentPageIndex === newPages.length - 1 ? (
+                <button
+                  onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-cream-muted opacity-80 hover:opacity-100 transition-opacity"
+                >
+                  <Plus size={13} /> Add page
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCurrentPageIndex(i => Math.min(newPages.length - 1, i + 1))}
+                  className="p-1.5 rounded-lg text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="w-px h-4 bg-slate-border mx-1" />
+
+            <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className="p-1.5 rounded-full text-cream-muted opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
+              aria-label="Undo"
+            >
+              <Undo2 size={15} />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={redoStack.length === 0}
+              className="p-1.5 rounded-full text-cream-muted opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
+              aria-label="Redo"
+            >
+              <Redo2 size={15} />
             </button>
           </div>
 
-          {styleMenuOpen && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3 pb-3 border-b border-slate-border">
+          {/* Row 2: contextual by page type. Text style must not appear
+              while drawing, and drawing tools must not appear while
+              writing - the two never show at the same time. */}
+          {newPages[currentPageIndex].type === 'text' ? (
+            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border">
+              <button
+                onClick={() => setStyleMenuOpen(o => !o)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+              >
+                <Palette size={13} /> Style
+              </button>
+              <button
+                onClick={applyBold}
+                className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.bold ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-70 border-slate-border text-cream-muted hover:opacity-100'}`}
+                aria-label="Bold"
+              >
+                <Bold size={13} />
+              </button>
+              <button
+                onClick={applyItalic}
+                className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.italic ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-70 border-slate-border text-cream-muted hover:opacity-100'}`}
+                aria-label="Italic"
+              >
+                <Italic size={13} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5 px-4 pb-3 border-b border-slate-border">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setDrawTool('pen')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
+                >
+                  <Pen size={12} /> Pen
+                </button>
+                <button
+                  onClick={() => setDrawTool('eraser')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'eraser' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
+                >
+                  <Eraser size={12} /> Eraser
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
+                <button
+                  onClick={() => setPenSize(s => Math.max(1, s - 1))}
+                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                  aria-label="Decrease size"
+                >
+                  <Minus size={13} />
+                </button>
+                <input
+                  type="range" min={1} max={40} value={penSize}
+                  onChange={e => setPenSize(Number(e.target.value))}
+                  className="flex-1 min-w-0"
+                />
+                <button
+                  onClick={() => setPenSize(s => Math.min(40, s + 1))}
+                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                  aria-label="Increase size"
+                >
+                  <Plus size={13} />
+                </button>
+                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
+              </div>
+
+              {drawTool === 'pen' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {TEXT_COLOR_OPTIONS.map(c => (
+                      <button
+                        key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
+                        className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                      />
+                    ))}
+                    <input
+                      type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
+                      className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                      aria-label="Custom pen color"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {BACKGROUND_OPTIONS.map(c => (
+                    <button
+                      key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
+                      className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                    onChange={e => setCurrentPageBackground(e.target.value)}
+                    className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                    aria-label="Custom page background color"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {newPages[currentPageIndex].type === 'text' && styleMenuOpen && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3 border-b border-slate-border">
               <div className="flex items-center gap-1.5">
                 <Type size={13} className="text-cream-muted flex-shrink-0" />
                 {FONT_OPTIONS.map(f => (
@@ -1086,7 +1266,7 @@ export default function NotebookPage() {
           )}
 
           {(existingAttachments.length > 0 || newFiles.length > 0) && (
-            <div className="flex flex-wrap gap-2 mb-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-2 px-4">
               {existingAttachments.map(a => (
                 <AttachmentChip key={a.id} attachment={a} notebookKey={notebookKey} onRemove={() => handleRemoveExistingAttachment(a.id)} />
               ))}
@@ -1107,7 +1287,7 @@ export default function NotebookPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 border border-slate-border text-cream-muted hover:border-teal-light hover:text-teal-light font-bold px-3 py-2 rounded-xl text-xs transition-colors mb-2"
+            className="flex items-center gap-1.5 border border-slate-border text-cream-muted hover:border-teal-light hover:text-teal-light font-bold px-3 py-2 rounded-xl text-xs transition-colors mt-2 mx-4"
           >
             <Paperclip size={14} /> Attach a file
           </button>
@@ -1151,183 +1331,6 @@ export default function NotebookPage() {
                 />
               )}
 
-              {!readOnly && (
-                <div className="flex items-center gap-1.5 mb-2">
-                  <button
-                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'text' } : p))}
-                    style={{ color: style.textColor }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'text' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                  >
-                    <Type size={12} /> Text
-                  </button>
-                  <button
-                    onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing', drawingBackground: p.drawingBackground ?? DEFAULT_DRAWING_BACKGROUND } : p))}
-                    style={{ color: style.textColor }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'drawing' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                  >
-                    <PenLine size={12} /> Draw
-                  </button>
-                  {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
-                    <button
-                      onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p))}
-                      style={{ color: style.textColor }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-current/15 text-xs font-bold opacity-50 hover:opacity-80 transition-opacity"
-                    >
-                      <RotateCcw size={12} /> Clear
-                    </button>
-                  )}
-
-                  <div className="flex-1" />
-
-                  {/* Note-level undo/redo - separate from the browser's own
-                      per-field undo, which forgets everything the moment
-                      you switch pages. Works for drawing changes too,
-                      since a page's whole state (including its drawing)
-                      is part of each history snapshot. */}
-                  <button
-                    onClick={handleUndo}
-                    disabled={undoStack.length === 0}
-                    style={{ color: style.textColor }}
-                    className="p-1.5 rounded-full opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
-                    aria-label="Undo"
-                  >
-                    <Undo2 size={15} />
-                  </button>
-                  <button
-                    onClick={handleRedo}
-                    disabled={redoStack.length === 0}
-                    style={{ color: style.textColor }}
-                    className="p-1.5 rounded-full opacity-70 hover:opacity-100 disabled:opacity-20 transition-opacity"
-                    aria-label="Redo"
-                  >
-                    <Redo2 size={15} />
-                  </button>
-                </div>
-              )}
-
-              {!readOnly && newPages[currentPageIndex].type === 'text' && (
-                <div className="flex items-center gap-1.5 mb-2">
-                  <button
-                    onClick={applyBold} style={{ color: style.textColor }}
-                    className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.bold ? 'opacity-100 border-current/50' : 'opacity-70 border-current/15 hover:opacity-100'}`}
-                    aria-label="Bold"
-                  >
-                    <Bold size={13} />
-                  </button>
-                  <button
-                    onClick={applyItalic} style={{ color: style.textColor }}
-                    className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.italic ? 'opacity-100 border-current/50' : 'opacity-70 border-current/15 hover:opacity-100'}`}
-                    aria-label="Italic"
-                  >
-                    <Italic size={13} />
-                  </button>
-                  <button
-                    onClick={applyBulletList} style={{ color: style.textColor }}
-                    className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.bullet ? 'opacity-100 border-current/50' : 'opacity-70 border-current/15 hover:opacity-100'}`}
-                    aria-label="Bullet list"
-                  >
-                    <List size={13} />
-                  </button>
-                  <button
-                    onClick={applyHeading} style={{ color: style.textColor }}
-                    className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.heading ? 'opacity-100 border-current/50' : 'opacity-70 border-current/15 hover:opacity-100'}`}
-                    aria-label="Heading"
-                  >
-                    <Heading1 size={13} />
-                  </button>
-                </div>
-              )}
-
-              {!readOnly && newPages[currentPageIndex].type === 'drawing' && (
-                <div className="flex flex-col gap-2.5 mb-3 pb-3 border-b border-current/15">
-                  {/* Pen vs eraser - both share the same size control below,
-                      so switching tools mid-drawing keeps a predictable size. */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setDrawTool('pen')} style={{ color: style.textColor }}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                    >
-                      <Pen size={12} /> Pen
-                    </button>
-                    <button
-                      onClick={() => setDrawTool('eraser')} style={{ color: style.textColor }}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'eraser' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
-                    >
-                      <Eraser size={12} /> Eraser
-                    </button>
-                  </div>
-
-                  {/* Size is a free slider plus steppers, not a fixed set
-                      of presets - drag anywhere from 1 to 40px, or nudge
-                      it one pixel at a time with the +/- buttons. */}
-                  <div className="flex items-center gap-2">
-                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
-                    <button
-                      onClick={() => setPenSize(s => Math.max(1, s - 1))} style={{ color: style.textColor }}
-                      className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                      aria-label="Decrease size"
-                    >
-                      <Minus size={13} />
-                    </button>
-                    <input
-                      type="range" min={1} max={40} value={penSize}
-                      onChange={e => setPenSize(Number(e.target.value))}
-                      style={{ accentColor: style.textColor }}
-                      className="flex-1 min-w-0"
-                    />
-                    <button
-                      onClick={() => setPenSize(s => Math.min(40, s + 1))} style={{ color: style.textColor }}
-                      className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                      aria-label="Increase size"
-                    >
-                      <Plus size={13} />
-                    </button>
-                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
-                  </div>
-
-                  {/* Pen color - quick presets plus a real color picker for
-                      any color at all, not just what's swatched here. */}
-                  {drawTool === 'pen' && (
-                    <div className="flex items-center gap-2">
-                      <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {TEXT_COLOR_OPTIONS.map(c => (
-                          <button
-                            key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
-                            className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                          />
-                        ))}
-                        <input
-                          type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
-                          className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                          aria-label="Custom pen color"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Canvas background - same idea: presets plus a full
-                      picker, and it's saved per page. */}
-                  <div className="flex items-center gap-2">
-                    <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {BACKGROUND_OPTIONS.map(c => (
-                        <button
-                          key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
-                          className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                        />
-                      ))}
-                      <input
-                        type="color"
-                        value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                        onChange={e => setCurrentPageBackground(e.target.value)}
-                        className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                        aria-label="Custom page background color"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {readOnly ? (
                 newPages[currentPageIndex].type === 'drawing' ? (
@@ -1358,7 +1361,7 @@ export default function NotebookPage() {
                 )
               ) : newPages[currentPageIndex].type === 'drawing' ? (
                 <DrawingCanvas
-                  key={currentPageIndex}
+                  key={`${currentPageIndex}-${drawingNonce}`}
                   initialDrawing={newPages[currentPageIndex].drawing}
                   strokeColor={penColor}
                   strokeWidth={penSize}
@@ -1385,46 +1388,6 @@ export default function NotebookPage() {
                 </div>
               )}
 
-              {/* Page navigation — a note is one or more pages; "skip to
-                  the next one" is exactly the Next/Add page control below. */}
-              <div className="flex items-center justify-between pt-3 mt-1 border-t border-current/15">
-                <button
-                  onClick={() => setCurrentPageIndex(i => Math.max(0, i - 1))}
-                  disabled={currentPageIndex === 0}
-                  style={{ color: style.textColor }}
-                  className="p-1.5 rounded-lg opacity-70 hover:opacity-100 disabled:opacity-25 transition-opacity"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft size={17} />
-                </button>
-
-                <span style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }} className="text-xs font-bold opacity-70">
-                  Page {currentPageIndex + 1} of {newPages.length}
-                </span>
-
-                {currentPageIndex === newPages.length - 1 ? (
-                  readOnly ? (
-                    <span className="w-6" />
-                  ) : (
-                    <button
-                      onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
-                      style={{ color: style.textColor }}
-                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
-                    >
-                      <Plus size={14} /> Add page
-                    </button>
-                  )
-                ) : (
-                  <button
-                    onClick={() => setCurrentPageIndex(i => Math.min(newPages.length - 1, i + 1))}
-                    style={{ color: style.textColor }}
-                    className="p-1.5 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
-                    aria-label="Next page"
-                  >
-                    <ChevronRight size={17} />
-                  </button>
-                )}
-              </div>
             </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-cream-muted text-sm">
