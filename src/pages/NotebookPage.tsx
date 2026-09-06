@@ -10,13 +10,12 @@
 // memory, for as long as this page stays mounted - closing it (the X
 // button) clears it, same as leaving Focus Mode ends that session.
 //
-// Layout note: the top bar and the style/attach toolbar are outside the
-// scrolling content area on purpose. Attaching a file used to only show
-// a confirmation chip below a very tall textarea, which on most screens
-// was scrolled out of view — easy to attach something and never see any
-// sign of it. Chips now render right under the toolbar, always above the
-// fold, and the content area scrolls independently so nothing at the
-// bottom (the attach button, in particular) can get stranded off-screen.
+// Layout note: the top bar and the style toolbar are outside the
+// scrolling content area on purpose, so they're always reachable without
+// hunting for them mid-scroll. There's no "attach a file" button anymore -
+// pasting an image (Ctrl+V) inserts it directly into the page at the
+// cursor; see RichTextEditor's onPaste below. Any attachments already
+// saved on older notes still show as chips and can still be downloaded.
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -354,6 +353,29 @@ function RichTextEditor({
     onChange((e.currentTarget as HTMLDivElement).innerHTML)
   }
 
+  // Ctrl+V with a screenshot/image on the clipboard inserts it right where
+  // the cursor is, inline with the text - this is the entire "attach a
+  // screenshot" feature now; there's no separate upload button or attached
+  // file. The image just becomes part of this page's own HTML content.
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (!item.type.startsWith('image/')) continue
+      const file = item.getAsFile()
+      if (!file) continue
+      e.preventDefault()
+      const reader = new FileReader()
+      reader.onload = () => {
+        document.execCommand('insertImage', false, reader.result as string)
+        onChange((localRef.current as HTMLDivElement).innerHTML)
+      }
+      reader.readAsDataURL(file)
+      return
+    }
+    // No image on the clipboard - let the browser paste text normally.
+  }
+
   return (
     <div
       ref={el => { localRef.current = el; registerRef(el) }}
@@ -362,9 +384,10 @@ function RichTextEditor({
       onFocus={onFocus}
       onInput={e => onChange((e.currentTarget as HTMLDivElement).innerHTML)}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
       data-placeholder={placeholder}
       style={{ color: textColor, fontFamily }}
-      className="w-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
+      className="w-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2 empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
     />
   )
 }
@@ -413,10 +436,10 @@ export default function NotebookPage() {
   // button - clicking it reveals all of them together, rather than each
   // living in its own always-visible row.
   const [styleMenuOpen, setStyleMenuOpen] = useState(false)
-  // Collapses everything from the Style/formatting row down through
-  // "Attach a file" - Row 1 (Text/Draw, page navigation, Undo/Redo) stays
-  // visible either way, since those are needed regardless of whether
-  // you're trying to maximize writing space right now.
+  // Collapses everything from the Style/formatting row down - Row 1
+  // (Text/Draw, page navigation, Undo/Redo) stays visible either way,
+  // since those are needed regardless of whether you're trying to
+  // maximize writing space right now.
   const [toolsHidden, setToolsHidden] = useState(false)
   const [initialSnapshot, setInitialSnapshot] = useState<NoteSnapshot | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -425,16 +448,16 @@ export default function NotebookPage() {
   // popup is showing, and the text being typed into it.
   const [pendingNewNoteKind, setPendingNewNoteKind] = useState<'text' | 'drawing' | null>(null)
   const [newNoteTitleDraft, setNewNoteTitleDraft] = useState('')
-  // Cards default to a compact one-line title - tapping "Show details" on
-  // a card reveals its full title plus the exact creation date/time,
-  // rather than cramming all of that into every card all the time.
+  // Cards show only the title by default - no content preview, no dates -
+  // tapping "Show details" reveals the exact creation date/time, the
+  // last-edited time, and any attachments, without cluttering every card
+  // in the list all the time.
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null)
   const [renamingEntryId, setRenamingEntryId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
-  const fileInputRef = useRef<HTMLInputElement>(null)
   // One DOM ref per page, since every page's RichTextEditor is mounted at
   // once now (stacked vertically) rather than only the "current" one.
   const editableRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -1218,25 +1241,12 @@ export default function NotebookPage() {
                             </button>
                           </div>
                         )}
-                        {entry.pages[0]?.type === 'drawing' ? (
-                          entry.pages[0].drawing && (
-                            <img
-                              src={entry.pages[0].drawing} alt="Note drawing preview"
-                              className="mt-2 h-20 object-cover"
-                              style={{ backgroundColor: entry.pages[0].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
-                            />
-                          )
-                        ) : (
-                          entry.pages[0]?.text && (
-                            <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="text-sm mt-1 whitespace-pre-wrap opacity-90 line-clamp-4">
-                              {stripHtml(entry.pages[0].text)}
-                            </p>
-                          )
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <p style={{ color: entry.style.textColor }} className="text-[10px] font-bold opacity-50">
+                        {isExpanded && (
+                          <p style={{ color: entry.style.textColor }} className="text-[11px] font-bold opacity-70 mt-1">
                             Edited {formatRelativeTime(entry.updatedAt)}
                           </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
                           <button
                             onClick={e => { e.stopPropagation(); setExpandedEntryId(isExpanded ? null : entry.id) }}
                             style={{ color: entry.style.textColor }}
@@ -1282,7 +1292,7 @@ export default function NotebookPage() {
                       </div>
                     )}
 
-                    {entry.attachments.length > 0 && (
+                    {isExpanded && entry.attachments.length > 0 && (
                       <div onClick={e => e.stopPropagation()} className="flex flex-wrap gap-2 mt-3">
                         {entry.attachments.map(a => (
                           <AttachmentChip key={a.id} attachment={a} notebookKey={notebookKey} />
@@ -1522,32 +1532,13 @@ export default function NotebookPage() {
             )
           )}
 
-          {(existingAttachments.length > 0 || newFiles.length > 0) && (
+          {existingAttachments.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2 px-4">
               {existingAttachments.map(a => (
                 <AttachmentChip key={a.id} attachment={a} notebookKey={notebookKey} onRemove={() => handleRemoveExistingAttachment(a.id)} />
               ))}
-              {newFiles.map((f, i) => (
-                <span key={i} className="flex items-center gap-1 bg-slate-card border border-slate-border rounded-lg px-2 py-1 text-xs text-cream-muted">
-                  {f.name}
-                  <button onClick={() => setNewFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-400">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
             </div>
           )}
-
-          <input
-            ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
-            onChange={e => { if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]); e.target.value = '' }}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 border border-slate-border text-cream-muted hover:border-teal-light hover:text-teal-light font-bold px-3 py-2 rounded-xl text-xs transition-colors mt-2 mx-4"
-          >
-            <ImageIcon size={14} /> Attach a screenshot
-          </button>
             </>
           )}
         </div>
@@ -1621,22 +1612,14 @@ export default function NotebookPage() {
                   <div
                     key={i}
                     style={{ backgroundColor: style.background }}
-                    className="w-full max-w-2xl mx-auto flex-shrink-0 h-[85vh] flex flex-col p-4"
+                    className="relative w-full max-w-2xl mx-auto flex-shrink-0 h-[85vh] flex flex-col p-4 pb-9"
                   >
-                    {newPages.length > 1 && (
-                      <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                        <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-50">
-                          Page {i + 1}
-                        </span>
-                      </div>
-                    )}
-
                     <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-y-auto">
                     {readOnly ? (
                       page.text ? (
                         <div
                           style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                          className="w-full leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold"
+                          className="w-full leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2"
                           dangerouslySetInnerHTML={{ __html: page.text }}
                         />
                       ) : (
@@ -1663,6 +1646,15 @@ export default function NotebookPage() {
                         <span>{countWords(stripHtml(page.text))} words</span>
                         <span>{stripHtml(page.text).length} characters</span>
                       </div>
+                    )}
+
+                    {newPages.length > 1 && (
+                      <span
+                        style={{ color: style.textColor }}
+                        className="absolute bottom-2 inset-x-0 text-center text-[11px] font-bold opacity-50 pointer-events-none"
+                      >
+                        {i + 1}
+                      </span>
                     )}
                   </div>
                 ))}
