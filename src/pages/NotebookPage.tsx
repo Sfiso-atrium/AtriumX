@@ -998,7 +998,6 @@ export default function NotebookPage() {
               )}
             </div>
           </div>
-        </div>
 
           {/* Main pane: the open note. Always visible on wider screens
               (showing an empty-state placeholder when nothing's open) -
