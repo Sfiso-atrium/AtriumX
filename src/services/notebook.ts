@@ -59,6 +59,10 @@ export function emptyTextPage(): NotebookPageData {
   return { type: 'text', text: '', drawing: null, drawingBackground: null }
 }
 
+export function emptyDrawingPage(): NotebookPageData {
+  return { type: 'drawing', text: '', drawing: null, drawingBackground: DEFAULT_DRAWING_BACKGROUND }
+}
+
 export interface NotebookEntry {
   id: string
   title: string
