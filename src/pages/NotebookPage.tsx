@@ -22,7 +22,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   X, Lock, Plus, Minus, Paperclip, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
   Bold, Italic, List, Heading1, Undo2, Redo2,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -367,6 +367,11 @@ export default function NotebookPage() {
   // button - clicking it reveals all of them together, rather than each
   // living in its own always-visible row.
   const [styleMenuOpen, setStyleMenuOpen] = useState(false)
+  // Collapses everything from the Style/formatting row down through
+  // "Attach a file" - Row 1 (Text/Draw, page navigation, Undo/Redo) stays
+  // visible either way, since those are needed regardless of whether
+  // you're trying to maximize writing space right now.
+  const [toolsHidden, setToolsHidden] = useState(false)
   // Drives the date/time line shown above the title while composing - the
   // note's own createdAt for an existing note, or the moment it was opened
   // for a brand-new one. Captured once at open time rather than read live,
@@ -1118,11 +1123,27 @@ export default function NotebookPage() {
             >
               <Redo2 size={15} />
             </button>
+
+            <div className="w-px h-4 bg-slate-border mx-1" />
+
+            <button
+              onClick={() => setToolsHidden(h => !h)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
+            >
+              {toolsHidden ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              {toolsHidden ? 'Show tools' : 'Hide tools'}
+            </button>
           </div>
 
+          {!toolsHidden && (
+            <>
           {/* Row 2: contextual by page type. Text style must not appear
               while drawing, and drawing tools must not appear while
-              writing - the two never show at the same time. */}
+              writing - the two never show at the same time. Both branches
+              keep only their primary action inline (Bold/Italic for text,
+              Pen/Eraser for drawing) - everything else (fonts, colors,
+              backgrounds, pen size) lives behind the shared Style toggle
+              below, so this row never grows past one line. */}
           {newPages[currentPageIndex].type === 'text' ? (
             <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border">
               <button
@@ -1147,122 +1168,130 @@ export default function NotebookPage() {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5 px-4 pb-3 border-b border-slate-border">
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setDrawTool('pen')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
-                >
-                  <Pen size={12} /> Pen
-                </button>
-                <button
-                  onClick={() => setDrawTool('eraser')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'eraser' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
-                >
-                  <Eraser size={12} /> Eraser
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
-                <button
-                  onClick={() => setPenSize(s => Math.max(1, s - 1))}
-                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                  aria-label="Decrease size"
-                >
-                  <Minus size={13} />
-                </button>
-                <input
-                  type="range" min={1} max={40} value={penSize}
-                  onChange={e => setPenSize(Number(e.target.value))}
-                  className="flex-1 min-w-0"
-                />
-                <button
-                  onClick={() => setPenSize(s => Math.min(40, s + 1))}
-                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                  aria-label="Increase size"
-                >
-                  <Plus size={13} />
-                </button>
-                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
-              </div>
-
-              {drawTool === 'pen' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {TEXT_COLOR_OPTIONS.map(c => (
-                      <button
-                        key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
-                        className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                      />
-                    ))}
-                    <input
-                      type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
-                      className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                      aria-label="Custom pen color"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {BACKGROUND_OPTIONS.map(c => (
-                    <button
-                      key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
-                      className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                    />
-                  ))}
-                  <input
-                    type="color"
-                    value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                    onChange={e => setCurrentPageBackground(e.target.value)}
-                    className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                    aria-label="Custom page background color"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border">
+              <button
+                onClick={() => setStyleMenuOpen(o => !o)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+              >
+                <Palette size={13} /> Style
+              </button>
+              <button
+                onClick={() => setDrawTool('pen')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
+              >
+                <Pen size={12} /> Pen
+              </button>
+              <button
+                onClick={() => setDrawTool('eraser')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'eraser' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
+              >
+                <Eraser size={12} /> Eraser
+              </button>
             </div>
           )}
 
-          {newPages[currentPageIndex].type === 'text' && styleMenuOpen && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3 border-b border-slate-border">
-              <div className="flex items-center gap-1.5">
-                <Type size={13} className="text-cream-muted flex-shrink-0" />
-                {FONT_OPTIONS.map(f => (
+          {styleMenuOpen && (
+            newPages[currentPageIndex].type === 'text' ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3 border-b border-slate-border">
+                <div className="flex items-center gap-1.5">
+                  <Type size={13} className="text-cream-muted flex-shrink-0" />
+                  {FONT_OPTIONS.map(f => (
+                    <button
+                      key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
+                      className={`px-2 py-1 rounded-lg border text-xs transition-colors ${style.font === f.key ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <Palette size={13} className="text-cream-muted flex-shrink-0" />
+                  {TEXT_COLOR_OPTIONS.map(c => (
+                    <button
+                      key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
+                      aria-label={`Text color ${c}`}
+                      className={`w-5 h-5 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <PaintBucket size={13} className="text-cream-muted flex-shrink-0" />
+                  {BACKGROUND_OPTIONS.map(c => (
+                    <button
+                      key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
+                      aria-label={`Background ${c}`}
+                      className={`w-5 h-5 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5 px-4 pb-3 border-b border-slate-border">
+                <div className="flex items-center gap-2">
+                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
                   <button
-                    key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
-                    className={`px-2 py-1 rounded-lg border text-xs transition-colors ${style.font === f.key ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                    onClick={() => setPenSize(s => Math.max(1, s - 1))}
+                    className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                    aria-label="Decrease size"
                   >
-                    {f.label}
+                    <Minus size={13} />
                   </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <Palette size={13} className="text-cream-muted flex-shrink-0" />
-                {TEXT_COLOR_OPTIONS.map(c => (
-                  <button
-                    key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
-                    aria-label={`Text color ${c}`}
-                    className={`w-5 h-5 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                  <input
+                    type="range" min={1} max={40} value={penSize}
+                    onChange={e => setPenSize(Number(e.target.value))}
+                    className="flex-1 min-w-0"
                   />
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <PaintBucket size={13} className="text-cream-muted flex-shrink-0" />
-                {BACKGROUND_OPTIONS.map(c => (
                   <button
-                    key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
-                    aria-label={`Background ${c}`}
-                    className={`w-5 h-5 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                  />
-                ))}
+                    onClick={() => setPenSize(s => Math.min(40, s + 1))}
+                    className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                    aria-label="Increase size"
+                  >
+                    <Plus size={13} />
+                  </button>
+                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
+                </div>
+
+                {drawTool === 'pen' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {TEXT_COLOR_OPTIONS.map(c => (
+                        <button
+                          key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
+                          className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                        />
+                      ))}
+                      <input
+                        type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
+                        className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                        aria-label="Custom pen color"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {BACKGROUND_OPTIONS.map(c => (
+                      <button
+                        key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
+                        className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                      onChange={e => setCurrentPageBackground(e.target.value)}
+                      className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
+                      aria-label="Custom page background color"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {(existingAttachments.length > 0 || newFiles.length > 0) && (
@@ -1291,6 +1320,8 @@ export default function NotebookPage() {
           >
             <Paperclip size={14} /> Attach a file
           </button>
+            </>
+          )}
         </div>
       )}
 
