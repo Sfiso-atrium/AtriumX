@@ -363,6 +363,10 @@ export default function NotebookPage() {
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
+  // Style options (font/colors) start collapsed behind a single "Style"
+  // button - clicking it reveals all of them together, rather than each
+  // living in its own always-visible row.
+  const [styleMenuOpen, setStyleMenuOpen] = useState(false)
   // Drives the date/time line shown above the title while composing - the
   // note's own createdAt for an existing note, or the moment it was opened
   // for a brand-new one. Captured once at open time rather than read live,
@@ -551,6 +555,7 @@ export default function NotebookPage() {
     setInitialSnapshot({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
     resetHistory({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
     setComposerOpenedAt(new Date().toISOString())
+    setStyleMenuOpen(false)
     setReadOnly(false)
     setComposing(true)
   }
@@ -567,6 +572,7 @@ export default function NotebookPage() {
     setInitialSnapshot({ title: entry.title, pages, style: entry.style })
     resetHistory({ title: entry.title, pages, style: entry.style })
     setComposerOpenedAt(entry.createdAt)
+    setStyleMenuOpen(false)
     setReadOnly(true)
     setComposing(true)
   }
@@ -591,6 +597,7 @@ export default function NotebookPage() {
       : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE }
     setInitialSnapshot(original_snapshot)
     setComposerOpenedAt(original?.createdAt ?? new Date().toISOString())
+    setStyleMenuOpen(false)
     // History is anchored on the resumed draft itself (not the original
     // saved note) - undoing from here should step back through the
     // draft's own edit history first, same as if this session never lost focus.
@@ -1007,7 +1014,7 @@ export default function NotebookPage() {
         // Preview toolbar - no styling or attach controls here, just a
         // way out into edit mode and the export actions, so glancing at a
         // note never leaves you one keystroke from changing it.
-        <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4 pt-3">
+        <div className="flex-shrink-0 w-full px-4 pt-3">
           <div className="flex items-center gap-4 mb-3 pb-3 border-b border-slate-border">
             <button onClick={enterEditMode} className="flex items-center gap-1.5 text-teal-light hover:opacity-80 font-bold text-xs transition-opacity">
               <Pencil size={13} /> Edit
@@ -1030,42 +1037,53 @@ export default function NotebookPage() {
       )}
 
       {composing && notebookKey && !readOnly && (
-        <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4 pt-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3 pb-3 border-b border-slate-border">
-            <div className="flex items-center gap-1.5">
-              <Type size={13} className="text-cream-muted flex-shrink-0" />
-              {FONT_OPTIONS.map(f => (
-                <button
-                  key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
-                  className={`px-2 py-1 rounded-lg border text-xs transition-colors ${style.font === f.key ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Palette size={13} className="text-cream-muted flex-shrink-0" />
-              {TEXT_COLOR_OPTIONS.map(c => (
-                <button
-                  key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
-                  aria-label={`Text color ${c}`}
-                  className={`w-5 h-5 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <PaintBucket size={13} className="text-cream-muted flex-shrink-0" />
-              {BACKGROUND_OPTIONS.map(c => (
-                <button
-                  key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
-                  aria-label={`Background ${c}`}
-                  className={`w-5 h-5 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                />
-              ))}
-            </div>
+        <div className="flex-shrink-0 w-full px-4 pt-3">
+          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-border">
+            <button
+              onClick={() => setStyleMenuOpen(o => !o)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+            >
+              <Palette size={13} /> Style
+            </button>
           </div>
+
+          {styleMenuOpen && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3 pb-3 border-b border-slate-border">
+              <div className="flex items-center gap-1.5">
+                <Type size={13} className="text-cream-muted flex-shrink-0" />
+                {FONT_OPTIONS.map(f => (
+                  <button
+                    key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
+                    className={`px-2 py-1 rounded-lg border text-xs transition-colors ${style.font === f.key ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Palette size={13} className="text-cream-muted flex-shrink-0" />
+                {TEXT_COLOR_OPTIONS.map(c => (
+                  <button
+                    key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
+                    aria-label={`Text color ${c}`}
+                    className={`w-5 h-5 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <PaintBucket size={13} className="text-cream-muted flex-shrink-0" />
+                {BACKGROUND_OPTIONS.map(c => (
+                  <button
+                    key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
+                    aria-label={`Background ${c}`}
+                    className={`w-5 h-5 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {(existingAttachments.length > 0 || newFiles.length > 0) && (
             <div className="flex flex-wrap gap-2 mb-2 pt-1">
@@ -1097,7 +1115,7 @@ export default function NotebookPage() {
       )}
 
             <div className="flex-1 overflow-y-auto">
-              <div className="max-w-2xl w-full mx-auto px-4 py-4 flex flex-col min-h-full">
+              <div className="w-full px-4 py-4 flex flex-col min-h-full">
                 {composing ? (
             <div
               style={{ backgroundColor: style.background }}
