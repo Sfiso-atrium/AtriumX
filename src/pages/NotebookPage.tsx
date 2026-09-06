@@ -21,14 +21,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  X, Lock, Plus, Minus, Paperclip, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon,
+  X, Lock, Plus, Minus, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon,
   ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
   Bold, Italic, Undo2, Redo2,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE,
-  DEFAULT_DRAWING_BACKGROUND, emptyTextPage, emptyDrawingPage,
+  DEFAULT_DRAWING_BACKGROUND, DEFAULT_CANVAS_HEIGHT, emptyTextPage, emptyDrawingPage,
   hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
   downloadNotebookAttachment, resetNotebook,
@@ -191,13 +191,14 @@ function AttachmentChip({
 // lets the background be changed later without touching anything already
 // drawn.
 function DrawingCanvas({
-  initialDrawing, strokeColor, strokeWidth, tool, backgroundColor, onChange,
+  initialDrawing, strokeColor, strokeWidth, tool, backgroundColor, height, onChange,
 }: {
   initialDrawing: string | null
   strokeColor: string
   strokeWidth: number
   tool: 'pen' | 'eraser'
   backgroundColor: string
+  height: number
   onChange: (dataUrl: string) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -209,7 +210,12 @@ function DrawingCanvas({
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !initialDrawing) return
     const img = new Image()
-    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    // Draw at the image's own natural size, not stretched to fill
+    // `canvas.width`/`height` - the canvas may now be taller than the
+    // drawing it's loading (see "Add more space"), and stretching would
+    // distort everything already drawn instead of just leaving new blank
+    // space below it.
+    img.onload = () => ctx.drawImage(img, 0, 0)
     img.src = initialDrawing
     // Intentionally runs once on mount only - see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,13 +270,13 @@ function DrawingCanvas({
   return (
     <canvas
       ref={canvasRef}
-      width={700}
-      height={450}
+      width={1000}
+      height={height}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      className="w-full flex-1 min-h-[35vh] rounded-lg touch-none"
+      className="w-full h-full touch-none block"
       style={{ backgroundColor }}
     />
   )
@@ -432,9 +438,26 @@ export default function NotebookPage() {
   // One DOM ref per page, since every page's RichTextEditor is mounted at
   // once now (stacked vertically) rather than only the "current" one.
   const editableRefs = useRef<(HTMLDivElement | null)[]>([])
-  // Each page's fixed-height content box, for measuring available space
-  // once auto-reflow is wired up. Not used yet.
+  // Each page's fixed-height content box, used to measure available space
+  // for auto-reflow (below).
   const pageBoxRefs = useRef<(HTMLDivElement | null)[]>([])
+  // A detached, invisible element used only for measuring how tall a
+  // page's HTML would render - never shown, never part of the real page
+  // flow. Reflow works by trying candidate HTML in here and reading
+  // scrollHeight back, rather than touching the live, focused editor.
+  const measureRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const div = document.createElement('div')
+    div.style.position = 'fixed'
+    div.style.top = '-9999px'
+    div.style.left = '-9999px'
+    div.style.visibility = 'hidden'
+    div.style.pointerEvents = 'none'
+    div.className = 'leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold'
+    document.body.appendChild(div)
+    measureRef.current = div
+    return () => { document.body.removeChild(div) }
+  }, [])
   // Bumped on every Undo/Redo. RichTextEditor is deliberately uncontrolled
   // after mount (see its own comment), so restoring old content into view
   // needs an actual remount, not just a prop change - including this in
@@ -546,6 +569,101 @@ export default function NotebookPage() {
     return () => { if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTitle, newPages, style, composing, readOnly])
+
+  // Auto-reflow - after a pause in typing, check each text page against
+  // its fixed height and move whatever doesn't fit onto the next page
+  // (creating one if needed), or pull content back from the next page if
+  // this one now has room to spare. Runs against a hidden, detached copy
+  // of the HTML (measureRef) rather than the live, focused editor, so
+  // reflowing never fights the browser over where your cursor is while
+  // you're mid-sentence - it only touches React state, and only pages
+  // whose content actually needs to move get remounted.
+  //
+  // Works at the level of whole elements (paragraphs, list items) - a
+  // single very long paragraph with no line breaks at all can't be split
+  // mid-run, and may still overflow its own page.
+  useEffect(() => {
+    if (!composing || readOnly) return
+    if (newPages[0]?.type !== 'text') return
+    const timeout = setTimeout(() => {
+      const measure = measureRef.current
+      const sampleBox = pageBoxRefs.current.find(Boolean)
+      if (!measure || !sampleBox) return
+      const capacity = sampleBox.clientHeight
+      measure.style.width = `${sampleBox.clientWidth}px`
+      measure.style.fontFamily = FONT_STACK[style.font]
+
+      const heightOf = (html: string) => { measure.innerHTML = html; return measure.scrollHeight }
+
+      let pages = newPages.map(p => ({ ...p }))
+      let changed = false
+      let i = 0
+      while (i < pages.length) {
+        // Pull forward from the next page while there's room to spare.
+        while (
+          heightOf(pages[i].text) < capacity - 4 &&
+          pages[i + 1] && pages[i + 1].text
+        ) {
+          const temp = document.createElement('div')
+          temp.innerHTML = pages[i + 1].text
+          const firstChild = temp.firstChild
+          if (!firstChild) break
+          const piece = firstChild instanceof Element ? firstChild.outerHTML : (firstChild.textContent || '')
+          const combined = pages[i].text + piece
+          if (heightOf(combined) > capacity) break
+          firstChild.remove()
+          pages[i] = { ...pages[i], text: combined }
+          pages[i + 1] = { ...pages[i + 1], text: temp.innerHTML }
+          changed = true
+        }
+
+        // Push overflow forward onto the next page.
+        if (heightOf(pages[i].text) > capacity) {
+          const temp = document.createElement('div')
+          temp.innerHTML = pages[i].text
+          const moved: string[] = []
+          while (temp.childNodes.length > 1 && heightOf(temp.innerHTML) > capacity) {
+            const last = temp.lastChild!
+            moved.unshift(last instanceof Element ? last.outerHTML : (last.textContent || ''))
+            temp.removeChild(last)
+          }
+          if (moved.length > 0) {
+            if (!pages[i + 1]) pages.splice(i + 1, 0, emptyTextPage())
+            pages[i] = { ...pages[i], text: temp.innerHTML }
+            pages[i + 1] = { ...pages[i + 1], text: moved.join('') + pages[i + 1].text }
+            changed = true
+          }
+        }
+
+        // A trailing page fully drained by a pull-back is pointless to
+        // keep around - drop it, the way Word closes an emptied last page.
+        if (i === pages.length - 2 && pages[i + 1] && stripHtml(pages[i + 1].text).trim() === '') {
+          pages.splice(i + 1, 1)
+          changed = true
+        }
+        i++
+      }
+
+      if (changed) {
+        const focusedPage = currentPageIndex
+        setNewPages(pages)
+        setEditorNonce(n => n + 1)
+        setTimeout(() => {
+          const el = editableRefs.current[Math.min(focusedPage, pages.length - 1)]
+          if (!el) return
+          el.focus()
+          const range = document.createRange()
+          range.selectNodeContents(el)
+          range.collapse(false)
+          const sel = window.getSelection()
+          sel?.removeAllRanges()
+          sel?.addRange(range)
+        }, 0)
+      }
+    }, 700)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newPages, composing, readOnly])
 
   // Keeps the formatting toolbar's highlighted state (which button looks
   // "active") matched to whatever's actually true at the cursor - e.g.
@@ -1421,14 +1539,14 @@ export default function NotebookPage() {
           )}
 
           <input
-            ref={fileInputRef} type="file" multiple className="hidden"
+            ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
             onChange={e => { if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]); e.target.value = '' }}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1.5 border border-slate-border text-cream-muted hover:border-teal-light hover:text-teal-light font-bold px-3 py-2 rounded-xl text-xs transition-colors mt-2 mx-4"
           >
-            <Paperclip size={14} /> Attach a file
+            <ImageIcon size={14} /> Attach a screenshot
           </button>
             </>
           )}
@@ -1436,52 +1554,86 @@ export default function NotebookPage() {
       )}
 
             <div className="flex-1 overflow-y-auto">
+              {!composing ? (
+                <div className="w-full h-full flex items-center justify-center text-cream-muted text-sm">
+                  Select a note, or start a new one.
+                </div>
+              ) : newPages[0]?.type === 'drawing' ? (
+                // Drawing notes are one continuous canvas, not paginated -
+                // no padding, no border radius, no margin around it, so it
+                // fills the entire pane edge to edge (OneNote's infinite
+                // canvas has no framing chrome either). "Clear" and "Add
+                // more space" are the only controls, kept to a single slim
+                // strip rather than a full toolbar over the drawing itself.
+                <div className="w-full h-full flex flex-col">
+                  {!readOnly && newPages[0].drawing && (
+                    <div className="flex justify-end px-2 py-1 flex-shrink-0">
+                      <button
+                        onClick={() => { setNewPages(prev => [{ ...prev[0], drawing: null }]); setDrawingNonce(n => n + 1) }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-slate-border text-[11px] font-bold text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
+                      >
+                        <RotateCcw size={10} /> Clear
+                      </button>
+                    </div>
+                  )}
+                  <div
+                    ref={el => { pageBoxRefs.current[0] = el }}
+                    style={{ backgroundColor: newPages[0].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
+                    className="flex-1"
+                  >
+                    {readOnly ? (
+                      newPages[0].drawing ? (
+                        <img src={newPages[0].drawing} alt="Drawing" className="w-full h-full object-contain" />
+                      ) : (
+                        <div style={{ color: style.textColor }} className="w-full h-full flex items-center justify-center opacity-50 text-sm">
+                          This drawing is blank.
+                        </div>
+                      )
+                    ) : (
+                      <DrawingCanvas
+                        key={`0-${drawingNonce}`}
+                        initialDrawing={newPages[0].drawing}
+                        height={newPages[0].canvasHeight ?? DEFAULT_CANVAS_HEIGHT}
+                        strokeColor={penColor}
+                        strokeWidth={penSize}
+                        tool={drawTool}
+                        backgroundColor={newPages[0].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                        onChange={dataUrl => setNewPages(prev => [{ ...prev[0], drawing: dataUrl }])}
+                      />
+                    )}
+                  </div>
+                  {!readOnly && (
+                    <button
+                      onClick={() => {
+                        setNewPages(prev => [{ ...prev[0], canvasHeight: (prev[0].canvasHeight ?? DEFAULT_CANVAS_HEIGHT) + 600 }])
+                        setDrawingNonce(n => n + 1)
+                      }}
+                      className="flex-shrink-0 flex items-center justify-center gap-1.5 py-3 border-t border-slate-border text-cream-muted text-xs font-bold opacity-70 hover:opacity-100 transition-opacity"
+                    >
+                      <Plus size={14} /> Add more space
+                    </button>
+                  )}
+                </div>
+              ) : (
               <div className="w-full px-4 py-4 flex flex-col min-h-full">
-                {composing ? (
             <div className="flex flex-col gap-6">
                 {newPages.map((page, i) => (
                   <div
                     key={i}
                     style={{ backgroundColor: style.background }}
-                    className="w-full max-w-2xl mx-auto flex-shrink-0 h-[70vh] flex flex-col p-4"
+                    className="w-full max-w-2xl mx-auto flex-shrink-0 h-[85vh] flex flex-col p-4"
                   >
-                    {(newPages.length > 1 || (page.type === 'drawing' && page.drawing && !readOnly)) && (
+                    {newPages.length > 1 && (
                       <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                        {newPages.length > 1 && (
-                          <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-50">
-                            Page {i + 1}
-                          </span>
-                        )}
-                        {!readOnly && page.type === 'drawing' && page.drawing && (
-                          <button
-                            onClick={() => { setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, drawing: null } : p)); setDrawingNonce(n => n + 1) }}
-                            style={{ color: style.textColor }}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-current/15 text-[11px] font-bold opacity-50 hover:opacity-80 transition-opacity ml-auto"
-                          >
-                            <RotateCcw size={10} /> Clear
-                          </button>
-                        )}
+                        <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-50">
+                          Page {i + 1}
+                        </span>
                       </div>
                     )}
 
                     <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-y-auto">
                     {readOnly ? (
-                      page.type === 'drawing' ? (
-                        page.drawing ? (
-                          <img
-                            src={page.drawing} alt="Page drawing"
-                            className="w-full h-full object-contain"
-                            style={{ backgroundColor: page.drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
-                          />
-                        ) : (
-                          <div
-                            style={{ color: style.textColor, backgroundColor: page.drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
-                            className="w-full h-full flex items-center justify-center opacity-50 text-sm"
-                          >
-                            This page is a blank drawing.
-                          </div>
-                        )
-                      ) : page.text ? (
+                      page.text ? (
                         <div
                           style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
                           className="w-full leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold"
@@ -1492,18 +1644,6 @@ export default function NotebookPage() {
                           This page is empty.
                         </div>
                       )
-                    ) : page.type === 'drawing' ? (
-                      <div onPointerDown={() => setCurrentPageIndex(i)} className="w-full h-full">
-                        <DrawingCanvas
-                          key={`${i}-${drawingNonce}`}
-                          initialDrawing={page.drawing}
-                          strokeColor={penColor}
-                          strokeWidth={penSize}
-                          tool={drawTool}
-                          backgroundColor={page.drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                          onChange={dataUrl => setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, drawing: dataUrl } : p))}
-                        />
-                      </div>
                     ) : (
                       <RichTextEditor
                         key={`${i}-${editorNonce}`}
@@ -1518,7 +1658,7 @@ export default function NotebookPage() {
                     )}
                     </div>
 
-                    {!readOnly && page.type === 'text' && (
+                    {!readOnly && (
                       <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5 flex-shrink-0">
                         <span>{countWords(stripHtml(page.text))} words</span>
                         <span>{stripHtml(page.text).length} characters</span>
@@ -1529,7 +1669,7 @@ export default function NotebookPage() {
 
                 {!readOnly && (
                   <button
-                    onClick={() => { setNewPages(prev => [...prev, prev[0]?.type === 'drawing' ? emptyDrawingPage() : emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
+                    onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
                     style={{ color: style.textColor }}
                     className="w-full max-w-2xl mx-auto flex items-center justify-center gap-1.5 py-2.5 border border-dashed border-slate-border text-cream-muted text-xs font-bold opacity-70 hover:opacity-100 transition-opacity"
                   >
@@ -1537,12 +1677,8 @@ export default function NotebookPage() {
                   </button>
                 )}
             </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-cream-muted text-sm">
-                    Select a note, or start a new one.
-                  </div>
-                )}
               </div>
+              )}
             </div>
           </div>
         </div>
