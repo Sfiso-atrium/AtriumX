@@ -45,22 +45,26 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
 // canvas's own background color, independent of the note's overall
 // style.background - only meaningful (non-null) on drawing pages, since
 // the canvas itself is transparent and this color is what actually shows
-// through wherever no ink was drawn.
+// through wherever no ink was drawn. `canvasHeight` is how tall a drawing
+// page's canvas is - drawing notes are one continuous canvas rather than
+// paginated, so "more room" means growing this, not adding a page.
 export interface NotebookPageData {
   type: 'text' | 'drawing'
   text: string
   drawing: string | null
   drawingBackground: string | null
+  canvasHeight: number | null
 }
 
 export const DEFAULT_DRAWING_BACKGROUND = '#FFFFFF'
+export const DEFAULT_CANVAS_HEIGHT = 1200
 
 export function emptyTextPage(): NotebookPageData {
-  return { type: 'text', text: '', drawing: null, drawingBackground: null }
+  return { type: 'text', text: '', drawing: null, drawingBackground: null, canvasHeight: null }
 }
 
 export function emptyDrawingPage(): NotebookPageData {
-  return { type: 'drawing', text: '', drawing: null, drawingBackground: DEFAULT_DRAWING_BACKGROUND }
+  return { type: 'drawing', text: '', drawing: null, drawingBackground: DEFAULT_DRAWING_BACKGROUND, canvasHeight: DEFAULT_CANVAS_HEIGHT }
 }
 
 export interface NotebookEntry {
@@ -126,16 +130,17 @@ export async function unlockNotebook(
 function normalizePages(raw: unknown, legacyBody?: string): NotebookPageData[] {
   if (Array.isArray(raw) && raw.length > 0) {
     if (typeof raw[0] === 'string') {
-      return (raw as string[]).map(text => ({ type: 'text' as const, text, drawing: null, drawingBackground: null }))
+      return (raw as string[]).map(text => ({ type: 'text' as const, text, drawing: null, drawingBackground: null, canvasHeight: null }))
     }
     return (raw as Partial<NotebookPageData>[]).map(p => ({
       type: p.type === 'drawing' ? 'drawing' : 'text',
       text: p.text ?? '',
       drawing: p.drawing ?? null,
       drawingBackground: p.drawingBackground ?? (p.type === 'drawing' ? DEFAULT_DRAWING_BACKGROUND : null),
+      canvasHeight: p.canvasHeight ?? (p.type === 'drawing' ? DEFAULT_CANVAS_HEIGHT : null),
     }))
   }
-  return [{ type: 'text', text: legacyBody ?? '', drawing: null, drawingBackground: null }]
+  return [{ type: 'text', text: legacyBody ?? '', drawing: null, drawingBackground: null, canvasHeight: null }]
 }
 
 export async function listNotebookEntries(userId: string, key: CryptoKey): Promise<NotebookEntry[]> {
