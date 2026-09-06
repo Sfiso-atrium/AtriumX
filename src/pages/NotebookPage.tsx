@@ -426,6 +426,7 @@ export default function NotebookPage() {
   // One DOM ref per page, since every page's RichTextEditor is mounted at
   // once now (stacked vertically) rather than only the "current" one.
   const editableRefs = useRef<(HTMLDivElement | null)[]>([])
+  const pageBoxRefs = useRef<(HTMLDivElement | null)[]>([])
   // Bumped on every Undo/Redo. RichTextEditor is deliberately uncontrolled
   // after mount (see its own comment), so restoring old content into view
   // needs an actual remount, not just a prop change - including this in
