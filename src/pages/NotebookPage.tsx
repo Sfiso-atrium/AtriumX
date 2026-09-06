@@ -412,13 +412,19 @@ export default function NotebookPage() {
   // visible either way, since those are needed regardless of whether
   // you're trying to maximize writing space right now.
   const [toolsHidden, setToolsHidden] = useState(false)
-  // Drives the date/time line shown above the title while composing - the
-  // note's own createdAt for an existing note, or the moment it was opened
-  // for a brand-new one. Captured once at open time rather than read live,
-  // so it doesn't shift while you're mid-edit.
-  const [composerOpenedAt, setComposerOpenedAt] = useState('')
   const [initialSnapshot, setInitialSnapshot] = useState<NoteSnapshot | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  // Title is now collected up front, before the note is even opened - this
+  // holds which kind was tapped ("New note" vs "New drawing") while that
+  // popup is showing, and the text being typed into it.
+  const [pendingNewNoteKind, setPendingNewNoteKind] = useState<'text' | 'drawing' | null>(null)
+  const [newNoteTitleDraft, setNewNoteTitleDraft] = useState('')
+  // Cards default to a compact one-line title - tapping "Show details" on
+  // a card reveals its full title plus the exact creation date/time,
+  // rather than cramming all of that into every card all the time.
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null)
+  const [renamingEntryId, setRenamingEntryId] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
   const [recoverableDraft, setRecoverableDraft] = useState<NotebookDraft | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
@@ -426,6 +432,8 @@ export default function NotebookPage() {
   // One DOM ref per page, since every page's RichTextEditor is mounted at
   // once now (stacked vertically) rather than only the "current" one.
   const editableRefs = useRef<(HTMLDivElement | null)[]>([])
+  // Each page's fixed-height content box, for measuring available space
+  // once auto-reflow is wired up. Not used yet.
   const pageBoxRefs = useRef<(HTMLDivElement | null)[]>([])
   // Bumped on every Undo/Redo. RichTextEditor is deliberately uncontrolled
   // after mount (see its own comment), so restoring old content into view
@@ -597,18 +605,30 @@ export default function NotebookPage() {
     skipHistoryRef.current = false
   }
 
-  const openNewNote = (kind: 'text' | 'drawing') => {
+  const openNewNote = (kind: 'text' | 'drawing', title: string) => {
     setEditingEntryId(null)
     const startPages = [kind === 'text' ? emptyTextPage() : emptyDrawingPage()]
     editableRefs.current = []
-    setNewTitle(''); setNewPages(startPages); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
+    setNewTitle(title); setNewPages(startPages); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
-    setInitialSnapshot({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
-    resetHistory({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
-    setComposerOpenedAt(new Date().toISOString())
+    setInitialSnapshot({ title, pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
+    resetHistory({ title, pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
     setStyleMenuOpen(false)
     setReadOnly(false)
     setComposing(true)
+  }
+
+  // Shows the title popup for the given kind; openNewNote itself only
+  // runs once a title is actually submitted from that popup.
+  const startNewNote = (kind: 'text' | 'drawing') => {
+    setNewNoteTitleDraft('')
+    setPendingNewNoteKind(kind)
+  }
+
+  const confirmNewNoteTitle = () => {
+    if (!pendingNewNoteKind) return
+    openNewNote(pendingNewNoteKind, newNoteTitleDraft.trim() || 'Untitled')
+    setPendingNewNoteKind(null)
   }
 
   // Opens straight into a read-only glance view rather than the editor -
@@ -623,7 +643,6 @@ export default function NotebookPage() {
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setInitialSnapshot({ title: entry.title, pages, style: entry.style })
     resetHistory({ title: entry.title, pages, style: entry.style })
-    setComposerOpenedAt(entry.createdAt)
     setStyleMenuOpen(false)
     setReadOnly(true)
     setComposing(true)
@@ -649,7 +668,6 @@ export default function NotebookPage() {
       ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [emptyTextPage()], style: original.style }
       : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE }
     setInitialSnapshot(original_snapshot)
-    setComposerOpenedAt(original?.createdAt ?? new Date().toISOString())
     setStyleMenuOpen(false)
     // History is anchored on the resumed draft itself (not the original
     // saved note) - undoing from here should step back through the
@@ -663,6 +681,18 @@ export default function NotebookPage() {
   const discardRecoveredDraft = () => {
     if (currentUser) clearDraft(currentUser.id)
     setRecoverableDraft(null)
+  }
+
+  // Renames a note directly from its card - title can be changed any time
+  // after creation, but there's no title field inside the composer itself
+  // any more, so this is the only place to do it.
+  const handleRenameEntry = async (entry: NotebookEntry) => {
+    const title = renameDraft.trim() || 'Untitled'
+    setRenamingEntryId(null)
+    if (!notebookKey || title === entry.title) return
+    const { error } = await updateNotebookEntry(entry.id, currentUser.id, notebookKey, title, entry.pages, entry.style, [], [])
+    if (error) { showToast(error, 'error'); return }
+    loadEntries(notebookKey)
   }
 
   const handleUndo = () => {
@@ -816,6 +846,44 @@ export default function NotebookPage() {
         ) : null}
       </div>
 
+      {pendingNewNoteKind && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
+          onClick={() => setPendingNewNoteKind(null)}
+        >
+          <div onClick={e => e.stopPropagation()} className="bg-slate-card border border-slate-border rounded-2xl p-5 max-w-sm w-full">
+            <p className="text-cream font-bold text-sm mb-1">
+              {pendingNewNoteKind === 'text' ? 'Name this note' : 'Name this drawing'}
+            </p>
+            <p className="text-cream-muted text-xs mb-4 leading-relaxed">
+              Give it a title now - you can rename it later from the list.
+            </p>
+            <input
+              autoFocus
+              value={newNoteTitleDraft}
+              onChange={e => setNewNoteTitleDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirmNewNoteTitle() }}
+              placeholder="Title"
+              className="w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={confirmNewNoteTitle}
+                className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                Create
+              </button>
+              <button
+                onClick={() => setPendingNewNoteKind(null)}
+                className="flex-1 border border-slate-border text-cream-muted hover:text-cream font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmDiscard && (
         <div
           className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
@@ -939,11 +1007,11 @@ export default function NotebookPage() {
               )}
 
               <div className="flex gap-2">
-                <button onClick={() => openNewNote('text')}
+                <button onClick={() => startNewNote('text')}
                   className="flex-1 flex items-center justify-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl text-sm transition-colors">
                   <Type size={15} /> New note
                 </button>
-                <button onClick={() => openNewNote('drawing')}
+                <button onClick={() => startNewNote('drawing')}
                   className="flex-1 flex items-center justify-center gap-1.5 border border-ember text-ember hover:bg-ember/10 font-bold py-3 rounded-xl text-sm transition-colors">
                   <PenLine size={15} /> New drawing
                 </button>
@@ -976,8 +1044,11 @@ export default function NotebookPage() {
               ) : visibleEntries.length === 0 ? (
                 <p className="text-cream-muted text-sm">No notes match "{searchQuery}".</p>
               ) : (
-                visibleEntries.map(entry => (
-                  <Card key={entry.id} onClick={() => openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
+                visibleEntries.map(entry => {
+                  const isExpanded = expandedEntryId === entry.id
+                  const isRenaming = renamingEntryId === entry.id
+                  return (
+                  <Card key={entry.id} onClick={() => !isRenaming && openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -986,9 +1057,25 @@ export default function NotebookPage() {
                           ) : (
                             <Type size={12} style={{ color: entry.style.textColor }} className="flex-shrink-0 opacity-60" />
                           )}
-                          <p style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }} className="font-bold text-sm truncate">
-                            {entry.title}
-                          </p>
+                          {isRenaming ? (
+                            <input
+                              autoFocus
+                              value={renameDraft}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => setRenameDraft(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleRenameEntry(entry); if (e.key === 'Escape') setRenamingEntryId(null) }}
+                              onBlur={() => handleRenameEntry(entry)}
+                              style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }}
+                              className="font-bold text-sm bg-transparent border-b border-current/30 focus:outline-none flex-1 min-w-0"
+                            />
+                          ) : (
+                            <p
+                              style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }}
+                              className={isExpanded ? 'font-bold text-sm' : 'font-bold text-sm truncate'}
+                            >
+                              {entry.title}
+                            </p>
+                          )}
                           {entry.pages.length > 1 && (
                             <span
                               style={{ color: entry.style.textColor, borderColor: `${entry.style.textColor}30` }}
@@ -998,6 +1085,21 @@ export default function NotebookPage() {
                             </span>
                           )}
                         </div>
+                        {isExpanded && !isRenaming && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <p style={{ color: entry.style.textColor }} className="text-[11px] font-bold opacity-70">
+                              Created {new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            <button
+                              onClick={e => { e.stopPropagation(); setRenamingEntryId(entry.id); setRenameDraft(entry.title) }}
+                              style={{ color: entry.style.textColor }}
+                              className="opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                              aria-label="Rename"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                          </div>
+                        )}
                         {entry.pages[0]?.type === 'drawing' ? (
                           entry.pages[0].drawing && (
                             <img
@@ -1013,9 +1115,18 @@ export default function NotebookPage() {
                             </p>
                           )
                         )}
-                        <p style={{ color: entry.style.textColor }} className="text-[10px] font-bold opacity-50 mt-2">
-                          Edited {formatRelativeTime(entry.updatedAt)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p style={{ color: entry.style.textColor }} className="text-[10px] font-bold opacity-50">
+                            Edited {formatRelativeTime(entry.updatedAt)}
+                          </p>
+                          <button
+                            onClick={e => { e.stopPropagation(); setExpandedEntryId(isExpanded ? null : entry.id) }}
+                            style={{ color: entry.style.textColor }}
+                            className="text-[10px] font-bold opacity-50 hover:opacity-90 transition-opacity underline"
+                          >
+                            {isExpanded ? 'Hide details' : 'Show details'}
+                          </button>
+                        </div>
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
@@ -1061,7 +1172,7 @@ export default function NotebookPage() {
                       </div>
                     )}
                   </Card>
-                ))
+                )})
               )}
             </div>
           </div>
@@ -1334,43 +1445,6 @@ export default function NotebookPage() {
                     style={{ backgroundColor: style.background }}
                     className="w-full max-w-2xl mx-auto flex-shrink-0 h-[70vh] flex flex-col p-4"
                   >
-                    {i === 0 && (
-                      <>
-                        {/* Date/time line, echoing a paper notebook's dated
-                            page - the note's own createdAt for an existing
-                            note, "now" for a fresh one. Purely a display
-                            touch; nothing new is stored for it. Only page
-                            one carries this and the title - every page is
-                            the same fixed size, but only the first spends
-                            some of that height on a header. */}
-                        <div
-                          style={{ color: style.textColor }}
-                          className="flex items-center justify-between text-xs font-bold opacity-60 pb-2 mb-2 border-b border-current/15 flex-shrink-0"
-                        >
-                          <span>
-                            {composerOpenedAt && new Date(composerOpenedAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
-                          <span>
-                            {composerOpenedAt && new Date(composerOpenedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        {readOnly ? (
-                          <p
-                            style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                            className="w-full border-b border-current/15 pb-2 mb-2 text-lg font-bold flex-shrink-0"
-                          >
-                            {newTitle || 'Untitled'}
-                          </p>
-                        ) : (
-                          <input
-                            value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title"
-                            style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                            className="w-full bg-transparent border-b border-current/15 pb-2 mb-2 text-lg font-bold placeholder:opacity-50 focus:outline-none flex-shrink-0"
-                          />
-                        )}
-                      </>
-                    )}
-
                     {(newPages.length > 1 || (page.type === 'drawing' && page.drawing && !readOnly)) && (
                       <div className="flex items-center justify-between mb-2 flex-shrink-0">
                         {newPages.length > 1 && (
