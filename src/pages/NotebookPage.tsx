@@ -22,7 +22,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   X, Lock, Plus, Minus, Paperclip, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon,
-  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
+  ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
   Bold, Italic, List, Heading1, Undo2, Redo2,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -294,31 +294,39 @@ function DrawingCanvas({
 // Keyed by page index *and* an undo/redo nonce in the parent, so an
 // actual remount (not a prop update) is what makes Undo/Redo visibly
 // restore old content here.
+//
+// Takes a callback ref rather than a single shared ref object - every
+// page now renders its own RichTextEditor at once (stacked vertically),
+// so the parent needs one DOM reference per page, not one overall.
 function RichTextEditor({
-  initialHtml, editableRef, textColor, fontFamily, placeholder, onChange,
+  initialHtml, registerRef, onFocus, textColor, fontFamily, placeholder, onChange,
 }: {
   initialHtml: string
-  editableRef: React.RefObject<HTMLDivElement>
+  registerRef: (el: HTMLDivElement | null) => void
+  onFocus: () => void
   textColor: string
   fontFamily: string
   placeholder: string
   onChange: (html: string) => void
 }) {
+  const localRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
-    if (editableRef.current) editableRef.current.innerHTML = initialHtml
+    if (localRef.current) localRef.current.innerHTML = initialHtml
     // Mount-only - see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div
-      ref={editableRef}
+      ref={el => { localRef.current = el; registerRef(el) }}
       contentEditable
       suppressContentEditableWarning
+      onFocus={onFocus}
       onInput={e => onChange((e.currentTarget as HTMLDivElement).innerHTML)}
       data-placeholder={placeholder}
       style={{ color: textColor, fontFamily }}
-      className="flex-1 w-full min-h-[35vh] bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
+      className="w-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
     />
   )
 }
@@ -383,7 +391,9 @@ export default function NotebookPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'updated' | 'title' | 'oldest'>('updated')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const editableRef = useRef<HTMLDivElement>(null)
+  // One DOM ref per page, since every page's RichTextEditor is mounted at
+  // once now (stacked vertically) rather than only the "current" one.
+  const editableRefs = useRef<(HTMLDivElement | null)[]>([])
   // Bumped on every Undo/Redo. RichTextEditor is deliberately uncontrolled
   // after mount (see its own comment), so restoring old content into view
   // needs an actual remount, not just a prop change - including this in
@@ -502,7 +512,8 @@ export default function NotebookPage() {
   useEffect(() => {
     if (!composing || readOnly) return
     const updateActiveFormats = () => {
-      if (!editableRef.current || !editableRef.current.contains(document.getSelection()?.anchorNode ?? null)) return
+      const el = editableRefs.current[currentPageIndex]
+      if (!el || !el.contains(document.getSelection()?.anchorNode ?? null)) return
       const blockTag = document.queryCommandValue('formatBlock').toUpperCase()
       setActiveFormats({
         bold: document.queryCommandState('bold'),
@@ -559,6 +570,7 @@ export default function NotebookPage() {
   const openNewNote = () => {
     setEditingEntryId(null)
     const startPages = [emptyTextPage()]
+    editableRefs.current = []
     setNewTitle(''); setNewPages(startPages); setCurrentPageIndex(0); setStyle(DEFAULT_NOTEBOOK_STYLE)
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setInitialSnapshot({ title: '', pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
@@ -576,6 +588,7 @@ export default function NotebookPage() {
   const openEditNote = (entry: NotebookEntry) => {
     setEditingEntryId(entry.id)
     const pages = entry.pages.length > 0 ? entry.pages : [emptyTextPage()]
+    editableRefs.current = []
     setNewTitle(entry.title); setNewPages(pages); setCurrentPageIndex(0); setStyle(entry.style)
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setInitialSnapshot({ title: entry.title, pages, style: entry.style })
@@ -595,6 +608,7 @@ export default function NotebookPage() {
     const draft = recoverableDraft
     const original = draft.editingEntryId ? entries.find(e => e.id === draft.editingEntryId) : undefined
     const pages = draft.pages.length > 0 ? draft.pages : [emptyTextPage()]
+    editableRefs.current = []
     setEditingEntryId(draft.editingEntryId)
     setNewTitle(draft.title); setNewPages(pages)
     setCurrentPageIndex(Math.min(draft.currentPageIndex ?? 0, pages.length - 1))
@@ -658,16 +672,17 @@ export default function NotebookPage() {
   // execCommand's native 'input' event isn't 100% guaranteed to fire the
   // same way across browsers the way a normal keystroke does.
   const syncCurrentPageFromEditor = () => {
-    if (!editableRef.current) return
-    const html = editableRef.current.innerHTML
+    const el = editableRefs.current[currentPageIndex]
+    if (!el) return
+    const html = el.innerHTML
     setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: html } : p))
   }
 
-  const applyBold = () => { editableRef.current?.focus(); document.execCommand('bold'); syncCurrentPageFromEditor() }
-  const applyItalic = () => { editableRef.current?.focus(); document.execCommand('italic'); syncCurrentPageFromEditor() }
-  const applyBulletList = () => { editableRef.current?.focus(); document.execCommand('insertUnorderedList'); syncCurrentPageFromEditor() }
+  const applyBold = () => { editableRefs.current[currentPageIndex]?.focus(); document.execCommand('bold'); syncCurrentPageFromEditor() }
+  const applyItalic = () => { editableRefs.current[currentPageIndex]?.focus(); document.execCommand('italic'); syncCurrentPageFromEditor() }
+  const applyBulletList = () => { editableRefs.current[currentPageIndex]?.focus(); document.execCommand('insertUnorderedList'); syncCurrentPageFromEditor() }
   const applyHeading = () => {
-    editableRef.current?.focus()
+    editableRefs.current[currentPageIndex]?.focus()
     const isHeading = document.queryCommandValue('formatBlock').toUpperCase() === 'H3'
     document.execCommand('formatBlock', false, isHeading ? 'P' : 'H3')
     syncCurrentPageFromEditor()
@@ -1049,64 +1064,14 @@ export default function NotebookPage() {
 
       {composing && notebookKey && !readOnly && (
         <div className="flex-shrink-0 w-full pt-3">
-          {/* Row 1: page-level controls, moved off the page itself so the
-              page only ever holds the note's actual content - Text/Draw,
-              page navigation, and note-level undo/redo (works for drawing
-              changes too, since a page's whole state is one snapshot). */}
+          {/* Row 1: whole-note controls only. Text/Draw/Clear used to live
+              here, but now that every page is visible in one scroll
+              (instead of one page shown at a time), each page needs its
+              own local Text/Draw/Clear - a single global one wouldn't know
+              which page it's supposed to apply to. Page nav (Prev/Next/
+              "Page X of Y") is gone entirely - scrolling is the navigation
+              now. */}
           <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border flex-wrap">
-            <button
-              onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'text' } : p))}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'text' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
-            >
-              <Type size={12} /> Text
-            </button>
-            <button
-              onClick={() => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, type: 'drawing', drawingBackground: p.drawingBackground ?? DEFAULT_DRAWING_BACKGROUND } : p))}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${newPages[currentPageIndex].type === 'drawing' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
-            >
-              <PenLine size={12} /> Draw
-            </button>
-            {newPages[currentPageIndex].type === 'drawing' && newPages[currentPageIndex].drawing && (
-              <button
-                onClick={() => { setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: null } : p)); setDrawingNonce(n => n + 1) }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-slate-border text-xs font-bold text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
-              >
-                <RotateCcw size={12} /> Clear
-              </button>
-            )}
-
-            <div className="flex items-center gap-1 ml-auto">
-              <button
-                onClick={() => setCurrentPageIndex(i => Math.max(0, i - 1))}
-                disabled={currentPageIndex === 0}
-                className="p-1.5 rounded-lg text-cream-muted opacity-70 hover:opacity-100 disabled:opacity-25 transition-opacity"
-                aria-label="Previous page"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-cream-muted text-xs font-bold opacity-70">
-                Page {currentPageIndex + 1} of {newPages.length}
-              </span>
-              {currentPageIndex === newPages.length - 1 ? (
-                <button
-                  onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-cream-muted opacity-80 hover:opacity-100 transition-opacity"
-                >
-                  <Plus size={13} /> Add page
-                </button>
-              ) : (
-                <button
-                  onClick={() => setCurrentPageIndex(i => Math.min(newPages.length - 1, i + 1))}
-                  className="p-1.5 rounded-lg text-cream-muted opacity-70 hover:opacity-100 transition-opacity"
-                  aria-label="Next page"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              )}
-            </div>
-
-            <div className="w-px h-4 bg-slate-border mx-1" />
-
             <button
               onClick={handleUndo}
               disabled={undoStack.length === 0}
@@ -1363,61 +1328,123 @@ export default function NotebookPage() {
               )}
 
 
-              {readOnly ? (
-                newPages[currentPageIndex].type === 'drawing' ? (
-                  newPages[currentPageIndex].drawing ? (
-                    <img
-                      src={newPages[currentPageIndex].drawing!} alt="Page drawing"
-                      className="flex-1 w-full min-h-[35vh] object-contain rounded-lg"
-                      style={{ backgroundColor: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
-                    />
-                  ) : (
-                    <div
-                      style={{ color: style.textColor, backgroundColor: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
-                      className="flex-1 w-full min-h-[35vh] flex items-center justify-center opacity-50 text-sm rounded-lg"
-                    >
-                      This page is a blank drawing.
-                    </div>
-                  )
-                ) : newPages[currentPageIndex].text ? (
-                  <div
-                    style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
-                    className="flex-1 w-full min-h-[35vh] leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold"
-                    dangerouslySetInnerHTML={{ __html: newPages[currentPageIndex].text }}
-                  />
-                ) : (
-                  <div style={{ color: style.textColor }} className="flex-1 w-full min-h-[35vh] flex items-center opacity-50 text-sm">
-                    This page is empty.
-                  </div>
-                )
-              ) : newPages[currentPageIndex].type === 'drawing' ? (
-                <DrawingCanvas
-                  key={`${currentPageIndex}-${drawingNonce}`}
-                  initialDrawing={newPages[currentPageIndex].drawing}
-                  strokeColor={penColor}
-                  strokeWidth={penSize}
-                  tool={drawTool}
-                  backgroundColor={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                  onChange={dataUrl => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, drawing: dataUrl } : p))}
-                />
-              ) : (
-                <RichTextEditor
-                  key={`${currentPageIndex}-${editorNonce}`}
-                  initialHtml={newPages[currentPageIndex].text}
-                  editableRef={editableRef}
-                  textColor={style.textColor}
-                  fontFamily={FONT_STACK[style.font]}
-                  placeholder="Write as much as you want…"
-                  onChange={html => setNewPages(prev => prev.map((p, i) => i === currentPageIndex ? { ...p, text: html } : p))}
-                />
-              )}
+              {/* Pages, stacked vertically - scrolling down moves from one
+                  page to the next instead of tapping arrows. Each page
+                  gets its own small Text/Draw/Clear header since, with
+                  every page visible at once, that control can't be a
+                  single global one anymore - it wouldn't know which page
+                  it's supposed to apply to. */}
+              <div className="flex flex-col gap-1">
+                {newPages.map((page, i) => (
+                  <div key={i} className={i > 0 ? 'pt-4 mt-4 border-t border-current/15' : ''}>
+                    {(newPages.length > 1 || !readOnly) && (
+                      <div className="flex items-center justify-between mb-2">
+                        {newPages.length > 1 && (
+                          <span style={{ color: style.textColor }} className="text-[11px] font-bold opacity-50">
+                            Page {i + 1}
+                          </span>
+                        )}
+                        {!readOnly && (
+                          <div className="flex items-center gap-1.5 ml-auto">
+                            <button
+                              onClick={() => { setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, type: 'text' } : p)); setCurrentPageIndex(i) }}
+                              style={{ color: style.textColor }}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold transition-opacity ${page.type === 'text' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                            >
+                              <Type size={10} /> Text
+                            </button>
+                            <button
+                              onClick={() => { setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, type: 'drawing', drawingBackground: p.drawingBackground ?? DEFAULT_DRAWING_BACKGROUND } : p)); setCurrentPageIndex(i) }}
+                              style={{ color: style.textColor }}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold transition-opacity ${page.type === 'drawing' ? 'opacity-100 border-current/40' : 'opacity-50 border-current/15'}`}
+                            >
+                              <PenLine size={10} /> Draw
+                            </button>
+                            {page.type === 'drawing' && page.drawing && (
+                              <button
+                                onClick={() => { setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, drawing: null } : p)); setDrawingNonce(n => n + 1) }}
+                                style={{ color: style.textColor }}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-current/15 text-[11px] font-bold opacity-50 hover:opacity-80 transition-opacity"
+                              >
+                                <RotateCcw size={10} /> Clear
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-              {!readOnly && newPages[currentPageIndex].type === 'text' && (
-                <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
-                  <span>{countWords(stripHtml(newPages[currentPageIndex].text))} words</span>
-                  <span>{stripHtml(newPages[currentPageIndex].text).length} characters</span>
-                </div>
-              )}
+                    {readOnly ? (
+                      page.type === 'drawing' ? (
+                        page.drawing ? (
+                          <img
+                            src={page.drawing} alt="Page drawing"
+                            className="w-full min-h-[30vh] object-contain rounded-lg"
+                            style={{ backgroundColor: page.drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
+                          />
+                        ) : (
+                          <div
+                            style={{ color: style.textColor, backgroundColor: page.drawingBackground || DEFAULT_DRAWING_BACKGROUND }}
+                            className="w-full min-h-[30vh] flex items-center justify-center opacity-50 text-sm rounded-lg"
+                          >
+                            This page is a blank drawing.
+                          </div>
+                        )
+                      ) : page.text ? (
+                        <div
+                          style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                          className="w-full leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold"
+                          dangerouslySetInnerHTML={{ __html: page.text }}
+                        />
+                      ) : (
+                        <div style={{ color: style.textColor }} className="w-full flex items-center opacity-50 text-sm">
+                          This page is empty.
+                        </div>
+                      )
+                    ) : page.type === 'drawing' ? (
+                      <div onPointerDown={() => setCurrentPageIndex(i)}>
+                        <DrawingCanvas
+                          key={`${i}-${drawingNonce}`}
+                          initialDrawing={page.drawing}
+                          strokeColor={penColor}
+                          strokeWidth={penSize}
+                          tool={drawTool}
+                          backgroundColor={page.drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                          onChange={dataUrl => setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, drawing: dataUrl } : p))}
+                        />
+                      </div>
+                    ) : (
+                      <RichTextEditor
+                        key={`${i}-${editorNonce}`}
+                        initialHtml={page.text}
+                        registerRef={el => { editableRefs.current[i] = el }}
+                        onFocus={() => setCurrentPageIndex(i)}
+                        textColor={style.textColor}
+                        fontFamily={FONT_STACK[style.font]}
+                        placeholder="Write as much as you want…"
+                        onChange={html => setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, text: html } : p))}
+                      />
+                    )}
+
+                    {!readOnly && page.type === 'text' && (
+                      <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5">
+                        <span>{countWords(stripHtml(page.text))} words</span>
+                        <span>{stripHtml(page.text).length} characters</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {!readOnly && (
+                  <button
+                    onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
+                    style={{ color: style.textColor }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 mt-3 rounded-xl border border-dashed border-current/25 text-xs font-bold opacity-70 hover:opacity-100 transition-opacity"
+                  >
+                    <Plus size={14} /> Add page
+                  </button>
+                )}
+              </div>
 
             </div>
                 ) : (
