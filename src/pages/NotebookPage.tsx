@@ -97,6 +97,43 @@ const FONT_STACK: Record<NotebookStyle['font'], string> =
 const BACKGROUND_OPTIONS = ['#111827', '#0A0F1E', '#1B2B1F', '#1B1F2E', '#2B2013', '#FDF3E2', '#FBE4EC', '#FFFFFF']
 const TEXT_COLOR_OPTIONS = ['#F0F4F8', '#0A0F1E', '#D4A017', '#14B8A6', '#EC4899', '#8B949E', '#FDF3E2', '#3C5F94']
 
+function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '')
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
+  const int = parseInt(full, 16)
+  return [(int >> 16) & 255, (int >> 8) & 255, int & 255]
+}
+
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  })
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
+}
+
+function contrastRatio(hexA: string, hexB: string): number {
+  const lA = relativeLuminance(hexToRgb(hexA))
+  const lB = relativeLuminance(hexToRgb(hexB))
+  return (Math.max(lA, lB) + 0.05) / (Math.min(lA, lB) + 0.05)
+}
+
+// The Style panel lets a note's background and text color be picked
+// independently, so nothing stops someone from landing on a pairing like
+// white-on-cream - both valid colors, but close enough to be functionally
+// invisible against each other. That's what made two cards look blank:
+// the titles were there, just unreadable. Cards fall back to a safe
+// black/white text color whenever the saved pairing is too close to tell
+// apart, rather than trusting it blindly.
+function getReadableTextColor(background: string, requestedTextColor: string): string {
+  try {
+    if (contrastRatio(background, requestedTextColor) >= 2.5) return requestedTextColor
+    return relativeLuminance(hexToRgb(background)) > 0.5 ? '#0A0F1E' : '#F0F4F8'
+  } catch {
+    return requestedTextColor
+  }
+}
+
 function Card({ children, style, onClick }: { children: React.ReactNode; style?: React.CSSProperties; onClick?: () => void }) {
   return (
     <div
@@ -669,10 +706,12 @@ export default function NotebookPage() {
 
       if (changed) {
         const focusedPage = currentPageIndex
+        const clampedFocusedPage = Math.min(focusedPage, pages.length - 1)
         setNewPages(pages)
+        setCurrentPageIndex(clampedFocusedPage)
         setEditorNonce(n => n + 1)
         setTimeout(() => {
-          const el = editableRefs.current[Math.min(focusedPage, pages.length - 1)]
+          const el = editableRefs.current[clampedFocusedPage]
           if (!el) return
           el.focus()
           const range = document.createRange()
@@ -704,6 +743,16 @@ export default function NotebookPage() {
     document.addEventListener('selectionchange', updateActiveFormats)
     return () => document.removeEventListener('selectionchange', updateActiveFormats)
   }, [composing, readOnly, currentPageIndex])
+
+  // Defense in depth for the crash below: currentPageIndex must never
+  // point past the end of newPages, whichever of the several places that
+  // update newPages caused it to shrink. A few call sites already clamp
+  // this themselves, but several unguarded `newPages[currentPageIndex]`
+  // reads elsewhere assume it's always in range - this is what keeps
+  // that assumption true no matter what.
+  useEffect(() => {
+    if (currentPageIndex > newPages.length - 1) setCurrentPageIndex(newPages.length - 1)
+  }, [newPages, currentPageIndex])
 
   if (!currentUser) return null
 
@@ -1188,15 +1237,16 @@ export default function NotebookPage() {
                 visibleEntries.map(entry => {
                   const isExpanded = expandedEntryId === entry.id
                   const isRenaming = renamingEntryId === entry.id
+                  const cardTextColor = getReadableTextColor(entry.style.background, entry.style.textColor)
                   return (
                   <Card key={entry.id} onClick={() => !isRenaming && openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {entry.pages[0]?.type === 'drawing' ? (
-                            <PenLine size={12} style={{ color: entry.style.textColor }} className="flex-shrink-0 opacity-60" />
+                            <PenLine size={12} style={{ color: cardTextColor }} className="flex-shrink-0 opacity-60" />
                           ) : (
-                            <Type size={12} style={{ color: entry.style.textColor }} className="flex-shrink-0 opacity-60" />
+                            <Type size={12} style={{ color: cardTextColor }} className="flex-shrink-0 opacity-60" />
                           )}
                           {isRenaming ? (
                             <input
@@ -1206,12 +1256,12 @@ export default function NotebookPage() {
                               onChange={e => setRenameDraft(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') handleRenameEntry(entry); if (e.key === 'Escape') setRenamingEntryId(null) }}
                               onBlur={() => handleRenameEntry(entry)}
-                              style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }}
+                              style={{ color: cardTextColor, fontFamily: FONT_STACK[entry.style.font] }}
                               className="font-bold text-sm bg-transparent border-b border-current/30 focus:outline-none flex-1 min-w-0"
                             />
                           ) : (
                             <p
-                              style={{ color: entry.style.textColor, fontFamily: FONT_STACK[entry.style.font] }}
+                              style={{ color: cardTextColor, fontFamily: FONT_STACK[entry.style.font] }}
                               className={isExpanded ? 'font-bold text-sm' : 'font-bold text-sm truncate'}
                             >
                               {entry.title}
@@ -1219,7 +1269,7 @@ export default function NotebookPage() {
                           )}
                           {entry.pages.length > 1 && (
                             <span
-                              style={{ color: entry.style.textColor, borderColor: `${entry.style.textColor}30` }}
+                              style={{ color: cardTextColor, borderColor: `${cardTextColor}30` }}
                               className="flex-shrink-0 text-[10px] font-bold border rounded-full px-1.5 py-0.5 opacity-70"
                             >
                               {entry.pages.length} pages
@@ -1228,12 +1278,12 @@ export default function NotebookPage() {
                         </div>
                         {isExpanded && !isRenaming && (
                           <div className="flex items-center gap-2 mt-1">
-                            <p style={{ color: entry.style.textColor }} className="text-[11px] font-bold opacity-70">
+                            <p style={{ color: cardTextColor }} className="text-[11px] font-bold opacity-70">
                               Created {new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </p>
                             <button
                               onClick={e => { e.stopPropagation(); setRenamingEntryId(entry.id); setRenameDraft(entry.title) }}
-                              style={{ color: entry.style.textColor }}
+                              style={{ color: cardTextColor }}
                               className="opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
                               aria-label="Rename"
                             >
@@ -1242,14 +1292,14 @@ export default function NotebookPage() {
                           </div>
                         )}
                         {isExpanded && (
-                          <p style={{ color: entry.style.textColor }} className="text-[11px] font-bold opacity-70 mt-1">
+                          <p style={{ color: cardTextColor }} className="text-[11px] font-bold opacity-70 mt-1">
                             Edited {formatRelativeTime(entry.updatedAt)}
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           <button
                             onClick={e => { e.stopPropagation(); setExpandedEntryId(isExpanded ? null : entry.id) }}
-                            style={{ color: entry.style.textColor }}
+                            style={{ color: cardTextColor }}
                             className="text-[10px] font-bold opacity-50 hover:opacity-90 transition-opacity underline"
                           >
                             {isExpanded ? 'Hide details' : 'Show details'}
@@ -1258,7 +1308,7 @@ export default function NotebookPage() {
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
-                        style={{ color: entry.style.textColor }}
+                        style={{ color: cardTextColor }}
                         className="opacity-60 hover:opacity-100 hover:!text-red-400 transition-colors flex-shrink-0"
                       >
                         <Trash2 size={16} />
@@ -1270,7 +1320,7 @@ export default function NotebookPage() {
                         onClick={e => e.stopPropagation()}
                         className="mt-3 pt-3 border-t border-current/15"
                       >
-                        <p style={{ color: entry.style.textColor }} className="text-xs opacity-90 mb-2">
+                        <p style={{ color: cardTextColor }} className="text-xs opacity-90 mb-2">
                           Delete this note for good? It's encrypted, so once it's gone — even we can't get it back.
                         </p>
                         <div className="flex gap-2">
@@ -1283,7 +1333,7 @@ export default function NotebookPage() {
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            style={{ borderColor: `${entry.style.textColor}40`, color: entry.style.textColor }}
+                            style={{ borderColor: `${cardTextColor}40`, color: cardTextColor }}
                             className="flex-1 border font-bold py-2 rounded-xl text-xs transition-colors opacity-80 hover:opacity-100"
                           >
                             Cancel
