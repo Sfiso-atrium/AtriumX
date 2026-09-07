@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE,
+  NotebookEntry, NotebookAttachment, NotebookStyle, NotebookPageData, DEFAULT_NOTEBOOK_STYLE, FONT_SIZE_OPTIONS,
   DEFAULT_DRAWING_BACKGROUND, DEFAULT_CANVAS_HEIGHT, emptyTextPage, emptyDrawingPage,
   hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
@@ -341,13 +341,14 @@ function DrawingCanvas({
 // page now renders its own RichTextEditor at once (stacked vertically),
 // so the parent needs one DOM reference per page, not one overall.
 function RichTextEditor({
-  initialHtml, registerRef, onFocus, textColor, fontFamily, placeholder, onChange,
+  initialHtml, registerRef, onFocus, textColor, fontFamily, fontSize, placeholder, onChange,
 }: {
   initialHtml: string
   registerRef: (el: HTMLDivElement | null) => void
   onFocus: () => void
   textColor: string
   fontFamily: string
+  fontSize: number
   placeholder: string
   onChange: (html: string) => void
 }) {
@@ -423,7 +424,7 @@ function RichTextEditor({
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       data-placeholder={placeholder}
-      style={{ color: textColor, fontFamily }}
+      style={{ color: textColor, fontFamily, fontSize }}
       className="w-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2 empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
     />
   )
@@ -652,6 +653,7 @@ export default function NotebookPage() {
       const capacity = sampleBox.clientHeight
       measure.style.width = `${sampleBox.clientWidth}px`
       measure.style.fontFamily = FONT_STACK[style.font]
+      measure.style.fontSize = `${style.fontSize}px`
 
       const heightOf = (html: string) => { measure.innerHTML = html; return measure.scrollHeight }
 
@@ -1514,6 +1516,47 @@ export default function NotebookPage() {
                     />
                   ))}
                 </div>
+
+                {/* Increasing preset sizes up to a sensible max, rather
+                    than a free-form input - big enough to actually matter
+                    for readability, without needing to type a number. */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Text size</span>
+                  {FONT_SIZE_OPTIONS.map(size => (
+                    <button
+                      key={size} onClick={() => setStyle(s => ({ ...s, fontSize: size }))}
+                      className={`px-2 py-1 rounded-lg border text-xs font-bold transition-colors ${style.fontSize === size ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Just horizontal/vertical distance from the page edge to
+                    the text, not independent top/bottom/left/right - "no
+                    complications", per the brief. */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Horizontal</span>
+                    <input
+                      type="range" min={8} max={80} value={style.paddingX}
+                      onChange={e => setStyle(s => ({ ...s, paddingX: Number(e.target.value) }))}
+                      className="w-20 accent-teal-light"
+                      aria-label="Horizontal padding"
+                    />
+                    <span className="text-cream-muted text-[11px] font-bold w-8">{style.paddingX}px</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Vertical</span>
+                    <input
+                      type="range" min={8} max={80} value={style.paddingY}
+                      onChange={e => setStyle(s => ({ ...s, paddingY: Number(e.target.value) }))}
+                      className="w-20 accent-teal-light"
+                      aria-label="Vertical padding"
+                    />
+                    <span className="text-cream-muted text-[11px] font-bold w-8">{style.paddingY}px</span>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2.5 px-4 pb-3 border-b border-slate-border">
@@ -1661,14 +1704,26 @@ export default function NotebookPage() {
                 {newPages.map((page, i) => (
                   <div
                     key={i}
-                    style={{ backgroundColor: style.background }}
-                    className="relative w-full max-w-2xl mx-auto flex-shrink-0 h-[85vh] flex flex-col p-4 pb-9"
+                    style={{
+                      backgroundColor: style.background,
+                      paddingLeft: style.paddingX, paddingRight: style.paddingX,
+                      paddingTop: style.paddingY,
+                      // A little extra beyond the user's chosen bottom
+                      // padding, reserved for the page number footer below,
+                      // so a small chosen padding still leaves it room.
+                      paddingBottom: style.paddingY + 24,
+                    }}
+                    // A4/exercise-book pages are √2 taller than they are
+                    // wide (210mm × 297mm) - aspect-ratio keeps that exact
+                    // proportion at any width, so a page is never a square
+                    // or an arbitrary viewport-relative box, on any screen.
+                    className="relative w-full max-w-2xl mx-auto flex-shrink-0 aspect-[210/297] flex flex-col"
                   >
                     <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-y-auto">
                     {readOnly ? (
                       page.text ? (
                         <div
-                          style={{ color: style.textColor, fontFamily: FONT_STACK[style.font] }}
+                          style={{ color: style.textColor, fontFamily: FONT_STACK[style.font], fontSize: style.fontSize }}
                           className="w-full leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2"
                           dangerouslySetInnerHTML={{ __html: page.text }}
                         />
@@ -1685,6 +1740,7 @@ export default function NotebookPage() {
                         onFocus={() => setCurrentPageIndex(i)}
                         textColor={style.textColor}
                         fontFamily={FONT_STACK[style.font]}
+                        fontSize={style.fontSize}
                         placeholder="Write as much as you want…"
                         onChange={html => setNewPages(prev => prev.map((p, idx) => idx === i ? { ...p, text: html } : p))}
                       />
