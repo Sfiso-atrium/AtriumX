@@ -29,13 +29,26 @@ export interface NotebookStyle {
   font: 'sans' | 'serif' | 'handwritten' | 'mono'
   background: string
   textColor: string
+  // Body text size in px, and the page's inner margin (split into
+  // horizontal/vertical rather than four independent sides - "no
+  // complications", per the brief). Both are per-note, same as font and
+  // color, so they travel with the note rather than being a one-off
+  // session setting.
+  fontSize: number
+  paddingX: number
+  paddingY: number
 }
 
 export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
   font: 'sans',
   background: '#111827',
   textColor: '#F0F4F8',
+  fontSize: 16,
+  paddingX: 24,
+  paddingY: 24,
 }
+
+export const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 24, 28, 32, 36]
 
 // A note is one or more pages, and each page is either written text or a
 // freehand drawing (PenLine mode in NotebookPage.tsx) - never both at
@@ -169,7 +182,10 @@ export async function listNotebookEntries(userId: string, key: CryptoKey): Promi
       // Entries saved before styling existed have no `style` in their
       // decrypted JSON - fall back to the default rather than leaving it
       // undefined, since the page reads entry.style.background directly.
-      if (parsed.style) style = parsed.style
+      // Merged rather than replaced outright, so notes saved before
+      // fontSize/padding existed keep their chosen font/colors but still
+      // get sane values for the newer fields instead of undefined.
+      if (parsed.style) style = { ...DEFAULT_NOTEBOOK_STYLE, ...parsed.style }
     } catch {
       // Wrong key or corrupted row - surface it plainly rather than crash the list.
     }
