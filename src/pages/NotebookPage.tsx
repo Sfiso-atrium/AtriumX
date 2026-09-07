@@ -85,6 +85,56 @@ function buildNoteText(title: string, pages: NotebookPageData[]): string {
   return `${title || 'Untitled'}\n\n${body}`
 }
 
+// Built client-side from the note's already-decrypted content, same as
+// the .txt export - the PDF never touches the network. Text pages are
+// plain wrapped text (bold/italic/bullets/headings don't survive into a
+// PDF built this simply, same limitation as the .txt export); drawing
+// pages embed the canvas PNG scaled to fit the page. A pasted image
+// inside a text page is part of that page's HTML, not a separate
+// attachment, so it won't appear here - only in the note itself.
+async function exportNoteAsPdf(entry: NotebookEntry) {
+  const { default: jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 48
+  const maxWidth = pageWidth - margin * 2
+  const lineHeight = 16
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text(entry.title || 'Untitled', margin, margin, { maxWidth })
+
+  let cursorY = margin + 28
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(12)
+
+  const pages = entry.pages.length > 0 ? entry.pages : [emptyTextPage()]
+  pages.forEach((page, i) => {
+    if (i > 0) { doc.addPage(); cursorY = margin }
+
+    if (page.type === 'drawing') {
+      if (!page.drawing) return
+      const img = doc.getImageProperties(page.drawing)
+      const availableHeight = pageHeight - cursorY - margin
+      const scale = Math.min(maxWidth / img.width, availableHeight / img.height)
+      const w = img.width * scale
+      const h = img.height * scale
+      doc.addImage(page.drawing, 'PNG', margin, cursorY, w, h)
+      return
+    }
+
+    const lines = doc.splitTextToSize(stripHtml(page.text), maxWidth) as string[]
+    for (const line of lines) {
+      if (cursorY > pageHeight - margin) { doc.addPage(); cursorY = margin }
+      doc.text(line, margin, cursorY)
+      cursorY += lineHeight
+    }
+  })
+
+  doc.save(`${(entry.title.trim() || 'note').replace(/[^\w-]+/g, '_')}.pdf`)
+}
+
 const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }[] = [
   { key: 'sans', label: 'Sans', stack: "'DM Sans', system-ui, sans-serif" },
   { key: 'serif', label: 'Serif', stack: "'Lora', Georgia, serif" },
@@ -96,6 +146,18 @@ const FONT_STACK: Record<NotebookStyle['font'], string> =
 
 const BACKGROUND_OPTIONS = ['#111827', '#0A0F1E', '#1B2B1F', '#1B1F2E', '#2B2013', '#FDF3E2', '#FBE4EC', '#FFFFFF']
 const TEXT_COLOR_OPTIONS = ['#F0F4F8', '#0A0F1E', '#D4A017', '#14B8A6', '#EC4899', '#8B949E', '#FDF3E2', '#3C5F94']
+
+const HEX_COLOR_RE = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/
+
+// Guards both the card's actual background AND the contrast check against
+// it with the exact same notion of "valid" - if a stored color isn't a
+// clean hex string (some older notes have blank/malformed values from
+// before this was validated), both sides now agree on the fallback
+// instead of one silently rendering white while the other assumes its
+// request succeeded.
+function sanitizeHexColor(color: string | undefined | null, fallback: string): string {
+  return typeof color === 'string' && HEX_COLOR_RE.test(color) ? color : fallback
+}
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '')
@@ -1239,9 +1301,10 @@ export default function NotebookPage() {
                 visibleEntries.map(entry => {
                   const isExpanded = expandedEntryId === entry.id
                   const isRenaming = renamingEntryId === entry.id
-                  const cardTextColor = getReadableTextColor(entry.style.background, entry.style.textColor)
+                  const cardBackground = sanitizeHexColor(entry.style.background, DEFAULT_NOTEBOOK_STYLE.background)
+                  const cardTextColor = getReadableTextColor(cardBackground, sanitizeHexColor(entry.style.textColor, DEFAULT_NOTEBOOK_STYLE.textColor))
                   return (
-                  <Card key={entry.id} onClick={() => !isRenaming && openEditNote(entry)} style={{ backgroundColor: entry.style.background }}>
+                  <Card key={entry.id} onClick={() => !isRenaming && openEditNote(entry)} style={{ backgroundColor: cardBackground }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -1308,13 +1371,23 @@ export default function NotebookPage() {
                           </button>
                         </div>
                       </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
-                        style={{ color: cardTextColor }}
-                        className="opacity-60 hover:opacity-100 hover:!text-red-400 transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={e => { e.stopPropagation(); exportNoteAsPdf(entry) }}
+                          style={{ color: cardTextColor }}
+                          className="opacity-60 hover:opacity-100 transition-opacity"
+                          aria-label="Download as PDF"
+                        >
+                          <Download size={16} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setConfirmDeleteId(entry.id) }}
+                          style={{ color: cardTextColor }}
+                          className="opacity-60 hover:opacity-100 hover:!text-red-400 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
 
                     {confirmDeleteId === entry.id && (
