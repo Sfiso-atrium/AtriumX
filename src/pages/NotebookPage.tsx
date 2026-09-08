@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  X, Lock, Plus, Minus, Download, Trash2, Type, Image as ImageIcon,
+  X, Lock, Plus, Minus, Download, Trash2, Type, Image as ImageIcon, ArrowLeft, PanelLeft,
   ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
   Bold, Italic, Undo2, Redo2,
 } from 'lucide-react'
@@ -685,6 +685,10 @@ export default function NotebookPage() {
   // since those are needed regardless of whether you're trying to
   // maximize writing space right now.
   const [toolsHidden, setToolsHidden] = useState(false)
+  // Desktop-only: collapses the notes-list sidebar to give the open note
+  // the full width. Meaningless on a phone, where the sidebar and the
+  // open note already never show at the same time.
+  const [sidebarHidden, setSidebarHidden] = useState(false)
   const [initialSnapshot, setInitialSnapshot] = useState<NoteSnapshot | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   // Title is now collected up front, before the note is even opened - this
@@ -1225,8 +1229,6 @@ export default function NotebookPage() {
     if (isDirty) { setConfirmDiscard(true); return }
     setComposing(false)
   }
-  const title = composing ? (readOnly ? 'Note' : (editingEntryId ? 'Edit note' : 'New note')) : 'Notebook'
-
   const enterEditMode = () => setReadOnly(false)
 
   const handleCopyNote = async () => {
@@ -1265,26 +1267,6 @@ export default function NotebookPage() {
 
   return (
     <div className="h-[100dvh] bg-slate-deep flex flex-col overflow-hidden">
-      <div className="flex-shrink-0 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <button onClick={closeButtonAction} className="text-cream-muted hover:text-cream transition-colors">
-          <X size={20} />
-        </button>
-        <span className="text-cream font-bold flex-1">{title}</span>
-        {composing && readOnly ? (
-          <button onClick={enterEditMode} className="flex items-center gap-1.5 text-teal-light hover:opacity-80 font-bold text-sm transition-opacity">
-            <Pencil size={14} /> Edit
-          </button>
-        ) : composing ? (
-          <button onClick={handleSave} disabled={saving} className="text-teal-light hover:opacity-80 disabled:opacity-50 font-bold text-sm transition-opacity">
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        ) : notebookKey ? (
-          <button onClick={() => { setNotebookKey(null); setConfirmDeleteId(null) }} className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-xs transition-colors">
-            <Lock size={14} /> Lock
-          </button>
-        ) : null}
-      </div>
-
       {pendingNewNoteKind && (
         <div
           className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
@@ -1470,9 +1452,29 @@ export default function NotebookPage() {
           {/* Sidebar: the notes list. Always visible on wider screens,
               side-by-side with whatever note is open - on a phone, it's
               the only thing shown until a note is opened, same full-screen
-              list as before. */}
-          <div className={`${composing ? 'hidden md:flex' : 'flex'} w-full md:w-80 md:flex-shrink-0 md:border-r md:border-slate-border flex-col overflow-y-auto`}>
+              list as before. sidebarHidden additionally collapses it on
+              wider screens only, giving the open note the full pane. */}
+          <div className={`${composing ? 'hidden' : 'flex'} ${sidebarHidden ? 'md:hidden' : 'md:flex'} w-full md:w-80 md:flex-shrink-0 md:border-r md:border-slate-border flex-col overflow-y-auto relative`}>
             <div className="px-4 py-4 flex flex-col gap-4">
+              {/* Replaces the old full-width top bar - the back arrow and
+                  "Notebook" label live here now, alongside the note-
+                  creation tools below, and disappear along with the rest
+                  of the sidebar when it's collapsed. */}
+              <div className="flex items-center gap-2.5">
+                <button onClick={closeButtonAction} className="text-cream-muted hover:text-cream transition-colors flex-shrink-0">
+                  <ArrowLeft size={20} />
+                </button>
+                <span className="text-ember font-bold flex-1">Notebook</span>
+                {notebookKey && (
+                  <button
+                    onClick={() => { setNotebookKey(null); setConfirmDeleteId(null) }}
+                    className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-xs transition-colors flex-shrink-0"
+                  >
+                    <Lock size={14} /> Lock
+                  </button>
+                )}
+              </div>
+
               {recoverableDraft && (
                 <div className="bg-teal-primary/10 border border-teal-light/30 rounded-2xl p-4">
                   <p className="text-cream font-bold text-sm mb-1">Resume where you left off?</p>
@@ -1670,7 +1672,25 @@ export default function NotebookPage() {
                 )})
               )}
             </div>
+
+            <button
+              onClick={() => setSidebarHidden(true)}
+              className="hidden md:flex absolute bottom-3 right-3 items-center justify-center w-8 h-8 rounded-lg text-cream-muted opacity-60 hover:opacity-100 hover:bg-slate-card transition-all"
+              aria-label="Hide sidebar"
+            >
+              <PanelLeft size={17} />
+            </button>
           </div>
+
+          {sidebarHidden && (
+            <button
+              onClick={() => setSidebarHidden(false)}
+              className="hidden md:flex fixed bottom-4 left-4 z-40 items-center justify-center w-8 h-8 rounded-lg bg-slate-card border border-slate-border text-cream-muted opacity-70 hover:opacity-100 transition-all"
+              aria-label="Show sidebar"
+            >
+              <PanelLeft size={17} />
+            </button>
+          )}
 
           {/* Main pane: the open note. Always visible on wider screens
               (showing an empty-state placeholder when nothing's open) -
@@ -1682,6 +1702,9 @@ export default function NotebookPage() {
         // note never leaves you one keystroke from changing it.
         <div className="flex-shrink-0 w-full px-4 pt-3">
           <div className="flex items-center gap-4 mb-3 pb-3 border-b border-slate-border">
+            <button onClick={closeButtonAction} className="md:hidden text-cream-muted hover:text-cream transition-colors">
+              <ArrowLeft size={18} />
+            </button>
             <button onClick={enterEditMode} className="flex items-center gap-1.5 text-teal-light hover:opacity-80 font-bold text-xs transition-opacity">
               <Pencil size={13} /> Edit
             </button>
@@ -1712,6 +1735,19 @@ export default function NotebookPage() {
               "Page X of Y") is gone entirely - scrolling is the navigation
               now. */}
           <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border flex-wrap">
+            <button onClick={closeButtonAction} className="md:hidden text-cream-muted hover:text-cream transition-colors mr-1">
+              <ArrowLeft size={18} />
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="text-teal-light hover:opacity-80 disabled:opacity-50 font-bold text-xs transition-opacity mr-1"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+
+            <div className="w-px h-4 bg-slate-border" />
+
             <button
               onClick={handleUndo}
               disabled={undoStack.length === 0}
@@ -1764,10 +1800,83 @@ export default function NotebookPage() {
               >
                 <Italic size={13} />
               </button>
-              <DropdownButton label="Font" open={openDropdown === 'font'} onClick={() => setOpenDropdown(o => o === 'font' ? null : 'font')} />
-              <DropdownButton label="Color" open={openDropdown === 'color'} onClick={() => setOpenDropdown(o => o === 'color' ? null : 'color')} />
-              <DropdownButton label="Background" open={openDropdown === 'background'} onClick={() => setOpenDropdown(o => o === 'background' ? null : 'background')} />
-              <DropdownButton label="Size" open={openDropdown === 'size'} onClick={() => setOpenDropdown(o => o === 'size' ? null : 'size')} />
+
+              <div className="relative">
+                <DropdownButton label="Font" open={openDropdown === 'font'} onClick={() => setOpenDropdown(o => o === 'font' ? null : 'font')} />
+                {openDropdown === 'font' && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                      <div className="flex flex-col gap-1 min-w-[150px]">
+                        {FONT_OPTIONS.map(f => (
+                          <button
+                            key={f.key} onClick={() => { applyFontFamily(f.key); setOpenDropdown(null) }} style={{ fontFamily: f.stack }}
+                            className="flex items-center px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs transition-colors text-left"
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <DropdownButton label="Color" open={openDropdown === 'color'} onClick={() => setOpenDropdown(o => o === 'color' ? null : 'color')} />
+                {openDropdown === 'color' && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                      <ColorList
+                        options={TEXT_COLOR_OPTIONS}
+                        value={activeFormats.color}
+                        onPick={hex => { applyTextColor(hex); setOpenDropdown(null) }}
+                        onOpenCustom={() => setColorModal({ initial: activeFormats.color, onConfirm: hex => { applyTextColor(hex); setOpenDropdown(null) } })}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <DropdownButton label="Background" open={openDropdown === 'background'} onClick={() => setOpenDropdown(o => o === 'background' ? null : 'background')} />
+                {openDropdown === 'background' && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                      <ColorList
+                        options={BACKGROUND_OPTIONS}
+                        value={style.background}
+                        onPick={hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) }}
+                        onOpenCustom={() => setColorModal({ initial: style.background, onConfirm: hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) } })}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <DropdownButton label="Size" open={openDropdown === 'size'} onClick={() => setOpenDropdown(o => o === 'size' ? null : 'size')} />
+                {openDropdown === 'size' && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                      <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+                        {FONT_SIZE_OPTIONS.map(size => (
+                          <button
+                            key={size} onClick={() => { applyFontSize(size); setOpenDropdown(null) }}
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
+                          >
+                            {size}px
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <button
                 onClick={() => setPaddingModalOpen(true)}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
@@ -1790,66 +1899,44 @@ export default function NotebookPage() {
                 <Eraser size={12} /> Eraser
               </button>
               {drawTool === 'pen' && (
-                <DropdownButton label="Color" open={openDropdown === 'pen-color'} onClick={() => setOpenDropdown(o => o === 'pen-color' ? null : 'pen-color')} />
+                <div className="relative">
+                  <DropdownButton label="Color" open={openDropdown === 'pen-color'} onClick={() => setOpenDropdown(o => o === 'pen-color' ? null : 'pen-color')} />
+                  {openDropdown === 'pen-color' && (
+                    <>
+                      <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                      <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                        <ColorList
+                          options={TEXT_COLOR_OPTIONS}
+                          value={penColor}
+                          onPick={hex => { setPenColor(hex); setOpenDropdown(null) }}
+                          onOpenCustom={() => setColorModal({ initial: penColor, onConfirm: hex => { setPenColor(hex); setOpenDropdown(null) } })}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
-              <DropdownButton label="Background" open={openDropdown === 'page-bg'} onClick={() => setOpenDropdown(o => o === 'page-bg' ? null : 'page-bg')} />
-            </div>
-          )}
+              <div className="relative">
+                <DropdownButton label="Background" open={openDropdown === 'page-bg'} onClick={() => setOpenDropdown(o => o === 'page-bg' ? null : 'page-bg')} />
+                {openDropdown === 'page-bg' && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute left-0 top-full mt-2 z-[195] bg-slate-card border border-slate-border rounded-2xl p-2 shadow-lg">
+                      <ColorList
+                        options={BACKGROUND_OPTIONS}
+                        value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                        onPick={hex => { setCurrentPageBackground(hex); setOpenDropdown(null) }}
+                        onOpenCustom={() => setColorModal({
+                          initial: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND,
+                          onConfirm: hex => { setCurrentPageBackground(hex); setOpenDropdown(null) },
+                        })}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
 
-          {newPages[currentPageIndex].type === 'text' ? (
-            <>
-              {openDropdown === 'font' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <div className="flex flex-col gap-1 min-w-[150px]">
-                    {FONT_OPTIONS.map(f => (
-                      <button
-                        key={f.key} onClick={() => { applyFontFamily(f.key); setOpenDropdown(null) }} style={{ fontFamily: f.stack }}
-                        className="flex items-center px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs transition-colors text-left"
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {openDropdown === 'color' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <ColorList
-                    options={TEXT_COLOR_OPTIONS}
-                    value={activeFormats.color}
-                    onPick={hex => { applyTextColor(hex); setOpenDropdown(null) }}
-                    onOpenCustom={() => setColorModal({ initial: activeFormats.color, onConfirm: hex => { applyTextColor(hex); setOpenDropdown(null) } })}
-                  />
-                </div>
-              )}
-              {openDropdown === 'background' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <ColorList
-                    options={BACKGROUND_OPTIONS}
-                    value={style.background}
-                    onPick={hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) }}
-                    onOpenCustom={() => setColorModal({ initial: style.background, onConfirm: hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) } })}
-                  />
-                </div>
-              )}
-              {openDropdown === 'size' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <div className="flex flex-wrap gap-1.5 max-w-[220px]">
-                    {FONT_SIZE_OPTIONS.map(size => (
-                      <button
-                        key={size} onClick={() => { applyFontSize(size); setOpenDropdown(null) }}
-                        className="px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
-                      >
-                        {size}px
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 px-4 pb-3 border-b border-slate-border">
+              <div className="flex items-center gap-2 pl-1">
                 <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
                 <button
                   onClick={() => setPenSize(s => Math.max(1, s - 1))}
@@ -1861,7 +1948,7 @@ export default function NotebookPage() {
                 <input
                   type="range" min={1} max={40} value={penSize}
                   onChange={e => setPenSize(Number(e.target.value))}
-                  className="flex-1 min-w-0"
+                  className="w-24"
                 />
                 <button
                   onClick={() => setPenSize(s => Math.min(40, s + 1))}
@@ -1872,31 +1959,7 @@ export default function NotebookPage() {
                 </button>
                 <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
               </div>
-
-              {openDropdown === 'pen-color' && drawTool === 'pen' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <ColorList
-                    options={TEXT_COLOR_OPTIONS}
-                    value={penColor}
-                    onPick={hex => { setPenColor(hex); setOpenDropdown(null) }}
-                    onOpenCustom={() => setColorModal({ initial: penColor, onConfirm: hex => { setPenColor(hex); setOpenDropdown(null) } })}
-                  />
-                </div>
-              )}
-              {openDropdown === 'page-bg' && (
-                <div className="px-4 pb-3 border-b border-slate-border">
-                  <ColorList
-                    options={BACKGROUND_OPTIONS}
-                    value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                    onPick={hex => { setCurrentPageBackground(hex); setOpenDropdown(null) }}
-                    onOpenCustom={() => setColorModal({
-                      initial: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND,
-                      onConfirm: hex => { setCurrentPageBackground(hex); setOpenDropdown(null) },
-                    })}
-                  />
-                </div>
-              )}
-            </>
+            </div>
           )}
 
           {existingAttachments.length > 0 && (
