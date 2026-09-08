@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  X, Lock, Plus, Minus, Download, Trash2, Type, Palette, PaintBucket, Image as ImageIcon,
+  X, Lock, Plus, Minus, Download, Trash2, Type, Image as ImageIcon,
   ChevronUp, ChevronDown, Search, Pencil, Copy, PenLine, Pen, Eraser, RotateCcw,
   Bold, Italic, Undo2, Redo2,
 } from 'lucide-react'
@@ -147,6 +147,29 @@ const FONT_STACK: Record<NotebookStyle['font'], string> =
 const BACKGROUND_OPTIONS = ['#111827', '#0A0F1E', '#1B2B1F', '#1B1F2E', '#2B2013', '#FDF3E2', '#FBE4EC', '#FFFFFF']
 const TEXT_COLOR_OPTIONS = ['#F0F4F8', '#0A0F1E', '#D4A017', '#14B8A6', '#EC4899', '#8B949E', '#FDF3E2', '#3C5F94']
 
+// One name per hex value, shared by every color list in the app (text
+// color, page background, pen color, drawing background) - naming them
+// in one place is what keeps the same color labeled the same way
+// everywhere it shows up, rather than each control inventing its own name.
+const COLOR_NAMES: Record<string, string> = {
+  '#F0F4F8': 'Snow', '#0A0F1E': 'Midnight', '#D4A017': 'Gold', '#14B8A6': 'Teal',
+  '#EC4899': 'Pink', '#8B949E': 'Slate', '#FDF3E2': 'Parchment', '#3C5F94': 'Blue',
+  '#111827': 'Charcoal', '#1B2B1F': 'Forest', '#1B1F2E': 'Indigo', '#2B2013': 'Espresso',
+  '#FBE4EC': 'Blush', '#FFFFFF': 'White',
+}
+function colorLabel(hex: string): string {
+  return COLOR_NAMES[hex.toUpperCase()] ?? 'Custom'
+}
+
+// execCommand's queryCommandValue('foreColor') reports back as
+// "rgb(r, g, b)", not hex - needed to tell whether the cursor's current
+// color matches one of the named presets above.
+function rgbStringToHex(rgb: string): string {
+  const m = rgb.match(/\d+/g)
+  if (!m || m.length < 3) return rgb
+  return '#' + m.slice(0, 3).map(n => Number(n).toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
 const HEX_COLOR_RE = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/
 
 // Guards both the card's actual background AND the contrast check against
@@ -204,6 +227,105 @@ function Card({ children, style, onClick }: { children: React.ReactNode; style?:
       className={`bg-slate-card border border-slate-border rounded-2xl p-4 ${onClick ? 'cursor-pointer hover:border-teal-light/50 transition-colors' : ''}`}
     >
       {children}
+    </div>
+  )
+}
+
+// One-word toggle + chevron, same shape as "Hide tools" - every style
+// control (Font, Color, Background, Size) is one of these instead of an
+// always-expanded row of options, so the toolbar takes far less space
+// until you actually want to change something.
+function DropdownButton({ label, open, onClick }: { label: string; open: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${open ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+    >
+      {label} {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+    </button>
+  )
+}
+
+// One color choice: a small swatch plus the color's actual name, never a
+// bare swatch alone - same row shape wherever a color is picked, text or
+// drawing.
+function ColorOption({ hex, selected, onClick }: { hex: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors w-full text-left ${selected ? 'border-teal-light text-teal-light bg-teal-light/10' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+    >
+      <span className="w-4 h-4 rounded-full border border-white/25 flex-shrink-0" style={{ backgroundColor: hex }} />
+      {colorLabel(hex)}
+    </button>
+  )
+}
+
+// The full list for one color control: every named preset, plus a
+// "Custom…" entry that opens the popup picker below - identical for text
+// color, page background, pen color, and drawing background, so all four
+// behave and look the same.
+function ColorList({
+  options, value, onPick, onOpenCustom,
+}: {
+  options: string[]
+  value: string
+  onPick: (hex: string) => void
+  onOpenCustom: () => void
+}) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[150px]">
+      {options.map(hex => (
+        <ColorOption key={hex} hex={hex} selected={value.toUpperCase() === hex.toUpperCase()} onClick={() => onPick(hex)} />
+      ))}
+      <button
+        onClick={onOpenCustom}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
+      >
+        <span
+          className="w-4 h-4 rounded-full border border-white/25 flex-shrink-0"
+          style={{ background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)' }}
+        />
+        Custom…
+      </button>
+    </div>
+  )
+}
+
+// One shared popup for picking an arbitrary color - every "Custom…" entry
+// above opens this same modal rather than the small inline browser color
+// swatch that used to sit at the end of each row.
+function CustomColorModal({
+  initial, onConfirm, onClose,
+}: {
+  initial: string
+  onConfirm: (hex: string) => void
+  onClose: () => void
+}) {
+  const [draft, setDraft] = useState(initial)
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-slate-card border border-slate-border rounded-2xl p-5 max-w-xs w-full">
+        <p className="text-cream font-bold text-sm mb-3">Pick a color</p>
+        <input
+          type="color" value={draft} onChange={e => setDraft(e.target.value)}
+          className="w-full h-20 rounded-xl border border-slate-border cursor-pointer bg-transparent mb-4"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onConfirm(draft); onClose() }}
+            className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-xs transition-colors"
+          >
+            Use this color
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 border border-slate-border text-cream-muted hover:text-cream font-bold py-2 rounded-xl text-xs transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -532,11 +654,19 @@ export default function NotebookPage() {
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
-  // Style options (font/colors) start collapsed behind a single "Style"
-  // button - clicking it reveals all of them together, rather than each
-  // living in its own always-visible row.
-  const [styleMenuOpen, setStyleMenuOpen] = useState(false)
-  // Collapses everything from the Style/formatting row down - Row 1
+  // Each style control (Font, Color, Background, Size for text; Color,
+  // Background for drawing) is its own one-word dropdown now, rather than
+  // one "Style" button revealing all of them at once - only one is open
+  // at a time, tracked by name.
+  const [openDropdown, setOpenDropdown] = useState<'font' | 'color' | 'background' | 'size' | 'pen-color' | 'page-bg' | null>(null)
+  // Padding gets its own popup rather than a dropdown, since it's sliders
+  // rather than a pick-one-of-these list.
+  const [paddingModalOpen, setPaddingModalOpen] = useState(false)
+  // One shared "pick any color" popup, reused by every color control -
+  // holds which control it's currently open for (so confirming knows
+  // where to send the result) and the color it should start from.
+  const [colorModal, setColorModal] = useState<{ initial: string; onConfirm: (hex: string) => void } | null>(null)
+  // Collapses everything from the style controls row down - Row 1
   // (Text/Draw, page navigation, Undo/Redo) stays visible either way,
   // since those are needed regardless of whether you're trying to
   // maximize writing space right now.
@@ -593,7 +723,7 @@ export default function NotebookPage() {
   // Which formatting applies at the cursor right now, so the toolbar
   // buttons can highlight themselves - kept in sync via a selectionchange
   // listener below rather than re-checked on every render.
-  const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false })
+  const [activeFormats, setActiveFormats] = useState<{ bold: boolean; italic: boolean; color: string }>({ bold: false, italic: false, color: DEFAULT_NOTEBOOK_STYLE.textColor })
 
   // Drawing tool settings - live state for "what the next stroke looks
   // like", not saved per note (same as any drawing app's current brush).
@@ -802,6 +932,7 @@ export default function NotebookPage() {
       setActiveFormats({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
+        color: rgbStringToHex(document.queryCommandValue('foreColor')),
       })
     }
     document.addEventListener('selectionchange', updateActiveFormats)
@@ -867,7 +998,7 @@ export default function NotebookPage() {
     setExistingAttachments([]); setRemovedAttachmentIds([]); setNewFiles([])
     setInitialSnapshot({ title, pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
     resetHistory({ title, pages: startPages, style: DEFAULT_NOTEBOOK_STYLE })
-    setStyleMenuOpen(false)
+    setOpenDropdown(null)
     setReadOnly(false)
     setComposing(true)
   }
@@ -897,7 +1028,7 @@ export default function NotebookPage() {
     setExistingAttachments(entry.attachments); setRemovedAttachmentIds([]); setNewFiles([])
     setInitialSnapshot({ title: entry.title, pages, style: entry.style })
     resetHistory({ title: entry.title, pages, style: entry.style })
-    setStyleMenuOpen(false)
+    setOpenDropdown(null)
     setReadOnly(true)
     setComposing(true)
   }
@@ -922,7 +1053,7 @@ export default function NotebookPage() {
       ? { title: original.title, pages: original.pages.length > 0 ? original.pages : [emptyTextPage()], style: original.style }
       : { title: '', pages: [emptyTextPage()], style: DEFAULT_NOTEBOOK_STYLE }
     setInitialSnapshot(original_snapshot)
-    setStyleMenuOpen(false)
+    setOpenDropdown(null)
     // History is anchored on the resumed draft itself (not the original
     // saved note) - undoing from here should step back through the
     // draft's own edit history first, same as if this session never lost focus.
@@ -994,6 +1125,46 @@ export default function NotebookPage() {
 
   const applyBold = () => { editableRefs.current[currentPageIndex]?.focus(); document.execCommand('bold'); syncCurrentPageFromEditor() }
   const applyItalic = () => { editableRefs.current[currentPageIndex]?.focus(); document.execCommand('italic'); syncCurrentPageFromEditor() }
+
+  // Selection-scoped, exactly like Bold/Italic above - this is what keeps
+  // pages "detached" from each other and from themselves: picking a color
+  // only recolors the highlighted text, or (with nothing selected) sets
+  // the color for whatever gets typed next at the cursor. It never
+  // touches the rest of the page.
+  const applyTextColor = (hex: string) => {
+    const el = editableRefs.current[currentPageIndex]
+    if (!el) return
+    el.focus();
+    (document as unknown as { execCommand: (cmd: string, ui?: boolean, value?: unknown) => boolean }).execCommand('styleWithCSS', false, true)
+    document.execCommand('foreColor', false, hex)
+    syncCurrentPageFromEditor()
+  }
+
+  const applyFontFamily = (fontKey: NotebookStyle['font']) => {
+    const el = editableRefs.current[currentPageIndex]
+    if (!el) return
+    el.focus();
+    (document as unknown as { execCommand: (cmd: string, ui?: boolean, value?: unknown) => boolean }).execCommand('styleWithCSS', false, true)
+    document.execCommand('fontName', false, FONT_STACK[fontKey])
+    syncCurrentPageFromEditor()
+  }
+
+  // execCommand's own 'fontSize' only supports the legacy 1-7 HTML scale,
+  // not arbitrary pixel values - the standard workaround is to apply a
+  // throwaway marker size, then swap that marker for a real px value on
+  // whatever it just wrapped.
+  const applyFontSize = (px: number) => {
+    const el = editableRefs.current[currentPageIndex]
+    if (!el) return
+    el.focus()
+    document.execCommand('fontSize', false, '7')
+    el.querySelectorAll('font[size="7"]').forEach(node => {
+      const span = node as HTMLElement
+      span.removeAttribute('size')
+      span.style.fontSize = `${px}px`
+    })
+    syncCurrentPageFromEditor()
+  }
 
   // Sets the current drawing page's own background color - persisted per
   // page (unlike pen color/size/tool, which are just live tool settings).
@@ -1164,6 +1335,57 @@ export default function NotebookPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {paddingModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
+          onClick={() => setPaddingModalOpen(false)}
+        >
+          <div onClick={e => e.stopPropagation()} className="bg-slate-card border border-slate-border rounded-2xl p-5 max-w-xs w-full">
+            <p className="text-cream font-bold text-sm mb-4">Page padding</p>
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-cream-muted text-xs font-bold">Horizontal</span>
+                  <span className="text-cream-muted text-xs font-bold">{style.paddingX}px</span>
+                </div>
+                <input
+                  type="range" min={8} max={80} value={style.paddingX}
+                  onChange={e => setStyle(s => ({ ...s, paddingX: Number(e.target.value) }))}
+                  className="w-full accent-teal-light"
+                  aria-label="Horizontal padding"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-cream-muted text-xs font-bold">Vertical</span>
+                  <span className="text-cream-muted text-xs font-bold">{style.paddingY}px</span>
+                </div>
+                <input
+                  type="range" min={8} max={80} value={style.paddingY}
+                  onChange={e => setStyle(s => ({ ...s, paddingY: Number(e.target.value) }))}
+                  className="w-full accent-teal-light"
+                  aria-label="Vertical padding"
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => setPaddingModalOpen(false)}
+              className="w-full mt-5 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-xs transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {colorModal && (
+        <CustomColorModal
+          initial={colorModal.initial}
+          onConfirm={colorModal.onConfirm}
+          onClose={() => setColorModal(null)}
+        />
       )}
 
       {(checking || !setupExists || !notebookKey) ? (
@@ -1502,19 +1724,12 @@ export default function NotebookPage() {
             <>
           {/* Row 2: contextual by page type. Text style must not appear
               while drawing, and drawing tools must not appear while
-              writing - the two never show at the same time. Both branches
-              keep only their primary action inline (Bold/Italic for text,
-              Pen/Eraser for drawing) - everything else (fonts, colors,
-              backgrounds, pen size) lives behind the shared Style toggle
-              below, so this row never grows past one line. */}
+              writing - the two never show at the same time. Bold/Italic/
+              Pen/Eraser stay inline since they're single-tap toggles;
+              Font/Color/Background/Size are each their own one-word
+              dropdown so the row stays compact until you actually open one. */}
           {newPages[currentPageIndex].type === 'text' ? (
-            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border">
-              <button
-                onClick={() => setStyleMenuOpen(o => !o)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
-              >
-                <Palette size={13} /> Style
-              </button>
+            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border flex-wrap">
               <button
                 onClick={applyBold}
                 className={`p-1.5 rounded-lg border transition-opacity ${activeFormats.bold ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-70 border-slate-border text-cream-muted hover:opacity-100'}`}
@@ -1529,15 +1744,19 @@ export default function NotebookPage() {
               >
                 <Italic size={13} />
               </button>
+              <DropdownButton label="Font" open={openDropdown === 'font'} onClick={() => setOpenDropdown(o => o === 'font' ? null : 'font')} />
+              <DropdownButton label="Color" open={openDropdown === 'color'} onClick={() => setOpenDropdown(o => o === 'color' ? null : 'color')} />
+              <DropdownButton label="Background" open={openDropdown === 'background'} onClick={() => setOpenDropdown(o => o === 'background' ? null : 'background')} />
+              <DropdownButton label="Size" open={openDropdown === 'size'} onClick={() => setOpenDropdown(o => o === 'size' ? null : 'size')} />
+              <button
+                onClick={() => setPaddingModalOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
+              >
+                Padding
+              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border">
-              <button
-                onClick={() => setStyleMenuOpen(o => !o)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${styleMenuOpen ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
-              >
-                <Palette size={13} /> Style
-              </button>
+            <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-slate-border flex-wrap">
               <button
                 onClick={() => setDrawTool('pen')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-opacity ${drawTool === 'pen' ? 'opacity-100 border-teal-light text-teal-light' : 'opacity-50 border-slate-border text-cream-muted'}`}
@@ -1550,152 +1769,114 @@ export default function NotebookPage() {
               >
                 <Eraser size={12} /> Eraser
               </button>
+              {drawTool === 'pen' && (
+                <DropdownButton label="Color" open={openDropdown === 'pen-color'} onClick={() => setOpenDropdown(o => o === 'pen-color' ? null : 'pen-color')} />
+              )}
+              <DropdownButton label="Background" open={openDropdown === 'page-bg'} onClick={() => setOpenDropdown(o => o === 'page-bg' ? null : 'page-bg')} />
             </div>
           )}
 
-          {styleMenuOpen && (
-            newPages[currentPageIndex].type === 'text' ? (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-3 border-b border-slate-border">
-                <div className="flex items-center gap-1.5">
-                  <Type size={13} className="text-cream-muted flex-shrink-0" />
-                  {FONT_OPTIONS.map(f => (
-                    <button
-                      key={f.key} onClick={() => setStyle(s => ({ ...s, font: f.key }))} style={{ fontFamily: f.stack }}
-                      className={`px-2 py-1 rounded-lg border text-xs transition-colors ${style.font === f.key ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Palette size={13} className="text-cream-muted flex-shrink-0" />
-                  {TEXT_COLOR_OPTIONS.map(c => (
-                    <button
-                      key={c} onClick={() => setStyle(s => ({ ...s, textColor: c }))} style={{ backgroundColor: c }}
-                      aria-label={`Text color ${c}`}
-                      className={`w-5 h-5 rounded-full border-2 transition-colors ${style.textColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <PaintBucket size={13} className="text-cream-muted flex-shrink-0" />
-                  {BACKGROUND_OPTIONS.map(c => (
-                    <button
-                      key={c} onClick={() => setStyle(s => ({ ...s, background: c }))} style={{ backgroundColor: c }}
-                      aria-label={`Background ${c}`}
-                      className={`w-5 h-5 rounded-full border-2 transition-colors ${style.background === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                    />
-                  ))}
-                </div>
-
-                {/* Increasing preset sizes up to a sensible max, rather
-                    than a free-form input - big enough to actually matter
-                    for readability, without needing to type a number. */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Text size</span>
-                  {FONT_SIZE_OPTIONS.map(size => (
-                    <button
-                      key={size} onClick={() => setStyle(s => ({ ...s, fontSize: size }))}
-                      className={`px-2 py-1 rounded-lg border text-xs font-bold transition-colors ${style.fontSize === size ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted'}`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Just horizontal/vertical distance from the page edge to
-                    the text, not independent top/bottom/left/right - "no
-                    complications", per the brief. */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Horizontal</span>
-                    <input
-                      type="range" min={8} max={80} value={style.paddingX}
-                      onChange={e => setStyle(s => ({ ...s, paddingX: Number(e.target.value) }))}
-                      className="w-20 accent-teal-light"
-                      aria-label="Horizontal padding"
-                    />
-                    <span className="text-cream-muted text-[11px] font-bold w-8">{style.paddingX}px</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-cream-muted text-[11px] font-bold flex-shrink-0">Vertical</span>
-                    <input
-                      type="range" min={8} max={80} value={style.paddingY}
-                      onChange={e => setStyle(s => ({ ...s, paddingY: Number(e.target.value) }))}
-                      className="w-20 accent-teal-light"
-                      aria-label="Vertical padding"
-                    />
-                    <span className="text-cream-muted text-[11px] font-bold w-8">{style.paddingY}px</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5 px-4 pb-3 border-b border-slate-border">
-                <div className="flex items-center gap-2">
-                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
-                  <button
-                    onClick={() => setPenSize(s => Math.max(1, s - 1))}
-                    className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                    aria-label="Decrease size"
-                  >
-                    <Minus size={13} />
-                  </button>
-                  <input
-                    type="range" min={1} max={40} value={penSize}
-                    onChange={e => setPenSize(Number(e.target.value))}
-                    className="flex-1 min-w-0"
-                  />
-                  <button
-                    onClick={() => setPenSize(s => Math.min(40, s + 1))}
-                    className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                    aria-label="Increase size"
-                  >
-                    <Plus size={13} />
-                  </button>
-                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
-                </div>
-
-                {drawTool === 'pen' && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Color</span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {TEXT_COLOR_OPTIONS.map(c => (
-                        <button
-                          key={c} onClick={() => setPenColor(c)} style={{ backgroundColor: c }}
-                          className={`w-6 h-6 rounded-full border-2 transition-colors ${penColor === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                        />
-                      ))}
-                      <input
-                        type="color" value={penColor} onChange={e => setPenColor(e.target.value)}
-                        className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                        aria-label="Custom pen color"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Page bg</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {BACKGROUND_OPTIONS.map(c => (
+          {newPages[currentPageIndex].type === 'text' ? (
+            <>
+              {openDropdown === 'font' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <div className="flex flex-col gap-1 min-w-[150px]">
+                    {FONT_OPTIONS.map(f => (
                       <button
-                        key={c} onClick={() => setCurrentPageBackground(c)} style={{ backgroundColor: c }}
-                        className={`w-6 h-6 rounded-full border-2 transition-colors ${(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND) === c ? 'border-teal-light' : 'border-slate-border/60'}`}
-                      />
+                        key={f.key} onClick={() => { applyFontFamily(f.key); setOpenDropdown(null) }} style={{ fontFamily: f.stack }}
+                        className="flex items-center px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs transition-colors text-left"
+                      >
+                        {f.label}
+                      </button>
                     ))}
-                    <input
-                      type="color"
-                      value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
-                      onChange={e => setCurrentPageBackground(e.target.value)}
-                      className="w-6 h-6 rounded-full border-2 border-slate-border/60 cursor-pointer bg-transparent p-0"
-                      aria-label="Custom page background color"
-                    />
                   </div>
                 </div>
+              )}
+              {openDropdown === 'color' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <ColorList
+                    options={TEXT_COLOR_OPTIONS}
+                    value={activeFormats.color}
+                    onPick={hex => { applyTextColor(hex); setOpenDropdown(null) }}
+                    onOpenCustom={() => setColorModal({ initial: activeFormats.color, onConfirm: hex => { applyTextColor(hex); setOpenDropdown(null) } })}
+                  />
+                </div>
+              )}
+              {openDropdown === 'background' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <ColorList
+                    options={BACKGROUND_OPTIONS}
+                    value={style.background}
+                    onPick={hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) }}
+                    onOpenCustom={() => setColorModal({ initial: style.background, onConfirm: hex => { setStyle(s => ({ ...s, background: hex })); setOpenDropdown(null) } })}
+                  />
+                </div>
+              )}
+              {openDropdown === 'size' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+                    {FONT_SIZE_OPTIONS.map(size => (
+                      <button
+                        key={size} onClick={() => { applyFontSize(size); setOpenDropdown(null) }}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-border text-cream-muted hover:text-cream text-xs font-bold transition-colors"
+                      >
+                        {size}px
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 px-4 pb-3 border-b border-slate-border">
+                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-12 flex-shrink-0">Size</span>
+                <button
+                  onClick={() => setPenSize(s => Math.max(1, s - 1))}
+                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                  aria-label="Decrease size"
+                >
+                  <Minus size={13} />
+                </button>
+                <input
+                  type="range" min={1} max={40} value={penSize}
+                  onChange={e => setPenSize(Number(e.target.value))}
+                  className="flex-1 min-w-0"
+                />
+                <button
+                  onClick={() => setPenSize(s => Math.min(40, s + 1))}
+                  className="p-1 rounded-full text-cream-muted opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                  aria-label="Increase size"
+                >
+                  <Plus size={13} />
+                </button>
+                <span className="text-cream-muted text-[11px] font-bold opacity-70 w-8 text-right flex-shrink-0">{penSize}px</span>
               </div>
-            )
+
+              {openDropdown === 'pen-color' && drawTool === 'pen' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <ColorList
+                    options={TEXT_COLOR_OPTIONS}
+                    value={penColor}
+                    onPick={hex => { setPenColor(hex); setOpenDropdown(null) }}
+                    onOpenCustom={() => setColorModal({ initial: penColor, onConfirm: hex => { setPenColor(hex); setOpenDropdown(null) } })}
+                  />
+                </div>
+              )}
+              {openDropdown === 'page-bg' && (
+                <div className="px-4 pb-3 border-b border-slate-border">
+                  <ColorList
+                    options={BACKGROUND_OPTIONS}
+                    value={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                    onPick={hex => { setCurrentPageBackground(hex); setOpenDropdown(null) }}
+                    onOpenCustom={() => setColorModal({
+                      initial: newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND,
+                      onConfirm: hex => { setCurrentPageBackground(hex); setOpenDropdown(null) },
+                    })}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {existingAttachments.length > 0 && (
