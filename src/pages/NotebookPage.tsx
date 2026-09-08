@@ -219,6 +219,20 @@ function getReadableTextColor(background: string, requestedTextColor: string): s
   }
 }
 
+// A text page's background can be any color the user picks, including
+// plain white - if the space around it happens to be close to that same
+// color, the page's edges disappear entirely. A thin border that always
+// leans the opposite way (dark border on a light page, light border on a
+// dark one) keeps the page visible as its own object no matter what
+// color it's set to.
+function getPageBorderColor(background: string): string {
+  try {
+    return relativeLuminance(hexToRgb(background)) > 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)'
+  } catch {
+    return 'rgba(255,255,255,0.18)'
+  }
+}
+
 function Card({ children, style, onClick }: { children: React.ReactNode; style?: React.CSSProperties; onClick?: () => void }) {
   return (
     <div
@@ -1524,7 +1538,13 @@ export default function NotebookPage() {
                   const isExpanded = expandedEntryId === entry.id
                   const isRenaming = renamingEntryId === entry.id
                   const cardBackground = sanitizeHexColor(entry.style.background, DEFAULT_NOTEBOOK_STYLE.background)
-                  const cardTextColor = getReadableTextColor(cardBackground, sanitizeHexColor(entry.style.textColor, DEFAULT_NOTEBOOK_STYLE.textColor))
+                  // Deliberately NOT entry.style.textColor - the list should
+                  // read consistently no matter what color each note's own
+                  // writing surface uses. getReadableTextColor still flips
+                  // to the opposite of that default if a particular card's
+                  // background can't support it, so titles stay visible
+                  // even when the whole page background changes.
+                  const cardTextColor = getReadableTextColor(cardBackground, DEFAULT_NOTEBOOK_STYLE.textColor)
                   return (
                   <Card key={entry.id} onClick={() => !isRenaming && openEditNote(entry)} style={{ backgroundColor: cardBackground }}>
                     <div className="flex items-start justify-between gap-3">
@@ -1960,6 +1980,7 @@ export default function NotebookPage() {
                     key={i}
                     style={{
                       backgroundColor: style.background,
+                      borderColor: getPageBorderColor(style.background),
                       paddingLeft: style.paddingX, paddingRight: style.paddingX,
                       paddingTop: style.paddingY,
                       // A little extra beyond the user's chosen bottom
@@ -1971,7 +1992,7 @@ export default function NotebookPage() {
                     // wide (210mm × 297mm) - aspect-ratio keeps that exact
                     // proportion at any width, so a page is never a square
                     // or an arbitrary viewport-relative box, on any screen.
-                    className="relative w-full max-w-2xl mx-auto flex-shrink-0 aspect-[210/297] flex flex-col"
+                    className="relative w-full max-w-2xl mx-auto flex-shrink-0 aspect-[210/297] flex flex-col border"
                   >
                     <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-y-auto">
                     {readOnly ? (
