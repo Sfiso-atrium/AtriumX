@@ -1170,17 +1170,40 @@ export default function NotebookPage() {
   // execCommand's own 'fontSize' only supports the legacy 1-7 HTML scale,
   // not arbitrary pixel values - the standard workaround is to apply a
   // throwaway marker size, then swap that marker for a real px value on
-  // whatever it just wrapped.
+  // whatever it just wrapped. But that only works when there's an actual
+  // selection to wrap - with just a blinking cursor (no highlighted text),
+  // execCommand wraps nothing at all, so clicking a size did nothing and
+  // typing just continued in whatever size already surrounded the cursor.
+  // For that collapsed-cursor case, drop an invisible, correctly-sized
+  // marker right at the cursor and land the cursor inside it, so
+  // whatever gets typed next lands inside that span and inherits its size
+  // - the same trick real editors use for "the next character I type
+  // should look different" with nothing selected.
   const applyFontSize = (px: number) => {
     const el = editableRefs.current[currentPageIndex]
     if (!el) return
     el.focus()
-    document.execCommand('fontSize', false, '7')
-    el.querySelectorAll('font[size="7"]').forEach(node => {
-      const span = node as HTMLElement
-      span.removeAttribute('size')
-      span.style.fontSize = `${px}px`
-    })
+    const sel = window.getSelection()
+    const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+
+    if (range && range.collapsed) {
+      const marker = document.createElement('span')
+      marker.style.fontSize = `${px}px`
+      marker.textContent = '\u200B' // zero-width space, so the span isn't empty and gets kept
+      range.insertNode(marker)
+      const newRange = document.createRange()
+      newRange.setStart(marker.firstChild!, 1)
+      newRange.collapse(true)
+      sel!.removeAllRanges()
+      sel!.addRange(newRange)
+    } else {
+      document.execCommand('fontSize', false, '7')
+      el.querySelectorAll('font[size="7"]').forEach(node => {
+        const span = node as HTMLElement
+        span.removeAttribute('size')
+        span.style.fontSize = `${px}px`
+      })
+    }
     syncCurrentPageFromEditor()
   }
 
