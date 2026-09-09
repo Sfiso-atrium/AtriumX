@@ -81,9 +81,18 @@ export function useFocusSession(userId: string) {
   // Bank whichever whole minutes of STUDY time are newly elapsed since we
   // last credited Supabase. Cheap to call often — it's a no-op unless a
   // new whole minute has actually passed. Never runs during a break.
-  const creditElapsedMinutes = useCallback(async (elapsedStudySeconds: number, currentPhase: FocusPhase) => {
+  //
+  // capSeconds is the phase's own declared length (totalSeconds at the
+  // call site) - elapsedStudySeconds is computed from raw wall-clock time
+  // since startedAt, so without this cap, a session left "running" in a
+  // backgrounded tab, a slept laptop, or an app that just isn't reopened
+  // for hours (or days) would have that entire real-world gap credited as
+  // focused time the moment anything next checks in - turning one
+  // forgotten 25-minute session into hundreds of phantom minutes logged
+  // to whichever day the app happens to be reopened.
+  const creditElapsedMinutes = useCallback(async (elapsedStudySeconds: number, currentPhase: FocusPhase, capSeconds: number) => {
     if (!userId || currentPhase !== 'study') return
-    const wholeMinutesElapsed = Math.floor(elapsedStudySeconds / 60)
+    const wholeMinutesElapsed = Math.floor(Math.min(elapsedStudySeconds, capSeconds) / 60)
     const wholeMinutesCredited = Math.floor(creditedSecondsRef.current / 60)
     const delta = wholeMinutesElapsed - wholeMinutesCredited
     if (delta > 0) {
@@ -111,7 +120,7 @@ export function useFocusSession(userId: string) {
   // catches up on study time that elapsed while nothing was mounted at
   // all, e.g. the tab was closed and reopened later.
   useEffect(() => {
-    creditElapsedMinutes(elapsedSeconds, phase)
+    creditElapsedMinutes(elapsedSeconds, phase, totalSeconds)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsedSeconds, phase])
 
@@ -120,7 +129,7 @@ export function useFocusSession(userId: string) {
     if (running && secondsLeft <= 0 && !completedRef.current) {
       completedRef.current = true
       if (phase === 'study') {
-        creditElapsedMinutes(elapsedSeconds, phase).then(() => {
+        creditElapsedMinutes(elapsedSeconds, phase, totalSeconds).then(() => {
           persistAccumulated(0)
           persistCredited(0)
           persistPhase('break')
@@ -151,7 +160,7 @@ export function useFocusSession(userId: string) {
     if (running) {
       const segment = Math.floor((Date.now() - startedAt!) / 1000)
       const newAccumulated = Math.min(totalSeconds, accumulatedSeconds + segment)
-      creditElapsedMinutes(newAccumulated, phase)
+      creditElapsedMinutes(newAccumulated, phase, totalSeconds)
       persistAccumulated(newAccumulated)
       persistStartedAt(null)
     } else {
@@ -161,7 +170,7 @@ export function useFocusSession(userId: string) {
   }
 
   const reset = () => {
-    creditElapsedMinutes(elapsedSeconds, phase)
+    creditElapsedMinutes(elapsedSeconds, phase, totalSeconds)
     persistAccumulated(0)
     persistCredited(0)
     persistStartedAt(null)
