@@ -144,6 +144,17 @@ const FONT_OPTIONS: { key: NotebookStyle['font']; label: string; stack: string }
 const FONT_STACK: Record<NotebookStyle['font'], string> =
   Object.fromEntries(FONT_OPTIONS.map(f => [f.key, f.stack])) as Record<NotebookStyle['font'], string>
 
+// getComputedStyle's fontFamily is the browser's own resolved value at a
+// DOM node (e.g. `"DM Sans", system-ui, sans-serif` or similar, quoting
+// and casing vary by browser) - matched back against each option's own
+// primary font name so the Font button can show which of our four named
+// fonts is actually active at the cursor, not just leave it unlabeled.
+function matchFontLabel(computedFontFamily: string): string {
+  const normalized = computedFontFamily.toLowerCase()
+  const match = FONT_OPTIONS.find(f => normalized.includes(f.stack.split(',')[0].replace(/['"]/g, '').trim().toLowerCase()))
+  return match?.label ?? 'Custom'
+}
+
 const BACKGROUND_OPTIONS = ['#111827', '#0A0F1E', '#1B2B1F', '#1B1F2E', '#2B2013', '#FDF3E2', '#FBE4EC', '#FFFFFF']
 const TEXT_COLOR_OPTIONS = ['#F0F4F8', '#0A0F1E', '#D4A017', '#14B8A6', '#EC4899', '#8B949E', '#FDF3E2', '#3C5F94']
 
@@ -248,13 +259,18 @@ function Card({ children, style, onClick }: { children: React.ReactNode; style?:
 // One-word toggle + chevron, same shape as "Hide tools" - every style
 // control (Font, Color, Background, Size) is one of these instead of an
 // always-expanded row of options, so the toolbar takes far less space
-// until you actually want to change something.
-function DropdownButton({ label, open, onClick }: { label: string; open: boolean; onClick: () => void }) {
+// until you actually want to change something. The label itself carries
+// the CURRENT value ("Color: Teal", "Size: 16px") rather than just
+// naming the control, so what's active is visible without opening it -
+// swatch (a hex color) adds a small dot for color-based controls, same
+// treatment text and drawing both use.
+function DropdownButton({ label, open, swatch, onClick }: { label: string; open: boolean; swatch?: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${open ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${open ? 'border-teal-light text-teal-light' : 'border-slate-border text-cream-muted hover:text-cream'}`}
     >
+      {swatch && <span className="w-3 h-3 rounded-full border border-white/25 flex-shrink-0" style={{ backgroundColor: swatch }} />}
       {label} {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
     </button>
   )
@@ -741,7 +757,9 @@ export default function NotebookPage() {
   // Which formatting applies at the cursor right now, so the toolbar
   // buttons can highlight themselves - kept in sync via a selectionchange
   // listener below rather than re-checked on every render.
-  const [activeFormats, setActiveFormats] = useState<{ bold: boolean; italic: boolean; color: string }>({ bold: false, italic: false, color: DEFAULT_NOTEBOOK_STYLE.textColor })
+  const [activeFormats, setActiveFormats] = useState<{ bold: boolean; italic: boolean; color: string; fontSizePx: number; fontFamily: string }>({
+    bold: false, italic: false, color: DEFAULT_NOTEBOOK_STYLE.textColor, fontSizePx: DEFAULT_NOTEBOOK_STYLE.fontSize, fontFamily: FONT_STACK[DEFAULT_NOTEBOOK_STYLE.font],
+  })
 
   // Drawing tool settings - live state for "what the next stroke looks
   // like", not saved per note (same as any drawing app's current brush).
@@ -940,17 +958,33 @@ export default function NotebookPage() {
   }, [newPages, composing, readOnly])
 
   // Keeps the formatting toolbar's highlighted state (which button looks
-  // "active") matched to whatever's actually true at the cursor - e.g.
-  // the Bold button lights up while the cursor sits inside bold text.
+  // "active", and what value it currently shows) matched to whatever's
+  // actually true at the cursor - e.g. the Bold button lights up while
+  // the cursor sits inside bold text, and the Size button reads "18px"
+  // while it sits inside 18px text.
+  //
+  // Color/size/font are read via getComputedStyle on the DOM node at the
+  // cursor, not document.queryCommandValue - the browser's own resolved
+  // style is accurate regardless of how the formatting got there (our
+  // execCommand calls, nested spans, whatever), whereas queryCommandValue
+  // reports fontName inconsistently across browsers and can't see our
+  // fontSize px-value patch (see applyFontSize) at all, since that
+  // strips the very attribute the command tracks.
   useEffect(() => {
     if (!composing || readOnly) return
     const updateActiveFormats = () => {
       const el = editableRefs.current[currentPageIndex]
-      if (!el || !el.contains(document.getSelection()?.anchorNode ?? null)) return
+      const anchorNode = document.getSelection()?.anchorNode ?? null
+      if (!el || !anchorNode || !el.contains(anchorNode)) return
+      const anchorEl = anchorNode.nodeType === Node.TEXT_NODE ? anchorNode.parentElement : (anchorNode as Element | null)
+      if (!anchorEl) return
+      const computed = window.getComputedStyle(anchorEl)
       setActiveFormats({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
-        color: rgbStringToHex(document.queryCommandValue('foreColor')),
+        color: rgbStringToHex(computed.color),
+        fontSizePx: Math.round(parseFloat(computed.fontSize)) || DEFAULT_NOTEBOOK_STYLE.fontSize,
+        fontFamily: computed.fontFamily,
       })
     }
     document.addEventListener('selectionchange', updateActiveFormats)
@@ -1825,7 +1859,7 @@ export default function NotebookPage() {
               </button>
 
               <div className="relative">
-                <DropdownButton label="Font" open={openDropdown === 'font'} onClick={() => setOpenDropdown(o => o === 'font' ? null : 'font')} />
+                <DropdownButton label={`Font: ${matchFontLabel(activeFormats.fontFamily)}`} open={openDropdown === 'font'} onClick={() => setOpenDropdown(o => o === 'font' ? null : 'font')} />
                 {openDropdown === 'font' && (
                   <>
                     <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
@@ -1846,7 +1880,7 @@ export default function NotebookPage() {
               </div>
 
               <div className="relative">
-                <DropdownButton label="Color" open={openDropdown === 'color'} onClick={() => setOpenDropdown(o => o === 'color' ? null : 'color')} />
+                <DropdownButton label={`Color: ${colorLabel(activeFormats.color)}`} swatch={activeFormats.color} open={openDropdown === 'color'} onClick={() => setOpenDropdown(o => o === 'color' ? null : 'color')} />
                 {openDropdown === 'color' && (
                   <>
                     <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
@@ -1863,7 +1897,7 @@ export default function NotebookPage() {
               </div>
 
               <div className="relative">
-                <DropdownButton label="Background" open={openDropdown === 'background'} onClick={() => setOpenDropdown(o => o === 'background' ? null : 'background')} />
+                <DropdownButton label={`Background: ${colorLabel(style.background)}`} swatch={style.background} open={openDropdown === 'background'} onClick={() => setOpenDropdown(o => o === 'background' ? null : 'background')} />
                 {openDropdown === 'background' && (
                   <>
                     <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
@@ -1880,7 +1914,7 @@ export default function NotebookPage() {
               </div>
 
               <div className="relative">
-                <DropdownButton label="Size" open={openDropdown === 'size'} onClick={() => setOpenDropdown(o => o === 'size' ? null : 'size')} />
+                <DropdownButton label={`Size: ${activeFormats.fontSizePx}px`} open={openDropdown === 'size'} onClick={() => setOpenDropdown(o => o === 'size' ? null : 'size')} />
                 {openDropdown === 'size' && (
                   <>
                     <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
@@ -1923,7 +1957,7 @@ export default function NotebookPage() {
               </button>
               {drawTool === 'pen' && (
                 <div className="relative">
-                  <DropdownButton label="Color" open={openDropdown === 'pen-color'} onClick={() => setOpenDropdown(o => o === 'pen-color' ? null : 'pen-color')} />
+                  <DropdownButton label={`Color: ${colorLabel(penColor)}`} swatch={penColor} open={openDropdown === 'pen-color'} onClick={() => setOpenDropdown(o => o === 'pen-color' ? null : 'pen-color')} />
                   {openDropdown === 'pen-color' && (
                     <>
                       <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
@@ -1940,7 +1974,11 @@ export default function NotebookPage() {
                 </div>
               )}
               <div className="relative">
-                <DropdownButton label="Background" open={openDropdown === 'page-bg'} onClick={() => setOpenDropdown(o => o === 'page-bg' ? null : 'page-bg')} />
+                <DropdownButton
+                  label={`Background: ${colorLabel(newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND)}`}
+                  swatch={newPages[currentPageIndex].drawingBackground || DEFAULT_DRAWING_BACKGROUND}
+                  open={openDropdown === 'page-bg'} onClick={() => setOpenDropdown(o => o === 'page-bg' ? null : 'page-bg')}
+                />
                 {openDropdown === 'page-bg' && (
                   <>
                     <div className="fixed inset-0 z-[190]" onClick={() => setOpenDropdown(null)} />
