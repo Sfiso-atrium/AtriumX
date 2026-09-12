@@ -1,10 +1,11 @@
 // src/pages/FocusMode.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, Atom, QrCode, NotebookPen } from 'lucide-react'
+import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, NotebookPen } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useFocusSession } from '../hooks/useFocusSession'
 import { getTodayStudyMinutes } from '../services/dataService'
+import ToolsMenu from '../components/common/ToolsMenu'
 
 const BREAK_RATIO = 0.2 // suggested break = 20% of study time, editable by the person
 
@@ -137,20 +138,7 @@ export default function FocusMode() {
           <X size={18} />
         </button>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/toolkit')}
-            className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
-            title="Toolkit"
-          >
-            <Atom size={17} />
-          </button>
-          <button
-            onClick={() => navigate('/qr')}
-            className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
-            title="QR Code"
-          >
-            <QrCode size={17} />
-          </button>
+          <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`} />
           <button
             onClick={() => navigate('/notebook')}
             className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
