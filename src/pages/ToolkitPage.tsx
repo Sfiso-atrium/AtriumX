@@ -1,9 +1,14 @@
 // src/pages/ToolkitPage.tsx
 //
 // Reference tools reachable from Focus Mode without leaving the app mid
-// study-session. Ships with the Periodic Table only for now — Conversions
-// and a formula-sheet section are planned to slot in as additional tabs
-// alongside it later, not built yet.
+// study-session. Periodic Table and Conversions are tabs on this one page —
+// a formula-sheet section is planned to slot in as a third tab later, not
+// built yet.
+//
+// Grid uses CSS grid with an explicit 18-column template (the real
+// periodic table's group numbers), wrapped in a horizontally-scrolling
+// container so it stays usable on a phone without redesigning the layout
+// for small screens.
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +17,10 @@ import {
   PERIODIC_TABLE, CATEGORY_LABEL, CATEGORY_COLOR, searchElements,
   type PeriodicElement, type ElementCategory,
 } from '../data/periodicTable'
+import {
+  ALL_CATEGORIES, unitsFor, convert,
+  type ConversionCategory,
+} from '../data/conversions'
 
 const PAGE_BG = '#FDF3E2'
 const TEXT = 'text-[#3A2E22]'
@@ -94,8 +103,110 @@ function ElementDetail({ element, onClose }: { element: PeriodicElement; onClose
   )
 }
 
+function ConversionsView() {
+  const [category, setCategory] = useState<ConversionCategory>('length')
+  const units = unitsFor(category)
+  const [fromId, setFromId] = useState(units[0].id)
+  const [toId, setToId] = useState(units[1].id)
+  const [rawValue, setRawValue] = useState('1')
+
+  function selectCategory(next: ConversionCategory) {
+    setCategory(next)
+    const nextUnits = unitsFor(next)
+    setFromId(nextUnits[0].id)
+    setToId(nextUnits[1].id)
+  }
+
+  const value = parseFloat(rawValue)
+  const result = convert(category, fromId, toId, value)
+  const resultDisplay = Number.isFinite(result)
+    ? (Math.round(result * 1e6) / 1e6).toString()
+    : ''
+
+  function swap() {
+    setFromId(toId)
+    setToId(fromId)
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Category pills */}
+      <div className="flex flex-wrap gap-2">
+        {ALL_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => selectCategory(c.id)}
+            className="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors"
+            style={
+              category === c.id
+                ? { background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }
+                : { background: '#FFFFFF99', borderColor: '#EADFC4', color: '#8A7A5E' }
+            }
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* From */}
+      <div className="rounded-2xl border bg-white/90 p-4 flex flex-col gap-2" style={{ borderColor: `${ACCENT}44` }}>
+        <label className={`text-[11px] ${TEXT_MUTED}`}>From</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={rawValue}
+            onChange={(e) => setRawValue(e.target.value)}
+            className={`flex-1 min-w-0 rounded-xl border px-3 py-2 text-lg font-semibold ${TEXT} focus:outline-none`}
+            style={{ borderColor: '#EADFC4' }}
+          />
+          <select
+            value={fromId}
+            onChange={(e) => setFromId(e.target.value)}
+            className={`rounded-xl border px-2 py-2 text-sm ${TEXT} bg-white`}
+            style={{ borderColor: '#EADFC4' }}
+          >
+            {units.map((u) => (
+              <option key={u.id} value={u.id}>{u.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Swap */}
+      <button
+        onClick={swap}
+        className="self-center text-xs font-semibold px-3 py-1 rounded-full border"
+        style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+      >
+        ⇅ Swap
+      </button>
+
+      {/* To */}
+      <div className="rounded-2xl border p-4 flex flex-col gap-2" style={{ background: `${ACCENT}14`, borderColor: `${ACCENT}66` }}>
+        <label className="text-[11px]" style={{ color: '#8A5E12' }}>To</label>
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0 rounded-xl border px-3 py-2 text-lg font-semibold bg-white/80 truncate" style={{ borderColor: `${ACCENT}44`, color: '#8A5E12' }}>
+            {resultDisplay || '—'}
+          </div>
+          <select
+            value={toId}
+            onChange={(e) => setToId(e.target.value)}
+            className="rounded-xl border px-2 py-2 text-sm bg-white"
+            style={{ borderColor: `${ACCENT}44`, color: '#8A5E12' }}
+          >
+            {units.map((u) => (
+              <option key={u.id} value={u.id}>{u.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ToolkitPage() {
   const navigate = useNavigate()
+  const [tab, setTab] = useState<'ptable' | 'conversions'>('ptable')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<PeriodicElement | null>(null)
 
@@ -112,6 +223,7 @@ export default function ToolkitPage() {
 
   return (
     <div className="min-h-[100dvh]" style={{ backgroundColor: PAGE_BG }}>
+      {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-5">
         <button
           onClick={() => navigate('/focus')}
@@ -124,65 +236,97 @@ export default function ToolkitPage() {
 
       <div className="max-w-2xl mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
         <div>
-          <h1 className={`font-serif text-3xl font-bold ${TEXT}`}>Periodic Table</h1>
-          <p className={`text-sm mt-1 ${TEXT_MUTED}`}>Tap an element for its full details.</p>
+          <h1 className={`font-serif text-3xl font-bold ${TEXT}`}>
+            {tab === 'ptable' ? 'Periodic Table' : 'Conversions'}
+          </h1>
+          <p className={`text-sm mt-1 ${TEXT_MUTED}`}>
+            {tab === 'ptable' ? 'Tap an element for its full details.' : 'Pick a category, then a unit on each side.'}
+          </p>
         </div>
 
-        <div className="relative">
-          <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, symbol, or atomic number"
-            className={`w-full rounded-2xl border bg-white/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none`}
-            style={{ borderColor: `${ACCENT}66` }}
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-4">
-          {CATEGORIES.map((cat) => (
-            <div key={cat} className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm border" style={{ background: CATEGORY_COLOR[cat].bg, borderColor: CATEGORY_COLOR[cat].border }} />
-              <span className={`text-xs ${TEXT_MUTED}`}>{CATEGORY_LABEL[cat]}</span>
-            </div>
+        {/* Tab switcher */}
+        <div className="flex gap-2 border-b" style={{ borderColor: '#EADFC4' }}>
+          {(['ptable', 'conversions'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="px-4 py-2 text-sm font-semibold -mb-px border-b-2 transition-colors"
+              style={
+                tab === t
+                  ? { borderColor: ACCENT, color: '#8A5E12' }
+                  : { borderColor: 'transparent', color: '#8A7A5E' }
+              }
+            >
+              {t === 'ptable' ? 'Periodic Table' : 'Conversions'}
+            </button>
           ))}
         </div>
 
-        <div className="overflow-x-auto -mx-5 px-5 pb-2">
-          <div
-            className="grid gap-1 w-max"
-            style={{ gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}
-          >
-            {mainGrid.map((el) => (
-              <div
-                key={el.number}
-                style={{ gridColumn: el.group, gridRow: el.period, opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}
-              >
-                <ElementTile element={el} onSelect={setSelected} />
-              </div>
-            ))}
-          </div>
+        {tab === 'ptable' ? (
+          <>
+            {/* Search */}
+            <div className="relative">
+              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name, symbol, or atomic number"
+                className={`w-full rounded-2xl border bg-white/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none`}
+                style={{ borderColor: `${ACCENT}66` }}
+              />
+            </div>
 
-          <div className="flex gap-1 mt-2">
-            <div className="w-11 sm:w-14 shrink-0" />
-            {lanthanides.map((el) => (
-              <div key={el.number} style={{ opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}>
-                <ElementTile element={el} onSelect={setSelected} />
+            {/* Legend */}
+            <div className="flex flex-wrap gap-4">
+              {CATEGORIES.map((cat) => (
+                <div key={cat} className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-sm border" style={{ background: CATEGORY_COLOR[cat].bg, borderColor: CATEGORY_COLOR[cat].border }} />
+                  <span className={`text-xs ${TEXT_MUTED}`}>{CATEGORY_LABEL[cat]}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Grid */}
+            <div className="overflow-x-auto -mx-5 px-5 pb-2">
+              <div
+                className="grid gap-1 w-max"
+                style={{ gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}
+              >
+                {mainGrid.map((el) => (
+                  <div
+                    key={el.number}
+                    style={{ gridColumn: el.group, gridRow: el.period, opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}
+                  >
+                    <ElementTile element={el} onSelect={setSelected} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-1 mt-1">
-            <div className="w-11 sm:w-14 shrink-0" />
-            {actinides.map((el) => (
-              <div key={el.number} style={{ opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}>
-                <ElementTile element={el} onSelect={setSelected} />
+
+              {/* Lanthanide / actinide footnote rows */}
+              <div className="flex gap-1 mt-2">
+                <div className="w-11 sm:w-14 shrink-0" />
+                {lanthanides.map((el) => (
+                  <div key={el.number} style={{ opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}>
+                    <ElementTile element={el} onSelect={setSelected} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex gap-1 mt-1">
+                <div className="w-11 sm:w-14 shrink-0" />
+                {actinides.map((el) => (
+                  <div key={el.number} style={{ opacity: query && !matchSet.has(el.number) ? 0.25 : 1 }}>
+                    <ElementTile element={el} onSelect={setSelected} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <ConversionsView />
+        )}
       </div>
 
-      {selected && <ElementDetail element={selected} onClose={() => setSelected(null)} />}
+      {tab === 'ptable' && selected && <ElementDetail element={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }
