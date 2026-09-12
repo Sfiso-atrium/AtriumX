@@ -21,6 +21,10 @@ import {
   ALL_CATEGORIES, unitsFor, convert,
   type ConversionCategory,
 } from '../data/conversions'
+import {
+  ALL_SUBJECTS, SUBJECT_LABEL, topicsFor, searchFormulas,
+  type Subject, type Formula,
+} from '../data/formulas'
 
 const PAGE_BG = '#FDF3E2'
 const TEXT = 'text-[#3A2E22]'
@@ -204,11 +208,135 @@ function ConversionsView() {
   )
 }
 
+function FormulaDetail({ formula, onClose }: { formula: Formula; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/30 px-4 pb-6 sm:pb-0" onClick={onClose}>
+      <div
+        className="w-full sm:max-w-sm rounded-3xl border bg-white p-6 flex flex-col gap-4 max-h-[85vh] overflow-y-auto"
+        style={{ borderColor: `${ACCENT}66` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide" style={{ color: '#8A5E12' }}>{formula.topic}</p>
+            <h2 className={`font-serif text-2xl font-bold ${TEXT}`}>{formula.name}</h2>
+          </div>
+          <button onClick={onClose} className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${TEXT_MUTED} hover:opacity-70`}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="rounded-2xl p-4 font-mono text-base font-semibold" style={{ background: `${ACCENT}14`, color: '#8A5E12' }}>
+          {formula.expression}
+        </div>
+
+        <div>
+          <p className={`text-[11px] uppercase tracking-wide mb-2 ${TEXT_MUTED}`}>What each variable means</p>
+          <div className="flex flex-col gap-2">
+            {formula.variables.map((v) => (
+              <div key={v.symbol} className="flex gap-3">
+                <span className={`font-mono font-bold w-14 flex-shrink-0 ${TEXT}`}>{v.symbol}</span>
+                <span className={`text-sm ${TEXT}`}>
+                  {v.meaning}{v.unit ? <span className={TEXT_MUTED}> ({v.unit})</span> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {formula.notes && (
+          <p className={`text-[12px] leading-relaxed ${TEXT_MUTED} border-t pt-3`} style={{ borderColor: '#EADFC4' }}>
+            {formula.notes}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
+  const [subject, setSubject] = useState<Subject>('maths')
+  const [query, setQuery] = useState('')
+
+  const results = useMemo(() => searchFormulas(subject, query), [subject, query])
+  const topics = useMemo(() => topicsFor(subject), [subject])
+  const resultIds = useMemo(() => new Set(results.map(f => f.id)), [results])
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Subject pills */}
+      <div className="flex flex-wrap gap-2">
+        {ALL_SUBJECTS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSubject(s)}
+            className="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors"
+            style={
+              subject === s
+                ? { background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }
+                : { background: '#FFFFFF99', borderColor: '#EADFC4', color: '#8A7A5E' }
+            }
+          >
+            {SUBJECT_LABEL[s]}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`} />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by formula name, topic, or variable"
+          className={`w-full rounded-2xl border bg-white/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none`}
+          style={{ borderColor: `${ACCENT}66` }}
+        />
+      </div>
+
+      {results.length === 0 ? (
+        <div className="flex flex-col items-center text-center gap-1.5 py-12">
+          <p className={`font-serif text-lg font-bold ${TEXT}`}>Nothing matches that search</p>
+          <p className={`text-sm max-w-xs ${TEXT_MUTED}`}>
+            Try a variable symbol (like "F" or "λ"), a topic name, or the formula's common name — or clear the search to browse {SUBJECT_LABEL[subject]} by topic.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {topics.map((topic) => {
+            const topicFormulas = results.filter(f => f.topic === topic)
+            if (topicFormulas.length === 0) return null
+            return (
+              <div key={topic} className="flex flex-col gap-2">
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8A5E12' }}>{topic}</p>
+                <div className="flex flex-col gap-2">
+                  {topicFormulas.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => onSelect(f)}
+                      className="text-left rounded-2xl border bg-white/90 px-4 py-3 transition-transform active:scale-[0.99]"
+                      style={{ borderColor: resultIds.has(f.id) ? `${ACCENT}66` : '#EADFC4' }}
+                    >
+                      <p className={`text-sm font-semibold ${TEXT}`}>{f.name}</p>
+                      <p className={`text-xs font-mono mt-0.5 truncate ${TEXT_MUTED}`}>{f.expression}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ToolkitPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'ptable' | 'conversions'>('ptable')
+  const [tab, setTab] = useState<'ptable' | 'conversions' | 'formulas'>('ptable')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<PeriodicElement | null>(null)
+  const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null)
 
   const results = useMemo(() => searchElements(query), [query])
   const matchSet = useMemo(() => new Set(results.map((el) => el.number)), [results])
@@ -237,16 +365,16 @@ export default function ToolkitPage() {
       <div className="max-w-2xl mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
         <div>
           <h1 className={`font-serif text-3xl font-bold ${TEXT}`}>
-            {tab === 'ptable' ? 'Periodic Table' : 'Conversions'}
+            {tab === 'ptable' ? 'Periodic Table' : tab === 'conversions' ? 'Conversions' : 'Formula Sheet'}
           </h1>
           <p className={`text-sm mt-1 ${TEXT_MUTED}`}>
-            {tab === 'ptable' ? 'Tap an element for its full details.' : 'Pick a category, then a unit on each side.'}
+            {tab === 'ptable' ? 'Tap an element for its full details.' : tab === 'conversions' ? 'Pick a category, then a unit on each side.' : 'Pick a subject, then tap a formula for what each variable means.'}
           </p>
         </div>
 
         {/* Tab switcher */}
         <div className="flex gap-2 border-b" style={{ borderColor: '#EADFC4' }}>
-          {(['ptable', 'conversions'] as const).map((t) => (
+          {(['ptable', 'conversions', 'formulas'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -257,7 +385,7 @@ export default function ToolkitPage() {
                   : { borderColor: 'transparent', color: '#8A7A5E' }
               }
             >
-              {t === 'ptable' ? 'Periodic Table' : 'Conversions'}
+              {t === 'ptable' ? 'Periodic Table' : t === 'conversions' ? 'Conversions' : 'Formulas'}
             </button>
           ))}
         </div>
@@ -321,12 +449,15 @@ export default function ToolkitPage() {
               </div>
             </div>
           </>
-        ) : (
+        ) : tab === 'conversions' ? (
           <ConversionsView />
+        ) : (
+          <FormulasView onSelect={setSelectedFormula} />
         )}
       </div>
 
       {tab === 'ptable' && selected && <ElementDetail element={selected} onClose={() => setSelected(null)} />}
+      {tab === 'formulas' && selectedFormula && <FormulaDetail formula={selectedFormula} onClose={() => setSelectedFormula(null)} />}
     </div>
   )
 }
