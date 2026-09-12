@@ -12,10 +12,11 @@
 // package.json is enough — no local install step needed.
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { X, Copy, ExternalLink, Check } from 'lucide-react'
 import QRCode from 'qrcode'
 import jsQR from 'jsqr'
+import ToolsMenu from '../components/common/ToolsMenu'
 
 const PAGE_BG = '#FDF3E2'
 const TEXT = 'text-[#3A2E22]'
@@ -271,7 +272,12 @@ function ScanView() {
 
 export default function QRToolPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'scan' | 'generate'>('scan')
+  const [searchParams] = useSearchParams()
+  const requestedMode = searchParams.get('mode')
+  // Derived from the URL, not useState - the dropdown navigates by
+  // changing the query param while staying on this same route (same
+  // reasoning as ToolkitPage.tsx).
+  const tab: 'scan' | 'generate' = requestedMode === 'generate' ? 'generate' : 'scan'
 
   return (
     <div className="min-h-[100dvh]" style={{ backgroundColor: PAGE_BG }}>
@@ -282,7 +288,7 @@ export default function QRToolPage() {
         >
           <X size={18} />
         </button>
-        <span className={`text-xs font-semibold ${TEXT_MUTED}`}>Focus Mode Toolkit</span>
+        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
       </div>
 
       <div className="max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
@@ -293,21 +299,16 @@ export default function QRToolPage() {
           </p>
         </div>
 
-        <div className="flex gap-2 border-b" style={{ borderColor: '#EADFC4' }}>
-          {(['scan', 'generate'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="px-4 py-2 text-sm font-semibold -mb-px border-b-2 transition-colors"
-              style={
-                tab === t
-                  ? { borderColor: ACCENT, color: '#8A5E12' }
-                  : { borderColor: 'transparent', color: '#8A7A5E' }
-              }
-            >
-              {t === 'scan' ? 'Scan' : 'Generate'}
-            </button>
-          ))}
+        {/* A single tab for the mode you're actually on - switching
+            between Scanner and Generator now happens through the dropdown
+            above, under QR Code's own submenu. */}
+        <div className="border-b" style={{ borderColor: '#EADFC4' }}>
+          <span
+            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2"
+            style={{ borderColor: ACCENT, color: '#8A5E12' }}
+          >
+            {tab === 'scan' ? 'Scanner' : 'Generator'}
+          </span>
         </div>
 
         {tab === 'scan' ? <ScanView /> : <GenerateView />}
