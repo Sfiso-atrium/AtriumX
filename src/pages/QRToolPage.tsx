@@ -11,7 +11,7 @@
 // Pages runs npm install on every deploy, so adding the lines to
 // package.json is enough — no local install step needed.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, Copy, ExternalLink, Check } from 'lucide-react'
 import QRCode from 'qrcode'
@@ -32,28 +32,36 @@ function looksLikeUrl(text: string): boolean {
 }
 
 function GenerateView() {
-  const [text, setText] = useState('')
+  const [draft, setDraft] = useState('')
+  const [generated, setGenerated] = useState('')
   const [copied, setCopied] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    if (!text.trim()) {
+    if (!generated.trim()) {
       const ctx = canvas.getContext('2d')
       ctx?.clearRect(0, 0, canvas.width, canvas.height)
       return
     }
-    QRCode.toCanvas(canvas, text, {
+    QRCode.toCanvas(canvas, generated, {
       width: 240,
       margin: 1,
       color: { dark: '#3A2E22', light: '#FDF3E2' },
     }).catch(() => {})
-  }, [text])
+  }, [generated])
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault() // Enter generates instead of inserting a newline
+      if (draft.trim()) setGenerated(draft.trim())
+    }
+  }
 
   function downloadPng() {
     const canvas = canvasRef.current
-    if (!canvas || !text.trim()) return
+    if (!canvas || !generated.trim()) return
     const link = document.createElement('a')
     link.download = 'qr-code.png'
     link.href = canvas.toDataURL('image/png')
@@ -62,7 +70,7 @@ function GenerateView() {
 
   async function copyText() {
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(generated)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -73,10 +81,12 @@ function GenerateView() {
   return (
     <div className="flex flex-col gap-5">
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Paste a link or type any text to turn into a QR code"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Paste a link or type any text, then press Enter to generate"
         rows={3}
+        enterKeyHint="go"
         className={`w-full rounded-2xl border bg-white/90 px-4 py-3 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none resize-none`}
         style={{ borderColor: `${ACCENT}66` }}
       />
@@ -86,14 +96,15 @@ function GenerateView() {
           className="rounded-2xl border p-4 bg-white flex items-center justify-center"
           style={{ borderColor: `${ACCENT}44`, width: 272, height: 272 }}
         >
-          {text.trim() ? (
+          {generated.trim() ? (
             <canvas ref={canvasRef} width={240} height={240} />
           ) : (
-            <p className={`text-xs text-center px-6 ${TEXT_MUTED}`}>Your QR code will appear here as you type</p>
+            <p className={`text-xs text-center px-6 ${TEXT_MUTED}`}>Press Enter after typing to generate your QR code</p>
           )}
         </div>
 
-        {text.trim() && (
+
+        {generated.trim() && (
           <div className="flex gap-2">
             <button
               onClick={downloadPng}
