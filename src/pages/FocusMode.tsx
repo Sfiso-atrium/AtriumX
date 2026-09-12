@@ -1,7 +1,7 @@
 // src/pages/FocusMode.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, Atom, QrCode } from 'lucide-react'
+import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, Atom, QrCode, NotebookPen } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useFocusSession } from '../hooks/useFocusSession'
 import { getTodayStudyMinutes } from '../services/dataService'
@@ -150,6 +150,13 @@ export default function FocusMode() {
             title="QR Code"
           >
             <QrCode size={17} />
+          </button>
+          <button
+            onClick={() => navigate('/notebook')}
+            className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
+            title="Notebook"
+          >
+            <NotebookPen size={17} />
           </button>
           <button
             onClick={() => setGirly(g => !g)}
