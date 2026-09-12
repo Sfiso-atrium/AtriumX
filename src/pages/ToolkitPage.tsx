@@ -12,7 +12,7 @@
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Search } from 'lucide-react'
+import { X, Search, ChevronDown } from 'lucide-react'
 import {
   PERIODIC_TABLE, CATEGORY_LABEL, CATEGORY_COLOR, searchElements,
   type PeriodicElement, type ElementCategory,
@@ -257,10 +257,20 @@ function FormulaDetail({ formula, onClose }: { formula: Formula; onClose: () => 
 function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
   const [subject, setSubject] = useState<Subject>('maths')
   const [query, setQuery] = useState('')
+  const [openTopics, setOpenTopics] = useState<Set<string>>(new Set())
 
   const results = useMemo(() => searchFormulas(subject, query), [subject, query])
   const topics = useMemo(() => topicsFor(subject), [subject])
-  const resultIds = useMemo(() => new Set(results.map(f => f.id)), [results])
+  const isSearching = query.trim() !== ''
+
+  function toggleTopic(topic: string) {
+    setOpenTopics((prev) => {
+      const next = new Set(prev)
+      if (next.has(topic)) next.delete(topic)
+      else next.add(topic)
+      return next
+    })
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -302,26 +312,44 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
           {topics.map((topic) => {
-            const topicFormulas = results.filter(f => f.topic === topic)
+            const topicFormulas = results.filter((f) => f.topic === topic)
             if (topicFormulas.length === 0) return null
+            // A search match forces its topic open so results are visible
+            // without an extra tap — manual toggles only matter when browsing.
+            const isOpen = isSearching || openTopics.has(topic)
             return (
-              <div key={topic} className="flex flex-col gap-2">
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8A5E12' }}>{topic}</p>
-                <div className="flex flex-col gap-2">
-                  {topicFormulas.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => onSelect(f)}
-                      className="text-left rounded-2xl border bg-white/90 px-4 py-3 transition-transform active:scale-[0.99]"
-                      style={{ borderColor: resultIds.has(f.id) ? `${ACCENT}66` : '#EADFC4' }}
-                    >
-                      <p className={`text-sm font-semibold ${TEXT}`}>{f.name}</p>
-                      <p className={`text-xs font-mono mt-0.5 truncate ${TEXT_MUTED}`}>{f.expression}</p>
-                    </button>
-                  ))}
-                </div>
+              <div key={topic} className="rounded-2xl border bg-white/90 overflow-hidden" style={{ borderColor: '#EADFC4' }}>
+                <button
+                  onClick={() => toggleTopic(topic)}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <span className="text-sm font-bold" style={{ color: '#8A5E12' }}>{topic}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${TEXT_MUTED}`}>{topicFormulas.length}</span>
+                    <ChevronDown
+                      size={16}
+                      className="transition-transform"
+                      style={{ color: '#8A7A5E', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    />
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="flex flex-col gap-2 px-3 pb-3">
+                    {topicFormulas.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => onSelect(f)}
+                        className="text-left rounded-xl border bg-white px-4 py-3 transition-transform active:scale-[0.99]"
+                        style={{ borderColor: '#EADFC4' }}
+                      >
+                        <p className={`text-sm font-semibold ${TEXT}`}>{f.name}</p>
+                        <p className={`text-xs font-mono mt-0.5 truncate ${TEXT_MUTED}`}>{f.expression}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
