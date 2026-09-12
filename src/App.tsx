@@ -21,6 +21,7 @@ import StudyGroupChat from './pages/StudyGroupChat'
 import StudyGroupsList from './pages/StudyGroupsList'
 import FocusMode from './pages/FocusMode'
 import NotebookPage from './pages/NotebookPage'
+import ToolkitPage from './pages/ToolkitPage'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
 
@@ -82,8 +83,9 @@ export default function App() {
           <Route path="/partner" element={<PartnerDashboard />} />
           <Route path="/group/:groupId" element={<StudyGroupChat />} />
           <Route path="/groups" element={<StudyGroupsList />} />
-          <Route path="/focus" element={<FocusMode />} />
-          <Route path="/notebook" element={<NotebookPage />} />
+<Route path="/focus" element={<FocusMode />} />
+<Route path="/toolkit" element={<ToolkitPage />} />
+<Route path="/notebook" element={<NotebookPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 
