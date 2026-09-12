@@ -135,6 +135,7 @@ export default function FocusMode() {
           className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
         >
           <X size={18} />
+        </button>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/toolkit')}
