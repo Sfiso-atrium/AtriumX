@@ -11,8 +11,9 @@
 // for small screens.
 
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { X, Search, ChevronDown } from 'lucide-react'
+import ToolsMenu from '../components/common/ToolsMenu'
 import {
   PERIODIC_TABLE, CATEGORY_LABEL, CATEGORY_COLOR, searchElements,
   type PeriodicElement, type ElementCategory,
@@ -361,7 +362,14 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
 
 export default function ToolkitPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'ptable' | 'conversions' | 'formulas'>('ptable')
+  const [searchParams] = useSearchParams()
+  const requestedTool = searchParams.get('tool')
+  // Derived straight from the URL rather than useState - the dropdown
+  // navigates by changing the query param while staying on this same
+  // route, so a stored initial value would go stale the moment you picked
+  // a different tool without leaving the page.
+  const tab: 'ptable' | 'conversions' | 'formulas' =
+    requestedTool === 'conversions' || requestedTool === 'formulas' ? requestedTool : 'ptable'
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<PeriodicElement | null>(null)
   const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null)
@@ -387,7 +395,7 @@ export default function ToolkitPage() {
         >
           <X size={18} />
         </button>
-        <span className={`text-xs font-semibold ${TEXT_MUTED}`}>Focus Mode Toolkit</span>
+        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
       </div>
 
       <div className="max-w-2xl mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
@@ -400,22 +408,16 @@ export default function ToolkitPage() {
           </p>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex gap-2 border-b" style={{ borderColor: '#EADFC4' }}>
-          {(['ptable', 'conversions', 'formulas'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="px-4 py-2 text-sm font-semibold -mb-px border-b-2 transition-colors"
-              style={
-                tab === t
-                  ? { borderColor: ACCENT, color: '#8A5E12' }
-                  : { borderColor: 'transparent', color: '#8A7A5E' }
-              }
-            >
-              {t === 'ptable' ? 'Periodic Table' : t === 'conversions' ? 'Conversions' : 'Formulas'}
-            </button>
-          ))}
+        {/* A single tab for the tool you're actually on - switching tools
+            now happens through the dropdown above, not by tapping between
+            tabs that were all visible at once. */}
+        <div className="border-b" style={{ borderColor: '#EADFC4' }}>
+          <span
+            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2"
+            style={{ borderColor: ACCENT, color: '#8A5E12' }}
+          >
+            {tab === 'ptable' ? 'Periodic Table' : tab === 'conversions' ? 'Conversions' : 'Formulas'}
+          </span>
         </div>
 
         {tab === 'ptable' ? (
