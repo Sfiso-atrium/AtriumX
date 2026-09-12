@@ -105,6 +105,43 @@ export const FORMULAS: Formula[] = [
   },
 
   {
+    id: 'm-gradient',
+    subject: 'maths', topic: 'Coordinate Geometry', name: 'Gradient (Slope) of a Line',
+    expression: 'm = (y₂ - y₁) / (x₂ - x₁)',
+    variables: [
+      { symbol: 'm', meaning: 'gradient of the line through the two points' },
+      { symbol: '(x₁, y₁), (x₂, y₂)', meaning: 'two points on the line' },
+    ],
+  },
+  {
+    id: 'm-distance-formula',
+    subject: 'maths', topic: 'Coordinate Geometry', name: 'Distance Between Two Points',
+    expression: 'd = √((x₂ - x₁)² + (y₂ - y₁)²)',
+    variables: [
+      { symbol: 'd', meaning: 'straight-line distance between the two points' },
+      { symbol: '(x₁, y₁), (x₂, y₂)', meaning: 'the two points' },
+    ],
+  },
+  {
+    id: 'm-midpoint-formula',
+    subject: 'maths', topic: 'Coordinate Geometry', name: 'Midpoint Formula',
+    expression: 'M = ((x₁ + x₂)/2, (y₁ + y₂)/2)',
+    variables: [
+      { symbol: 'M', meaning: 'midpoint of the segment joining the two points' },
+      { symbol: '(x₁, y₁), (x₂, y₂)', meaning: 'the two endpoints' },
+    ],
+  },
+  {
+    id: 'm-equation-of-line',
+    subject: 'maths', topic: 'Coordinate Geometry', name: 'Equation of a Straight Line',
+    expression: 'y = mx + c',
+    variables: [
+      { symbol: 'm', meaning: 'gradient of the line' },
+      { symbol: 'c', meaning: 'y-intercept — where the line crosses the y-axis' },
+    ],
+  },
+
+  {
     id: 'm-sine-rule',
     subject: 'maths', topic: 'Trigonometry', name: 'Sine Rule',
     expression: 'a/sin(A) = b/sin(B) = c/sin(C)',
@@ -156,6 +193,16 @@ export const FORMULAS: Formula[] = [
     ],
   },
 
+  {
+    id: 'm-first-principles',
+    subject: 'maths', topic: 'Differentiation', name: 'First Principles (Limit Definition)',
+    expression: "f′(x) = lim(h→0) [f(x+h) - f(x)] / h",
+    variables: [
+      { symbol: "f′(x)", meaning: 'the derivative of f at x' },
+      { symbol: 'h', meaning: 'a small change in x, shrinking towards zero' },
+    ],
+    notes: 'The definition every other differentiation rule is derived from — worth knowing even once the shortcut rules below take over.',
+  },
   {
     id: 'm-derivative-power-rule',
     subject: 'maths', topic: 'Differentiation', name: 'Power Rule',
@@ -524,6 +571,49 @@ export const FORMULAS: Formula[] = [
       { symbol: 'F', meaning: 'force applied', unit: 'N' },
       { symbol: 'Δt', meaning: 'time interval force acts over', unit: 's' },
       { symbol: 'Δp', meaning: 'change in momentum', unit: 'kg·m/s' },
+    ],
+  },
+  {
+    id: 'p-conservation-of-momentum',
+    subject: 'physics', topic: "Newton's Laws & Dynamics", name: 'Conservation of Momentum',
+    expression: 'm₁u₁ + m₂u₂ = m₁v₁ + m₂v₂',
+    variables: [
+      { symbol: 'm₁, m₂', meaning: 'masses of the two objects', unit: 'kg' },
+      { symbol: 'u₁, u₂', meaning: 'velocities before the collision/interaction', unit: 'm/s' },
+      { symbol: 'v₁, v₂', meaning: 'velocities after the collision/interaction', unit: 'm/s' },
+    ],
+    notes: 'Holds for any closed system with no external net force — true whether the collision is elastic or not.',
+  },
+
+  {
+    id: 'p-density',
+    subject: 'physics', topic: 'Density & Pressure', name: 'Density',
+    expression: 'ρ = m / V',
+    variables: [
+      { symbol: 'ρ', meaning: 'density', unit: 'kg/m³' },
+      { symbol: 'm', meaning: 'mass', unit: 'kg' },
+      { symbol: 'V', meaning: 'volume', unit: 'm³' },
+    ],
+  },
+  {
+    id: 'p-pressure',
+    subject: 'physics', topic: 'Density & Pressure', name: 'Pressure',
+    expression: 'P = F / A',
+    variables: [
+      { symbol: 'P', meaning: 'pressure', unit: 'Pa (N/m²)' },
+      { symbol: 'F', meaning: 'force applied perpendicular to the surface', unit: 'N' },
+      { symbol: 'A', meaning: 'area the force acts over', unit: 'm²' },
+    ],
+  },
+  {
+    id: 'p-hydrostatic-pressure',
+    subject: 'physics', topic: 'Density & Pressure', name: 'Hydrostatic Pressure',
+    expression: 'P = ρgh',
+    variables: [
+      { symbol: 'P', meaning: 'pressure at depth h in the fluid', unit: 'Pa' },
+      { symbol: 'ρ', meaning: 'fluid density', unit: 'kg/m³' },
+      { symbol: 'g', meaning: 'gravitational acceleration', unit: 'm/s²' },
+      { symbol: 'h', meaning: 'depth below the fluid surface', unit: 'm' },
     ],
   },
 
