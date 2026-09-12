@@ -1,7 +1,7 @@
 // src/pages/FocusMode.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee } from 'lucide-react'
+import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, Atom } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useFocusSession } from '../hooks/useFocusSession'
 import { getTodayStudyMinutes } from '../services/dataService'
@@ -135,16 +135,24 @@ export default function FocusMode() {
           className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
         >
           <X size={18} />
-        </button>
-        <button
-          onClick={() => setGirly(g => !g)}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-colors bg-white/90 shadow-sm ${
-            girly ? 'border-[#C2185B] text-[#C2185B]' : 'border-[#EADFC4] text-[#8A7A5E]'
-          }`}
-        >
-          <Heart size={13} fill={girly ? '#C2185B' : 'none'} />
-          Girly Mode
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/toolkit')}
+            className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
+            title="Toolkit"
+          >
+            <Atom size={17} />
+          </button>
+          <button
+            onClick={() => setGirly(g => !g)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-colors bg-white/90 shadow-sm ${
+              girly ? 'border-[#C2185B] text-[#C2185B]' : 'border-[#EADFC4] text-[#8A7A5E]'
+            }`}
+          >
+            <Heart size={13} fill={girly ? '#C2185B' : 'none'} />
+            Girly Mode
+          </button>
+        </div>
       </div>
 
       <div className="relative z-10 max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
