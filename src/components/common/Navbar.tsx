@@ -1,13 +1,49 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, X, Backpack, Handshake, Contrast } from 'lucide-react'
+import { Menu, X, Backpack, Handshake, Contrast, Bell, BellOff, NotebookPen, ChevronDown } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
+import { pushSupported, subscribeToPush, unsubscribeFromPush } from '../../services/push'
 
 export default function Navbar() {
 const navigate = useNavigate()
   const { currentUser, partner, bwMode, toggleBwMode } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [pushOn, setPushOn] = useState(false)
+  const [pushBlocked, setPushBlocked] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
+
+  // Check actual subscription status each time the drawer opens, rather
+  // than trusting stale local state — the person may have changed the
+  // browser's own notification permission since the last time this
+  // opened, and that always wins over whatever we last set.
+  useEffect(() => {
+    if (!menuOpen || !currentUser || !pushSupported()) return
+    if (Notification.permission === 'denied') {
+      setPushBlocked(true)
+      setPushOn(false)
+      return
+    }
+    setPushBlocked(false)
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((sub) => setPushOn(!!sub))
+      .catch(() => setPushOn(false))
+  }, [menuOpen, currentUser])
+
+  async function handleTogglePush() {
+    if (!currentUser || pushLoading || pushBlocked) return
+    setPushLoading(true)
+    if (pushOn) {
+      await unsubscribeFromPush(currentUser.id)
+      setPushOn(false)
+    } else {
+      const { error } = await subscribeToPush(currentUser.id)
+      if (!error) setPushOn(true)
+    }
+    setPushLoading(false)
+  }
 
 return (
 <>
@@ -92,12 +128,55 @@ return (
         <Contrast size={16} />
         {bwMode ? 'Black & White: On' : 'Black & White: Off'}
       </button>
-<a href="/How-it-works.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">How It Works</a>
-      
-      <a href="/Faq.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">FAQ</a>
-      <a href="/Safety.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Safety Tips</a>
-      <a href="/Terms.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 border-b border-slate-border transition-colors">Terms of Service</a>
-      <a href="/Privacy.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm font-medium py-3 transition-colors">Privacy Policy</a>
+
+      <button
+        onClick={() => { setMenuOpen(false); navigate('/notebook') }}
+        className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted hover:text-teal-light transition-colors"
+      >
+        <NotebookPen size={16} />
+        Notebook
+      </button>
+
+      {currentUser && pushSupported() && (
+        <button
+          onClick={handleTogglePush}
+          disabled={pushLoading || pushBlocked}
+          className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border transition-colors disabled:opacity-60 ${
+            pushOn ? 'text-gold' : 'text-cream-muted hover:text-teal-light'
+          }`}
+        >
+          {pushOn ? <Bell size={16} /> : <BellOff size={16} />}
+          {pushBlocked
+            ? 'Notifications: Blocked in browser'
+            : pushLoading
+            ? 'Updating…'
+            : pushOn
+            ? 'Notifications: On'
+            : 'Notifications: Off'}
+        </button>
+      )}
+
+      {/* How It Works / FAQ / Safety / Terms / Privacy — one collapsible
+          group instead of five separate rows, same expand pattern as the
+          QR Code entry in the Toolbox menu. */}
+      <div className="border-b border-slate-border">
+        <button
+          onClick={() => setHelpOpen((o) => !o)}
+          className="w-full flex items-center justify-between text-sm font-medium py-3 text-cream-muted hover:text-teal-light transition-colors"
+        >
+          Help &amp; Legal
+          <ChevronDown size={16} className={`transition-transform ${helpOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {helpOpen && (
+          <div className="flex flex-col pb-2">
+            <a href="/How-it-works.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">How It Works</a>
+            <a href="/Faq.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">FAQ</a>
+            <a href="/Safety.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Safety Tips</a>
+            <a href="/Terms.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Terms of Service</a>
+            <a href="/Privacy.html" onClick={() => setMenuOpen(false)} className="text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Privacy Policy</a>
+          </div>
+        )}
+      </div>
     </div>
     </>
   )
