@@ -129,8 +129,12 @@ export default function FocusMode() {
       {/* Soft wash over the desk-scene backdrop so foreground cards/text stay legible */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: `${theme.pageBg}cc` }} />
 
-      {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between px-5 pt-5">
+      {/* Top bar — z-30 so its dropdown (Toolbox, and QR's nested panel)
+          always paints above the content below, which sits at z-10. Equal
+          z-index siblings stack in DOM order, so without this the content
+          div (being later in the DOM) was winning and swallowing clicks on
+          the dropdown wherever the two overlapped. */}
+      <div className="relative z-30 flex items-center justify-between px-5 pt-5">
         <button
           onClick={() => navigate('/space')}
           className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
