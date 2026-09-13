@@ -1441,6 +1441,20 @@ export default function NotebookPage() {
         />
       )}
 
+      {/* Page-wide top bar — sits above both the locked and unlocked
+          views below, so it's there regardless of state. Logo/name is on
+          the right here rather than the left, per how this was asked
+          for — mirrored from where it sits in the main app's Navbar. */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-border flex-shrink-0">
+        <span className="text-ember font-bold text-sm">Notebook</span>
+        <div className="flex items-center min-w-0 flex-shrink-0">
+          <img src="/logo.png" alt="AtriumX" className="h-6 w-auto -mr-1 flex-shrink-0" />
+          <span className="font-serif text-sm truncate">
+            <span className="text-cream">trium</span><span className="text-ember">X</span>
+          </span>
+        </div>
+      </div>
+
       {(checking || !setupExists || !notebookKey) ? (
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl w-full mx-auto px-4 py-4 flex flex-col min-h-full">
