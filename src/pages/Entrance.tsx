@@ -38,7 +38,7 @@ export default function Entrance() {
   return (
     <div className="min-h-screen bg-slate-deep">
 
-      <nav className="max-w-6xl mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 pt-6">
+      <nav className="max-w-3xl mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 pt-6">
         <div className="flex items-center min-w-0 flex-shrink">
           <img src="/logo.png" alt="AtriumX" className="h-7 sm:h-9 w-auto -mr-1 sm:-mr-1.5 flex-shrink-0" />
           <span className="font-serif text-base sm:text-xl truncate">
@@ -71,52 +71,26 @@ export default function Entrance() {
           </button>
         </div>
       </nav>
-      <main className="max-w-6xl mx-auto px-6 pt-10 pb-16">
+      <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
 
         <div className="flex justify-end mb-4">
           <InstallAppButton />
         </div>
 
-        {/* Hero — video on the left, headline/copy on the right, on
-            desktop only (lg+). On phones this collapses back to exactly
-            the single stacked column it was before: the video column is
-            simply hidden rather than squeezed in above/below the text,
-            since an autoplaying video isn't worth the data cost on a
-            small screen someone's likely on mobile data with anyway. */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-14 lg:items-center mb-14">
-          {/* Video — supply the actual files yourself:
-                public/videos/hero.mp4 (the clip itself)
-                public/videos/hero-poster.jpg (fallback frame shown before
-                it loads, and on any browser that can't play the file) */}
-          <div className="hidden lg:block lg:order-1">
-            <video
-              className="w-full aspect-square object-cover rounded-3xl border border-slate-border"
-              src="/videos/hero.mp4"
-              poster="/videos/hero-poster.jpg"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-          </div>
+        <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
 
-          <div className="lg:order-2">
-            <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
+        <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-3">
+          Campus Marketplace &amp; Study Space
+        </p>
 
-            <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-3">
-              Campus Marketplace &amp; Study Space
-            </p>
+        <h1 className="font-serif font-normal text-4xl sm:text-5xl text-cream leading-[1.15] mb-5 max-w-2xl">
+          Sell to your res. Stay on top of class. That's AtriumX.
+        </h1>
 
-            <h1 className="font-serif font-normal text-4xl sm:text-5xl text-cream leading-[1.15] mb-5">
-              Sell to your res. Stay on top of class. That's AtriumX.
-            </h1>
-
-            <p className="text-cream-muted text-base leading-relaxed mb-0">
-              List what you're selling and chat directly with buyers right where you live — then keep your
-              deadlines, timetable and budget in the same place, so studying never falls through the cracks.
-            </p>
-          </div>
-        </div>
+        <p className="text-cream-muted text-base leading-relaxed max-w-xl mb-10">
+          List what you're selling and chat directly with buyers right where you live — then keep your
+          deadlines, timetable and budget in the same place, so studying never falls through the cracks.
+        </p>
 
         <div className="flex flex-wrap gap-4 mb-14">
           <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-gold rounded-2xl p-6 transition-colors">
@@ -196,7 +170,7 @@ export default function Entrance() {
 
       </main>
 
-      <footer className="max-w-6xl mx-auto px-6 pb-10 text-center">
+      <footer className="max-w-3xl mx-auto px-6 pb-10 text-center">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs mb-4">
           <a href="/How-it-works.html" className="text-cream-muted hover:text-teal-light transition-colors">How It Works</a>
           <a href="/Faq.html" className="text-cream-muted hover:text-teal-light transition-colors">FAQ</a>
