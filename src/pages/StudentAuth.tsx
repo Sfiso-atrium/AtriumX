@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext'
 import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
+import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 
 export default function StudentAuth() {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [residence, setResidence] = useState('')
+  const [university, setUniversity] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmedStudent, setConfirmedStudent] = useState(false)
@@ -34,12 +36,13 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       if (password.length < 8) return setError('Password must be at least 8 characters.')
       if (password !== confirmPassword) return setError('Passwords do not match.')
       if (!residence.trim()) return setError('Residence is required.')
+      if (!university) return setError('Please select your university.')
       if (!confirmedStudent) return setError('Please confirm that you are a currently enrolled student to continue.')
       if (!acceptedPrivacy) return setError('Please accept the Privacy Policy to create an account.')
 
       setLoading(true)
       const refCode = searchParams.get('ref') || undefined
-      const { user, error: err } = await registerWithEmail(email, password, fullName.trim(), residence.trim(), refCode)
+      const { user, error: err } = await registerWithEmail(email, password, fullName.trim(), residence.trim(), university, refCode)
       setLoading(false)
 
       if (err) return setError(err)
@@ -125,6 +128,16 @@ if (user) {
                 onChange={e => setConfirmPassword(e.target.value)}
                 className={inputClass}
               />
+              <select
+                value={university}
+                onChange={e => setUniversity(e.target.value)}
+                className={inputClass}
+              >
+                <option value="" disabled>Select your university</option>
+                {SOUTH_AFRICAN_UNIVERSITIES.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
               <input
                 type="text"
                 placeholder="Your residence (e.g. Dalrymple House)"
