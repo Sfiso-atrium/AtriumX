@@ -1,0 +1,34 @@
+// src/data/universities.ts
+//
+// All 26 public universities in South Africa, alphabetical. Used for the
+// university dropdown at signup and anywhere else the app needs to show
+// or validate against the full list.
+
+export const SOUTH_AFRICAN_UNIVERSITIES: string[] = [
+  'Cape Peninsula University of Technology',
+  'Central University of Technology',
+  'Durban University of Technology',
+  'Mangosuthu University of Technology',
+  'Nelson Mandela University',
+  'North-West University',
+  'Rhodes University',
+  'Sefako Makgatho Health Sciences University',
+  'Sol Plaatje University',
+  'Stellenbosch University',
+  'Tshwane University of Technology',
+  'University of Cape Town',
+  'University of Fort Hare',
+  'University of Johannesburg',
+  'University of KwaZulu-Natal',
+  'University of Limpopo',
+  'University of Mpumalanga',
+  'University of Pretoria',
+  'University of South Africa',
+  'University of the Free State',
+  'University of the Western Cape',
+  'University of the Witwatersrand',
+  'University of Venda',
+  'University of Zululand',
+  'Vaal University of Technology',
+  'Walter Sisulu University',
+]
