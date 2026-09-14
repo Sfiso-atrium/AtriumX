@@ -8,6 +8,7 @@ export interface Profile {
   email: string
   full_name: string
   residence: string | null
+  university: string | null
   avatar_initials: string
   avatar_color: string
 plan: 'ghost' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' | 'campus_partner'
@@ -147,11 +148,37 @@ export const BUSINESS_PLAN_ORDER: PlanKey[] = ['noticeboard', 'featured', 'campu
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 
-// Registration is restricted to eligible student email domains. Login is a
-// completely separate function (loginWithEmail, below) and is untouched by
-// this — existing accounts, including the gmail.com demo accounts used
-// during development, keep working exactly as before regardless of domain.
-const ALLOWED_STUDENT_DOMAINS = ['student.uj.ac.za', 'students.wits.ac.za']
+// Registration used to be restricted to an allowlist of specific
+// university domains (student.uj.ac.za, students.wits.ac.za). That
+// doesn't scale now that signup is open to any South African
+// university -- there's no realistic way to keep an exhaustive list of
+// every institution's exact student-email domain format up to date.
+//
+// Flipped to a blocklist instead: block the well-known consumer email
+// providers, allow everything else through. This isn't a perfect
+// guarantee every remaining domain is a real institution, but it stops
+// the obvious case (anyone signing up with a personal Gmail/Yahoo/etc
+// account), which is what actually mattered here. Login is a completely
+// separate function (loginWithEmail, below) and is untouched by this --
+// existing accounts, including the gmail.com demo accounts used during
+// development, keep working exactly as before regardless of domain.
+const BLOCKED_EMAIL_DOMAINS = [
+  'gmail.com',
+  'yahoo.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'icloud.com',
+  'me.com',
+  'aol.com',
+  'protonmail.com',
+  'proton.me',
+  'msn.com',
+  'mail.com',
+  'yandex.com',
+  'zoho.com',
+  'gmx.com',
+]
 
 // Pre-existing accounts that predate this restriction. Kept here too, not
 // just relied on via login, so re-registering with one of these emails
@@ -169,7 +196,7 @@ function isEligibleForRegistration(email: string): boolean {
   const normalized = email.trim().toLowerCase()
   if (GRANDFATHERED_EMAILS.includes(normalized)) return true
   const domain = normalized.split('@')[1] || ''
-  return ALLOWED_STUDENT_DOMAINS.includes(domain)
+  return domain !== '' && !BLOCKED_EMAIL_DOMAINS.includes(domain)
 }
 
 const INELIGIBLE_EMAIL_MESSAGE =
@@ -191,6 +218,7 @@ export async function registerWithEmail(
   password: string,
   fullName: string,
   residence: string,
+  university: string,
   refCode?: string
 ): Promise<{ user: Profile | null; error: string | null }> {
   if (!isEligibleForRegistration(email)) {
@@ -221,6 +249,7 @@ await supabase
       data: {
         full_name: fullName,
         residence,
+        university,
         avatar_initials: initials,
         avatar_color: avatarColor,
         email,
@@ -244,6 +273,7 @@ await supabase
       email,
       full_name: fullName,
       residence,
+      university,
       avatar_initials: initials,
       avatar_color: avatarColor,
       plan: 'ghost',
@@ -380,6 +410,14 @@ export async function getListings(filters: {
     .eq('status', 'active')
     .eq('seller.account_type', 'student')
     .order('created_at', { ascending: false })
+
+  // University is now the hard scope on the feed — a student only ever
+  // sees listings from other students at their own university.
+  // Residence stays exactly as it worked before this: an optional filter
+  // applied client-side on top of whatever this query already returned.
+  if (filters.currentUser?.university) {
+    query = query.eq('seller.university', filters.currentUser.university)
+  }
 
   if (filters.category && filters.category !== 'all') {
     query = query.eq('category', filters.category)
