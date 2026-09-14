@@ -36,7 +36,7 @@ stroke="#0D9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
 }
 
 export default function Feed() {
-const { activeCategory, showToast } = useApp()
+const { activeCategory, showToast, currentUser } = useApp()
   const navigate = useNavigate()
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
     const saved = localStorage.getItem('feed_last_tab')
@@ -71,7 +71,7 @@ const [bizSearch, setBizSearch] = useState('')
 
 const [fetchError, setFetchError] = useState(false)
 useEffect(() => {
-    getListings()
+    getListings({ currentUser })
       .then(data => {
         setListings(data)
         setDbLoading(false)
@@ -87,7 +87,7 @@ useEffect(() => {
         setBusinessLoading(false)
       })
       .catch(() => setBusinessLoading(false))
-  }, [])
+  }, [currentUser])
 
   const filtered = useMemo(() => {
     return listings.filter(listing => {
