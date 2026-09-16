@@ -9,6 +9,7 @@ import {
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import ImageCropModal from '../components/common/ImageCropModal'
+import { PostTypeSwitcher } from '../components/common/PostTypeChooser'
 
 const CATEGORIES_LIST = [
   { id: 'textbooks', label: 'Textbooks' },
@@ -243,6 +244,9 @@ setLoading(true)
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+          {/* Only on a new listing — switching type mid-edit would throw
+              away the listing being edited. */}
+          {!editListing && <PostTypeSwitcher current="listing" />}
           <div className="flex items-center gap-3 mb-6">
             <div>
               <h1 className="font-serif text-2xl text-cream">{editListing ? 'Edit Listing' : 'New Listing'}</h1>
