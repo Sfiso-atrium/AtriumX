@@ -46,7 +46,31 @@ interface ImageCropModalProps {
   onConfirm: (blob: Blob) => void
 }
 
+type Orientation = 'landscape' | 'square' | 'portrait'
+
+const ORIENTATION_ASPECT: Record<Orientation, number> = {
+  landscape: 16 / 9,
+  square: 1,
+  // A poster/flyer reads as portrait — this is the ratio that was missing
+  // entirely before. Callers previously had no way to get anything taller
+  // than it is wide, since `aspect` was a single fixed number with no UI
+  // to change it.
+  portrait: 3 / 4,
+}
+
+// Which preset a caller's own `aspect` prop is closest to, so the toggle
+// opens on the orientation that matches what was asked for (a poster
+// upload passing 3/4 opens on Portrait already selected) rather than
+// always resetting to landscape regardless of the caller's intent.
+function closestOrientation(aspect: number): Orientation {
+  if (aspect < 0.9) return 'portrait'
+  if (aspect > 1.3) return 'landscape'
+  return 'square'
+}
+
 export default function ImageCropModal({ imageSrc, aspect = 16 / 9, onCancel, onConfirm }: ImageCropModalProps) {
+  const [orientation, setOrientation] = useState<Orientation>(closestOrientation(aspect))
+  const activeAspect = ORIENTATION_ASPECT[orientation]
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
@@ -56,6 +80,17 @@ export default function ImageCropModal({ imageSrc, aspect = 16 / 9, onCancel, on
   const handleCropComplete = useCallback((_area: Area, pixels: Area) => {
     setCroppedAreaPixels(pixels)
   }, [])
+
+  // Switching orientation changes the crop box's shape under the same
+  // image — the previous crop region rarely still makes sense against a
+  // differently-shaped box, so this resets to centered/unzoomed rather
+  // than carrying over a crop that was computed for the other shape.
+  const handleOrientationChange = (next: Orientation) => {
+    setOrientation(next)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCroppedAreaPixels(null)
+  }
 
   const handleConfirm = async () => {
     if (!croppedAreaPixels) return
@@ -78,7 +113,7 @@ export default function ImageCropModal({ imageSrc, aspect = 16 / 9, onCancel, on
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={aspect}
+            aspect={activeAspect}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={handleCropComplete}
@@ -86,6 +121,28 @@ export default function ImageCropModal({ imageSrc, aspect = 16 / 9, onCancel, on
         </div>
 
         <div className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+              Shape
+            </label>
+            <div className="flex gap-2">
+              {(['landscape', 'square', 'portrait'] as Orientation[]).map(o => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => handleOrientationChange(o)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold border capitalize transition-colors ${
+                    orientation === o
+                      ? 'bg-teal-primary border-teal-light text-cream'
+                      : 'bg-slate-deep border-slate-border text-cream-muted'
+                  }`}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
               Zoom
@@ -102,7 +159,7 @@ export default function ImageCropModal({ imageSrc, aspect = 16 / 9, onCancel, on
           </div>
 
           <p className="text-cream-muted text-xs">
-            Drag to reposition, use the slider to zoom. This is exactly how your photo will appear on the listing.
+            Drag to reposition, use the slider to zoom. This is exactly how your photo will appear.
           </p>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
