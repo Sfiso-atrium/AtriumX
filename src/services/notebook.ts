@@ -67,13 +67,19 @@ export interface NotebookPageData {
   drawing: string | null
   drawingBackground: string | null
   canvasHeight: number | null
+  // True when the person added this page themselves via "Add page".
+  // The reflow pass in NotebookPage.tsx deletes a trailing page once it
+  // has been drained empty, which is right for pages the reflow created
+  // but wrong for one deliberately added — that page would vanish the
+  // instant it appeared. This flag is what tells the two apart.
+  manual?: boolean
 }
 
 export const DEFAULT_DRAWING_BACKGROUND = '#FFFFFF'
 export const DEFAULT_CANVAS_HEIGHT = 1200
 
-export function emptyTextPage(): NotebookPageData {
-  return { type: 'text', text: '', drawing: null, drawingBackground: null, canvasHeight: null }
+export function emptyTextPage(manual = false): NotebookPageData {
+  return { type: 'text', text: '', drawing: null, drawingBackground: null, canvasHeight: null, manual }
 }
 
 export function emptyDrawingPage(): NotebookPageData {
