@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { PlusCircle, ShieldCheck, Handshake } from 'lucide-react'
+import { useState } from 'react'
+import { PlusCircle, ShieldCheck, Handshake, CalendarDays } from 'lucide-react'
+import { PostTypeModal } from './PostTypeChooser'
 import HomeIcon from './icons/HomeIcon'
 import ChatIcon from './icons/ChatIcon'
 import ListingsIcon from './icons/ListingsIcon'
@@ -9,6 +11,7 @@ export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { currentUser, partner, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
+  const [chooserOpen, setChooserOpen] = useState(false)
 
   const isActive = (path: string) => location.pathname === path
   const handleProtected = (path: string) => {
@@ -31,7 +34,21 @@ const tabs = [
       label: 'Post',
       icon: PlusCircle,
       path: currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select',
-      onClick: () => handleProtected(currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select'),
+      // Opens the listing-or-event chooser rather than assuming a listing.
+      onClick: () => currentUser ? setChooserOpen(true) : handleProtected('/plan-select'),
+    },
+    // Events sits in the bottom nav rather than becoming a fourth pill in
+    // the feed's tab row. The feed's tabs all answer "what am I browsing
+    // to buy" — Students vs Businesses are two views of the same
+    // marketplace. Events isn't a shopping filter, it's a different
+    // destination with its own time-based sorting, so a fourth pill there
+    // would both crowd the row on a phone and lump together two things
+    // that aren't alternatives to each other.
+    {
+      label: 'Events',
+      icon: CalendarDays,
+      path: '/events',
+      onClick: () => navigate('/events'),
     },
     ...(currentUser ? [
       {
@@ -66,6 +83,8 @@ const tabs = [
     ] : []),
   ]
   return (
+    <>
+    {chooserOpen && <PostTypeModal onClose={() => setChooserOpen(false)} />}
    <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep border-t border-slate-border">
       <div className="max-w-lg mx-auto flex items-center justify-around h-16">
         {tabs.map(tab => {
@@ -96,5 +115,6 @@ const tabs = [
         })}
       </div>
     </div>
+    </>
   )
 }
