@@ -5,6 +5,9 @@ import Feed from './pages/Feed'
 import RetailerLanding from './pages/RetailerLanding'
 import StudentAuth from './pages/StudentAuth'
 import PlanSelect from './pages/PlanSelect'
+import PaymentResult from './pages/PaymentResult'
+import EventsPage from './pages/EventsPage'
+import PostEvent from './pages/PostEvent'
 import PostListing from './pages/PostListing'
 import ListingDetail from './pages/ListingDetail'
 import Profile from './pages/Profile'
@@ -70,6 +73,9 @@ export default function App() {
           <Route path="/feed" element={<Feed />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/plan-select" element={<PlanSelect />} />
+          <Route path="/payment/:outcome" element={<PaymentResult />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/post-event" element={<PostEvent />} />
 <Route path="/post" element={<PostListing />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/:userId" element={<Profile />} />
