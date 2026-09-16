@@ -537,6 +537,7 @@ setLoading(true)
       {cropSrc && (
         <ImageCropModal
           imageSrc={cropSrc}
+          aspect={posterMode ? 3 / 4 : 16 / 9}
           onCancel={handleCropCancel}
           onConfirm={handleCropConfirm}
         />
