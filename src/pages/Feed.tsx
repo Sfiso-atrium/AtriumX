@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search, X, Tag, HandHelping } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getResidences } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getResidences, getLookingFor, LookingForEntry } from '../services/dataService'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips from '../components/common/CategoryChips'
@@ -69,6 +69,15 @@ const [bizSearch, setBizSearch] = useState('')
   const [bizMaxPrice, setBizMaxPrice] = useState('')
   const [bizNegotiableOnly, setBizNegotiableOnly] = useState(false)
 
+  // "Looking For" lives as a mode switch inside the marketplace tab, not
+  // as its own top-level tab. It's the mirror image of the same data —
+  // same categories, same university scope — so "things for sale" vs
+  // "things people want" is one board seen two ways. Making it a fourth
+  // pill would imply it's a separate marketplace, and crowd the row.
+  const [marketMode, setMarketMode] = useState<'selling' | 'wanted'>('selling')
+  const [lookingFor, setLookingFor] = useState<LookingForEntry[]>([])
+  const [lookingForLoading, setLookingForLoading] = useState(true)
+
 const [fetchError, setFetchError] = useState(false)
 useEffect(() => {
     getListings({ currentUser })
@@ -81,6 +90,9 @@ useEffect(() => {
         setFetchError(true)
       })
     getResidences().then(setResidenceOptions)
+    getLookingFor()
+      .then(data => { setLookingFor(data); setLookingForLoading(false) })
+      .catch(() => setLookingForLoading(false))
     getBusinessListings()
       .then(data => {
         setBusinessListings(data)
@@ -156,6 +168,78 @@ const filteredBusiness = useMemo(() => {
           </div>
 
           {feedTab === 'marketplace' && (
+          <>
+          {/* Selling / Wanted switch — deliberately a segmented control
+              inside this tab rather than another pill in the row above,
+              so the tab row stays two items wide on a phone. */}
+          <div className="px-4 pt-3">
+            <div className="flex bg-slate-card border border-slate-border rounded-xl p-1">
+              <button
+                onClick={() => setMarketMode('selling')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  marketMode === 'selling' ? 'bg-teal-primary text-cream' : 'text-cream-muted'
+                }`}
+              >
+                <Tag size={13} /> For sale
+              </button>
+              <button
+                onClick={() => setMarketMode('wanted')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  marketMode === 'wanted' ? 'bg-teal-primary text-cream' : 'text-cream-muted'
+                }`}
+              >
+                <HandHelping size={13} /> Looking for
+              </button>
+            </div>
+          </div>
+
+          {marketMode === 'wanted' ? (
+            <div className="px-4 pt-4">
+              <p className="text-cream-muted text-xs mb-4">
+                What students here are hoping someone lists. Got one? Post it.
+              </p>
+              {lookingForLoading ? (
+                <p className="text-cream-muted text-sm">Loading…</p>
+              ) : lookingFor.length === 0 ? (
+                <div className="text-center py-14">
+                  <HandHelping size={30} className="text-cream-muted mx-auto mb-3 opacity-50" />
+                  <p className="text-cream font-bold text-sm mb-1">Nothing on the wanted board yet</p>
+                  <p className="text-cream-muted text-xs">
+                    Add something to your watchlist in My Space and it shows up here.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {lookingFor.map(w => (
+                    <div key={w.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-cream font-bold text-sm truncate">
+                            {w.keyword || w.category || 'Anything good'}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {w.category && (
+                              <span className="text-[10px] font-bold text-cream-muted border border-slate-border rounded-full px-2 py-0.5">
+                                {w.category}
+                              </span>
+                            )}
+                            {w.max_price != null && (
+                              <span className="text-[11px] text-cream-muted">
+                                up to R{Number(w.max_price).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-cream-muted text-[11px] flex-shrink-0">
+                          {w.seeker?.full_name ?? 'A student'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
           <>
           <div className="px-4 pt-4 pb-2 relative">
             <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-cream-muted" />
@@ -256,6 +340,8 @@ const filteredBusiness = useMemo(() => {
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
+          )}
+          </>
           )}
           </>
           )}
