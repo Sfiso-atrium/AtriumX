@@ -146,6 +146,82 @@ export type PlanKey = keyof typeof PLAN_TIERS
 export const PLAN_ORDER: PlanKey[] = ['ghost', 'visible', 'loud', 'unmissable']
 export const BUSINESS_PLAN_ORDER: PlanKey[] = ['noticeboard', 'featured', 'campus_partner']
 
+// Plans that cost money and therefore have to go through PayFast. The
+// free tiers ('ghost', 'noticeboard') are granted directly and never
+// touch this path.
+export const PAID_PLANS: PlanKey[] = ['visible', 'loud', 'unmissable', 'featured', 'campus_partner']
+
+export function isPaidPlan(key: PlanKey): boolean {
+  return PAID_PLANS.includes(key)
+}
+
+// ── PAYMENTS (PayFast) ─────────────────────────────────────────────────────
+
+export interface PaymentRecord {
+  id: string
+  m_payment_id: string
+  pf_payment_id: string | null
+  plan_key: string
+  amount: number
+  status: 'pending' | 'complete' | 'failed' | 'cancelled'
+  created_at: string
+  completed_at: string | null
+}
+
+// Kicks off a PayFast payment. Note what is NOT passed here: no amount,
+// no merchant details, no signature. The browser only says which plan it
+// wants; payfast-create-payment decides what that costs and signs it
+// server-side, because the signing secrets can't be allowed anywhere
+// near the client bundle.
+//
+// On success this navigates away from the app entirely (a real form POST
+// to PayFast), so nothing after the submit() runs.
+export async function startPlanPayment(planKey: PlanKey): Promise<{ error: string | null }> {
+  const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
+    body: { planKey },
+  })
+
+  if (error) return { error: 'Could not reach the payment service. Please try again.' }
+  if (data?.error) return { error: data.error }
+  if (!data?.url || !data?.fields) return { error: 'Could not start payment. Please try again.' }
+
+  // PayFast expects a normal form POST, not a fetch/redirect — building
+  // and submitting a hidden form is the documented way to hand off.
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = data.url
+  form.style.display = 'none'
+
+  for (const [name, value] of Object.entries(data.fields as Record<string, string>)) {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = name
+    input.value = value
+    form.appendChild(input)
+  }
+
+  document.body.appendChild(form)
+  form.submit()
+
+  return { error: null }
+}
+
+// Used by the post-payment screen to poll for the ITN having landed.
+// Reads only — RLS restricts this to the person's own rows, and nothing
+// client-side can write here.
+export async function getLatestPayment(userId: string): Promise<PaymentRecord | null> {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('id, m_payment_id, pf_payment_id, plan_key, amount, status, created_at, completed_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as PaymentRecord
+}
+
 // ── AUTH ───────────────────────────────────────────────────────────────────
 
 // Registration used to be restricted to an allowlist of specific
@@ -553,7 +629,17 @@ if (error || !data) return { id: null, error: error?.message || 'Failed to creat
   const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
   const newRank = rankOrder.indexOf(payload.planTier)
 
-if (!currentStillActive || newRank >= currentRank) {
+// Paid tiers are NOT granted here any more. Before payments existed this
+  // block handed out whatever tier the client asked for, which meant anyone
+  // could post on Unmissable without paying a cent. A paid plan is now only
+  // ever activated by the payfast-itn callback once the money has actually
+  // cleared, so all this does is roll a FREE tier forward.
+  //
+  // If they're posting on a paid tier, they already paid for it (the plan is
+  // on their profile before they get here) — nothing to update.
+  const targetIsPaid = isPaidPlan(payload.planTier)
+
+  if (!targetIsPaid && (!currentStillActive || newRank >= currentRank)) {
     await supabase
       .from('profiles')
       .update({ plan: payload.planTier, plan_expires_at: expiresAt })
@@ -2281,4 +2367,106 @@ export async function getSuggestionsAdmin(): Promise<Suggestion[]> {
 
 export async function markSuggestionRead(id: string): Promise<void> {
   await supabase.from('suggestions').update({ is_read: true }).eq('id', id)
+}
+
+// ── EVENTS ─────────────────────────────────────────────────────────────────
+
+export const EVENT_CATEGORIES = [
+  'Party', 'Sports', 'Academic', 'Society', 'Fundraiser', 'Performance', 'Market', 'Other',
+] as const
+
+export interface CampusEvent {
+  id: string
+  host_id: string
+  title: string
+  description: string
+  category: string
+  starts_at: string
+  ends_at: string | null
+  location: string
+  price: number | null
+  image_url: string | null
+  university: string | null
+  status: 'active' | 'cancelled'
+  created_at: string
+  host?: Profile
+}
+
+// Only upcoming events, soonest first. An events board showing things
+// that already happened is just clutter, so past events fall off on their
+// own rather than needing a cleanup job.
+export async function getEvents(): Promise<CampusEvent[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, host:profiles_public!inner(*)')
+    .eq('status', 'active')
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: true })
+
+  if (error || !data) return []
+  return data as CampusEvent[]
+}
+
+export async function createEvent(payload: {
+  hostId: string
+  title: string
+  description: string
+  category: string
+  startsAt: string
+  endsAt?: string | null
+  location: string
+  price?: number | null
+  imageUrl?: string | null
+}): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('events')
+    .insert({
+      host_id: payload.hostId,
+      title: payload.title,
+      description: payload.description,
+      category: payload.category,
+      starts_at: payload.startsAt,
+      ends_at: payload.endsAt || null,
+      location: payload.location,
+      price: payload.price ?? null,
+      image_url: payload.imageUrl || null,
+      // university is stamped by a trigger from the host's profile —
+      // deliberately not sent from here, so nobody can post onto another
+      // campus's board.
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) return { id: null, error: error?.message || 'Could not create event.' }
+  return { id: data.id, error: null }
+}
+
+export async function cancelEvent(eventId: string): Promise<void> {
+  await supabase.from('events').update({ status: 'cancelled' }).eq('id', eventId)
+}
+
+// ── LOOKING FOR (public watchlists) ────────────────────────────────────────
+
+export interface LookingForEntry {
+  id: string
+  user_id: string
+  keyword: string | null
+  category: string | null
+  max_price: number | null
+  created_at: string
+  seeker?: Profile
+}
+
+// Reads other people's watchlists as "wanted" posts. RLS (migration 047)
+// restricts this to same-university rows flagged public, so there's no
+// university filter needed here — the database is already the boundary.
+export async function getLookingFor(): Promise<LookingForEntry[]> {
+  const { data, error } = await supabase
+    .from('watchlists')
+    .select('id, user_id, keyword, category, max_price, created_at, seeker:profiles_public!inner(*)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error || !data) return []
+  return data as LookingForEntry[]
 }
