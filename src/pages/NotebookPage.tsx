@@ -245,11 +245,22 @@ function getPageBorderColor(background: string): string {
 }
 
 function Card({ children, style, onClick }: { children: React.ReactNode; style?: React.CSSProperties; onClick?: () => void }) {
+  // When the caller supplies its own backgroundColor (note cards do — each
+  // note carries the colour the person picked), we must NOT also apply
+  // bg-slate-card. In light mode index.css has
+  // `.bw-mode .bg-slate-card { background-color: #F4F4F5 !important }`,
+  // and an !important stylesheet rule beats an inline style — so the card
+  // silently turned light grey while the text colour stayed whatever
+  // getReadableTextColor picked for the note's *real* (often dark)
+  // background. Light text on a light grey card is the disappearing-detail
+  // bug. Leaving the class off keeps the note's own colour, which is what
+  // the contrast calculation was based on in the first place.
+  const hasCustomBackground = style?.backgroundColor !== undefined
   return (
     <div
       onClick={onClick}
       style={style}
-      className={`bg-slate-card border border-slate-border rounded-2xl p-4 ${onClick ? 'cursor-pointer hover:border-teal-light/50 transition-colors' : ''}`}
+      className={`${hasCustomBackground ? '' : 'bg-slate-card'} border border-slate-border rounded-2xl p-4 ${onClick ? 'cursor-pointer hover:border-teal-light/50 transition-colors' : ''}`}
     >
       {children}
     </div>
@@ -927,7 +938,7 @@ export default function NotebookPage() {
 
         // A trailing page fully drained by a pull-back is pointless to
         // keep around - drop it, the way Word closes an emptied last page.
-        if (i === pages.length - 2 && pages[i + 1] && stripHtml(pages[i + 1].text).trim() === '') {
+        if (i === pages.length - 2 && pages[i + 1] && !pages[i + 1].manual && stripHtml(pages[i + 1].text).trim() === '') {
           pages.splice(i + 1, 1)
           changed = true
         }
@@ -2132,7 +2143,7 @@ export default function NotebookPage() {
                     // or an arbitrary viewport-relative box, on any screen.
                     className="relative w-full max-w-2xl mx-auto flex-shrink-0 aspect-[210/297] flex flex-col border"
                   >
-                    <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-y-auto">
+                    <div ref={el => { pageBoxRefs.current[i] = el }} className="flex-1 min-h-0 overflow-hidden">
                     {readOnly ? (
                       page.text ? (
                         <div
@@ -2180,7 +2191,7 @@ export default function NotebookPage() {
 
                 {!readOnly && (
                   <button
-                    onClick={() => { setNewPages(prev => [...prev, emptyTextPage()]); setCurrentPageIndex(newPages.length) }}
+                    onClick={() => { setNewPages(prev => [...prev, emptyTextPage(true)]); setCurrentPageIndex(newPages.length) }}
                     style={{ color: style.textColor }}
                     className="w-full max-w-2xl mx-auto flex items-center justify-center gap-1.5 py-2.5 border border-dashed border-slate-border text-cream-muted text-xs font-bold opacity-70 hover:opacity-100 transition-opacity"
                   >
