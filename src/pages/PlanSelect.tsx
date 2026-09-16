@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { PLAN_TIERS, PLAN_ORDER, PlanKey, getUserListings } from '../services/dataService'
+import { PLAN_TIERS, PLAN_ORDER, PlanKey, getUserListings, isPaidPlan, startPlanPayment } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 type StudentPlanKey = 'ghost' | 'visible' | 'loud' | 'unmissable'
@@ -55,6 +55,7 @@ export default function PlanSelect() {
   const forcePlans = !!(location.state as { forcePlans?: boolean } | null)?.forcePlans
   const { currentUser, showToast, isLoadingAuth } = useApp()
   const [selected, setSelected] = useState<PlanKey | null>(null)
+  const [paying, setPaying] = useState(false)
   const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
 
   const plans = PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [StudentPlanKey, typeof PLAN_TIERS[StudentPlanKey]])
@@ -99,7 +100,7 @@ useEffect(() => {
     })
   }, [currentUser, isLoadingAuth, navigate, forcePlans])
 
-  const handleSelectPlan = (key: PlanKey) => {
+  const handleSelectPlan = async (key: PlanKey) => {
     if (planIsActive && currentPlan) {
       const currentRank = PLAN_ORDER.indexOf(currentPlan)
       const targetRank = PLAN_ORDER.indexOf(key)
@@ -111,7 +112,26 @@ useEffect(() => {
         return
       }
     }
+
     setSelected(key)
+
+    // Already paid for this exact plan and it's still running — this is
+    // just them going on to post, not a new purchase. Don't charge again.
+    const alreadyOnThisPlan = planIsActive && currentPlan === key
+
+    if (isPaidPlan(key) && !alreadyOnThisPlan) {
+      setPaying(true)
+      const { error } = await startPlanPayment(key)
+      if (error) {
+        setPaying(false)
+        setSelected(null)
+        showToast(error, 'error')
+      }
+      // On success the browser is already navigating to PayFast, so
+      // there's deliberately nothing to do here.
+      return
+    }
+
     navigate('/post', { state: { plan: key } })
   }
  if (isLoadingAuth || view === 'checking') return (
@@ -174,14 +194,6 @@ useEffect(() => {
             Select a plan for this listing. You can change plans anytime.
           </p>
 
-          <div className="bg-gold/10 border border-gold/30 rounded-2xl px-5 py-4 mb-8">
-            <p className="text-cream font-bold text-sm md:text-base leading-snug">
-              🎓 You're one of our Founding Students — every plan, including Unmissable, is{' '}
-              <span className="text-gold">100% free for August</span>. No card, no catch. Grab the tier
-              that gets your stuff seen before pricing kicks in on September 1st.
-            </p>
-          </div>
-
           <div className="flex flex-col gap-4">
             {plans.map(([key, tier]) => {
               const isSelected = selected === key
@@ -193,7 +205,10 @@ useEffect(() => {
           <button
                   key={key}
                   onClick={() => handleSelectPlan(key)}
+                  disabled={paying}
 className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
+                    paying ? 'opacity-50 cursor-wait' : ''
+                  } ${
                     isLowerThanCurrent ? 'opacity-40 cursor-not-allowed' : ''
                   } ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-teal-primary'
