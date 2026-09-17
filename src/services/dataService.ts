@@ -817,6 +817,30 @@ export async function uploadListingImage(
   return { url: data.publicUrl, error: null }
 }
 
+// Same bucket as listing photos, same crop pipeline (ImageCropModal),
+// just a different folder — no reason to stand up a second bucket and a
+// second set of storage policies for what is otherwise an identical
+// "crop, then upload one image" flow.
+export async function uploadEventPoster(
+  file: File,
+  userId: string
+): Promise<{ url: string | null; error: string | null }> {
+  const ext = file.name.split('.').pop()
+  const filename = `events/${userId}/${Date.now()}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('listing-images')
+    .upload(filename, file, { upsert: false })
+
+  if (uploadError) return { url: null, error: uploadError.message }
+
+  const { data } = supabase.storage
+    .from('listing-images')
+    .getPublicUrl(filename)
+
+  return { url: data.publicUrl, error: null }
+}
+
 // ── CONVERSATIONS ──────────────────────────────────────────────────────────
 
 export async function startConversation(
@@ -2372,7 +2396,7 @@ export async function markSuggestionRead(id: string): Promise<void> {
 // ── EVENTS ─────────────────────────────────────────────────────────────────
 
 export const EVENT_CATEGORIES = [
-  'Party', 'Sports', 'Academic', 'Society', 'Fundraiser', 'Performance', 'Market', 'Other',
+  'Party', 'Sports', 'Society', 'Fundraiser', 'Performance', 'Market', 'Other',
 ] as const
 
 export interface CampusEvent {
