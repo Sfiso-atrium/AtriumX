@@ -55,7 +55,9 @@ export default function Navbar() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1">
-          <NavItem label="My Space" icon={Backpack} active={isMySpace} onClick={() => navigate('/space')} />
+          {currentUser?.account_type !== 'business' && (
+            <NavItem label="My Space" icon={Backpack} active={isMySpace} onClick={() => navigate('/space')} />
+          )}
           <NavItem label="Discover" icon={Search} active={isDiscover && !isEvents} onClick={() => navigate('/feed')} />
           {isDiscover && (
             <div className="flex flex-col gap-1 mt-1">
@@ -91,11 +93,14 @@ export default function Navbar() {
       <div className={`fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 md:hidden ${menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setMenuOpen(false)} />
       <div className={`fixed top-0 left-0 h-full w-72 max-w-[80%] bg-slate-card border-r border-slate-border z-50 p-6 flex flex-col gap-1 transition-transform duration-300 md:hidden ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between mb-6"><span className="text-cream font-serif text-xl font-bold">AtriumX</span><button onClick={() => setMenuOpen(false)}><X size={22} className="text-cream-muted" /></button></div>
-        <button onClick={() => { setMenuOpen(false); navigate('/space'); }} className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border w-full text-left ${isMySpace ? 'text-cream' : 'text-cream-muted'}`}><Backpack size={16} /> My Space</button>
+        {currentUser?.account_type !== 'business' && (
+          <button onClick={() => { setMenuOpen(false); navigate('/space'); }} className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border w-full text-left ${isMySpace ? 'text-cream' : 'text-cream-muted'}`}><Backpack size={16} /> My Space</button>
+        )}
         <button onClick={() => { setMenuOpen(false); navigate('/feed'); }} className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border w-full text-left ${isDiscover ? 'text-cream' : 'text-cream-muted'}`}><Search size={16} /> Discover</button>
         <button onClick={() => { setMenuOpen(false); navigate('/events'); }} className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted w-full text-left pl-6">Events</button>
         <button onClick={() => { setMenuOpen(false); navigate('/chat'); }} className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border w-full text-left ${isChat ? 'text-cream' : 'text-cream-muted'}`}><MessageCircle size={16} /> Messages {unreadMessageCount > 0 && `(${unreadMessageCount})`}</button>
         <button onClick={() => { setMenuOpen(false); navigate(currentUser ? `/profile/${currentUser.id}` : '/student'); }} className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted w-full text-left">My Listings & Profile</button>
+        {currentUser?.is_admin && <button onClick={() => { setMenuOpen(false); navigate('/admin'); }} className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted w-full text-left">Admin</button>}
         <button onClick={() => { setMenuOpen(false); navigate('/notebook'); }} className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted w-full text-left"><NotebookPen size={16} /> Notebook</button>
         {partner && <button onClick={() => { setMenuOpen(false); navigate('/partner'); }} className="flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border text-cream-muted w-full text-left"><Handshake size={16} /> Partner</button>}
         {currentUser && pushSupported() && <button onClick={handleTogglePush} disabled={pushLoading || pushBlocked} className={`flex items-center gap-2.5 text-sm font-medium py-3 border-b border-slate-border w-full text-left disabled:opacity-60 ${pushOn ? 'text-gold' : 'text-cream-muted'}`}>{pushOn ? <Bell size={16} /> : <BellOff size={16} />}{pushBlocked ? 'Notifications: Blocked' : pushLoading ? 'Updating…' : pushOn ? 'Notifications: On' : 'Notifications: Off'}</button>}
