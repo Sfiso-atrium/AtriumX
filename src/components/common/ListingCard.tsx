@@ -1,112 +1,57 @@
 import { useNavigate } from 'react-router-dom'
-import { Star, Pencil } from 'lucide-react'
-import { Listing, Profile, PLAN_TIERS, PlanKey, BUSINESS_PLAN_ORDER } from '../../services/dataService'
+import { MapPin, Clock, Tag } from 'lucide-react'
+import { Listing, Profile } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
-interface ListingCardProps {
-  listing: Listing | any
-  seller?: Profile | any
-  isOwner?: boolean
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
 }
 
-function formatPrice(price: number) {
-  return `R ${price.toLocaleString('en-ZA')}`
-}
-
-export default function ListingCard({ listing, seller, isOwner = false }: ListingCardProps) {
-const navigate = useNavigate()
-  const sellerData = seller || listing.seller
-
-  const contactCount = listing.contact_count ?? listing.contactCount ?? 0
-
-  const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
-  const isCampusPartner = listing.plan_tier === 'campus_partner'
-  const isFeatured = listing.plan_tier === 'unmissable' || isCampusPartner
+export default function ListingCard({ listing, seller, isOwner }: { listing: Listing; seller?: Profile | null; isOwner?: boolean }) {
+  const navigate = useNavigate()
+  const firstImage = listing.image_urls?.[0] || '/images/placeholder-listing.png'
 
   return (
-    <div
-      onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className={`relative bg-slate-card rounded-2xl overflow-hidden transition-colors cursor-pointer ${
-        isFeatured
-          ? 'border-2 border-gold hover:border-gold'
-          : 'border border-slate-border hover:border-teal-primary'
-      }`}
+    <button
+      onClick={() => navigate(`/listing/${listing.id}`)}
+      className="w-full text-left bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-slate-border/80 hover:bg-slate-card/80 transition-colors group"
     >
-      {isFeatured && (
-        <div className="bg-gold text-slate-deep text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
-          <Star size={12} className="fill-slate-deep" />
-          {isCampusPartner ? 'Campus Partner' : 'Featured'}
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-deep">
+        <img src={firstImage} alt={listing.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+        <div className="absolute top-2 left-2 flex gap-1.5">
+          <span className="bg-slate-deep/90 backdrop-blur text-cream text-[10px] font-bold px-2 py-1 rounded-full border border-slate-border">{listing.category}</span>
+          {listing.is_negotiable && <span className="bg-gold text-slate-deep text-[10px] font-bold px-2 py-1 rounded-full">Negotiable</span>}
         </div>
-      )}
-<div className="p-4 flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-cream font-bold text-base leading-snug break-words flex-1 min-w-0">
-            {listing.title}
-          </h3>
-          {!isFeatured && badge && (
-            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
-              {badge}
-            </span>
-          )}
-        </div>
-
-        <p className="text-cream-muted text-xs">
-          {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
-        </p>
-
-        {sellerData && (sellerData.total_ratings ?? 0) > 0 && (
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                size={13}
-                className={i < Math.round(sellerData.avg_rating) ? 'fill-gold text-gold' : 'text-slate-border'}
-              />
-            ))}
-            <span className="text-cream-muted text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
-          </div>
+        {listing.expires_at && (
+          <div className="absolute top-2 right-2"><ListingCountdown expiresAt={listing.expires_at} /></div>
         )}
-
-{listing.residence ? (
-          <p className="text-cream-muted text-xs">{listing.residence}</p>
-        ) : (listing.business_address || listing.business_website) ? (
-          <p className="text-cream-muted text-xs truncate">
-            {listing.business_address || listing.business_website}
-          </p>
-        ) : null}
-
-        <div className="flex items-center gap-2 flex-wrap pt-1">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
-            {listing.custom_category || listing.category}
-          </span>
-          {listing.is_negotiable && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">
-              Open to offers
-            </span>
-          )}
+        {isOwner && <div className="absolute bottom-2 right-2 bg-ember text-white text-[10px] font-bold px-2 py-1 rounded-full">Your listing</div>}
+      </div>
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-cream font-bold text-sm line-clamp-1 flex-1">{listing.title}</h3>
+          <p className="text-cream font-bold text-sm flex-shrink-0">R{Number(listing.price).toFixed(0)}</p>
         </div>
-
-{isOwner && (
-          <div className="flex items-center justify-between pt-1 border-t border-slate-border">
-            <span className="text-cream-muted text-xs">{contactCount} interested</span>
-            <div className="flex items-center gap-3">
-              {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
- {listing.status !== 'sold' && (
-                <button
-                  onClick={e => {
-                    e.stopPropagation()
-                    const editPath = BUSINESS_PLAN_ORDER.includes(listing.plan_tier as PlanKey) ? '/business/post' : '/post'
-                    navigate(editPath, { state: { plan: listing.plan_tier, editListing: listing } })
-                  }}
-                  className="flex items-center gap-1 text-cream-muted hover:text-gold text-xs font-medium transition-colors"
-                >
-                  <Pencil size={12} />
-                  Edit
-                </button>
-              )}
-            </div>
+        <p className="text-cream-muted text-xs line-clamp-2 mt-1 leading-relaxed">{listing.description}</p>
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center gap-1 text-cream-muted text-[11px]"><MapPin size={11} /> <span className="truncate max-w-[90px]">{listing.residence || 'Campus'}</span></div>
+          <div className="flex items-center gap-1 text-cream-muted text-[11px]"><Clock size={11} /> {timeAgo(listing.created_at)}</div>
+        </div>
+        {seller && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-border">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: seller.avatar_color }}>{seller.avatar_initials}</div>
+            <span className="text-cream-muted text-xs truncate">{seller.full_name}</span>
+            {seller.avg_rating > 0 && <span className="text-gold text-[11px]">★ {seller.avg_rating}</span>}
           </div>
         )}
       </div>
-    </div>
+    </button>
   )
 }
