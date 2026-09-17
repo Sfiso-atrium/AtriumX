@@ -4,11 +4,13 @@
 // to post for now, per the "forget about the plans for those" call. If
 // that changes later it slots in the same place the listing flow has it.
 
-import { useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { createEvent, EVENT_CATEGORIES } from '../services/dataService'
+import { createEvent, uploadEventPoster, EVENT_CATEGORIES } from '../services/dataService'
 import { PostTypeSwitcher } from '../components/common/PostTypeChooser'
+import ImageCropModal from '../components/common/ImageCropModal'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
@@ -18,6 +20,7 @@ const input =
 export default function PostEvent() {
   const navigate = useNavigate()
   const { currentUser, showToast } = useApp()
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -28,6 +31,39 @@ export default function PostEvent() {
   const [isFree, setIsFree] = useState(true)
   const [price, setPrice] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Same crop pipeline as listing photos (ImageCropModal, react-easy-crop
+  // underneath) — cropSrc holds the picked file as an object URL while
+  // the modal is open, posterUrl holds the final uploaded image.
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [posterUrl, setPosterUrl] = useState<string | null>(null)
+  const [uploadingPoster, setUploadingPoster] = useState(false)
+
+  const handlePosterSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCropSrc(URL.createObjectURL(file))
+  }
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (fileRef.current) fileRef.current.value = ''
+    if (!currentUser) return
+
+    const croppedFile = new File([blob], 'event-poster.jpg', { type: 'image/jpeg' })
+    setUploadingPoster(true)
+    const { url, error } = await uploadEventPoster(croppedFile, currentUser.id)
+    setUploadingPoster(false)
+    if (error) { showToast(error, 'error'); return }
+    setPosterUrl(url)
+  }
 
   const handleSubmit = async () => {
     if (!currentUser) return
@@ -55,6 +91,7 @@ export default function PostEvent() {
       startsAt: startsAt.toISOString(),
       location: location.trim(),
       price: priceNum,
+      imageUrl: posterUrl,
     })
     setSaving(false)
 
@@ -86,6 +123,39 @@ export default function PostEvent() {
 
           <div className="flex flex-col gap-3">
             <input className={input} placeholder="Event title" value={title} onChange={e => setTitle(e.target.value)} />
+
+            {/* Poster upload — same crop flow as listing photos. Defaults
+                to Portrait since a poster/flyer is normally taller than
+                wide, but the modal's own Landscape/Square/Portrait toggle
+                still lets the host pick a different shape if theirs is. */}
+            <div>
+              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                Poster (optional)
+              </label>
+              {posterUrl ? (
+                <div className="relative w-full aspect-[3/4] max-w-[220px] rounded-xl overflow-hidden border border-slate-border">
+                  <img src={posterUrl} alt="Event poster" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPosterUrl(null)}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                    aria-label="Remove poster"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploadingPoster}
+                  className="w-full aspect-[3/4] max-w-[220px] rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-1.5 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-60"
+                >
+                  <ImagePlus size={20} />
+                  <span className="text-xs font-bold">{uploadingPoster ? 'Uploading…' : 'Add a poster'}</span>
+                </button>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterSelect} />
+            </div>
 
             <select className={input} value={category} onChange={e => setCategory(e.target.value)}>
               {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -132,6 +202,14 @@ export default function PostEvent() {
           </div>
         </div>
       </div>
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          aspect={3 / 4}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
       <BottomNav />
     </>
   )
