@@ -7,10 +7,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CalendarDays, MapPin, Plus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { getEvents, cancelEvent, CampusEvent } from '../services/dataService'
+import { getEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
+import CategoryChips, { CategoryOption } from '../components/common/CategoryChips'
+
+// Same shape as the feed's filter — always shows every category, not just
+// ones that already have a posted event. Data-derived chips would make
+// the filter row empty (or missing) on a mostly-empty board, exactly
+// when someone would most want to see what kinds of events they COULD
+// filter to.
+const EVENT_FILTER_OPTIONS: CategoryOption[] = [
+  { id: 'all', label: 'All' },
+  ...EVENT_CATEGORIES.map(c => ({ id: c, label: c })),
+]
 
 function formatWhen(iso: string): string {
   const d = new Date(iso)
@@ -35,7 +46,6 @@ export default function EventsPage() {
     getEvents().then(data => { setEvents(data); setLoading(false) }).catch(() => setLoading(false))
   }, [currentUser])
 
-  const categories = ['all', ...Array.from(new Set(events.map(e => e.category)))]
   const visible = filter === 'all' ? events : events.filter(e => e.category === filter)
 
   const handleCancel = async (ev: CampusEvent) => {
@@ -60,23 +70,9 @@ export default function EventsPage() {
           </div>
           <p className="text-cream-muted text-sm mb-5">What's happening at your university.</p>
 
-          {categories.length > 2 && (
-            <div className="flex gap-2 overflow-x-auto pb-3 mb-2">
-              {categories.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setFilter(c)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border whitespace-nowrap transition-colors ${
-                    filter === c
-                      ? 'bg-teal-primary border-teal-light text-cream'
-                      : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-                  }`}
-                >
-                  {c === 'all' ? 'All' : c}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="-mx-4">
+            <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
+          </div>
 
           {loading ? (
             <p className="text-cream-muted text-sm">Loading events…</p>
