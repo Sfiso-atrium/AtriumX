@@ -1,10 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { X, ShoppingBag, CalendarDays, Package } from 'lucide-react'
+import { useApp } from '../../context/AppContext'
 
 export function PostTypeModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
+  const { currentUser } = useApp()
+  // Business accounts post through a separate plan/listing flow
+  // (BusinessPlanSelect -> BusinessPostListing) - this was lost when this
+  // component was redesigned, which sent every account down /post
+  // regardless of type.
+  const listingPath = currentUser?.account_type === 'business' ? '/business/plan-select' : '/post'
   const options = [
-    { id: 'listing', label: 'Sell an item', desc: 'Books, electronics, furniture...', icon: ShoppingBag, color: 'bg-ember', path: '/post' },
+    { id: 'listing', label: 'Sell an item', desc: 'Books, electronics, furniture...', icon: ShoppingBag, color: 'bg-ember', path: listingPath },
     { id: 'wanted', label: 'Looking for', desc: 'Request what you need', icon: Package, color: 'bg-teal-primary', path: '/post?mode=wanted' },
     { id: 'event', label: 'Post an event', desc: 'Study groups, parties, sales', icon: CalendarDays, color: 'bg-gold', path: '/post-event' },
   ]
@@ -33,6 +40,32 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-export default function PostTypeChooser() {
-  return null
+// Compact inline version for the top of a post flow, so someone who picked
+// wrong can swap without backing out and starting again. Still imported by
+// PostListing.tsx and PostEvent.tsx - it was deleted when this file was
+// redesigned, which broke both of those pages' builds (they import a name
+// that no longer existed). Restored here in the new visual language, with
+// the business-account routing carried over the same way as PostTypeModal.
+export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' }) {
+  const navigate = useNavigate()
+  const { currentUser } = useApp()
+  const listingPath = currentUser?.account_type === 'business' ? '/business/plan-select' : '/post'
+
+  const tab = (active: boolean) =>
+    `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-colors ${
+      active
+        ? 'bg-teal-primary border-teal-light text-cream'
+        : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+    }`
+
+  return (
+    <div className="flex gap-2 mb-5">
+      <button onClick={() => current !== 'listing' && navigate(listingPath)} className={tab(current === 'listing')}>
+        <ShoppingBag size={13} /> Listing
+      </button>
+      <button onClick={() => current !== 'event' && navigate('/post-event')} className={tab(current === 'event')}>
+        <CalendarDays size={13} /> Event
+      </button>
+    </div>
+  )
 }
