@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Entrance from './pages/Entrance'
 import Feed from './pages/Feed'
@@ -45,17 +45,72 @@ function ModalLayer() {
 
 function NotFound() {
   const navigate = useNavigate()
+  const { currentUser } = useApp()
   return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-cream font-serif text-xl">Page not found</p>
       <p className="text-cream-muted text-sm">That link doesn't lead anywhere yet.</p>
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate(currentUser ? '/space' : '/')}
         className="bg-gold hover:opacity-85 text-black text-sm font-bold px-4 py-2 rounded-lg transition-opacity"
       >
         Back to AtriumX
       </button>
     </div>
+  )
+}
+
+// Root: logged-in users go to My Space, not marketplace. This establishes My Space as home.
+function RootRoute() {
+  const { currentUser, isLoadingAuth } = useApp()
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-deep flex items-center justify-center">
+        <p className="text-cream-muted text-sm">Loading...</p>
+      </div>
+    )
+  }
+  if (currentUser) {
+    return <Navigate to="/space" replace />
+  }
+  return <Entrance />
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<RootRoute />} />
+      <Route path="/student" element={<StudentAuth />} />
+      {/* Discover is the new name for browsing; /feed kept as alias for backward compat */}
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/discover" element={<Feed />} />
+      <Route path="/listing/:id" element={<ListingDetail />} />
+      <Route path="/plan-select" element={<PlanSelect />} />
+      <Route path="/payment/:outcome" element={<PaymentResult />} />
+      <Route path="/events" element={<EventsPage />} />
+      <Route path="/post-event" element={<PostEvent />} />
+      <Route path="/post" element={<PostListing />} />
+      <Route path="/profile/edit" element={<EditProfile />} />
+      <Route path="/profile/:userId" element={<Profile />} />
+      <Route path="/retailer" element={<RetailerLanding />} />
+      <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/space" element={<MySpace />} />
+      {/* alias for clarity */}
+      <Route path="/myspace" element={<Navigate to="/space" replace />} />
+      <Route path="/chat" element={<ChatPage />} />
+      <Route path="/chat/:convId" element={<ChatPage />} />
+      <Route path="/retailer/signup" element={<RetailerSignup />} />
+      <Route path="/business/post" element={<BusinessPostListing />} />
+      <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
+      <Route path="/partner" element={<PartnerDashboard />} />
+      <Route path="/group/:groupId" element={<StudyGroupChat />} />
+      <Route path="/groups" element={<StudyGroupsList />} />
+      <Route path="/focus" element={<FocusMode />} />
+      <Route path="/toolkit" element={<ToolkitPage />} />
+      <Route path="/qr" element={<QRToolPage />} />
+      <Route path="/notebook" element={<NotebookPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   )
 }
 
@@ -66,37 +121,7 @@ export default function App() {
         <ToastLayer />
         <ModalLayer />
         <PushPermissionPrompt />
-
-        <Routes>
-          <Route path="/" element={<Entrance />} />
-          <Route path="/student" element={<StudentAuth />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/listing/:id" element={<ListingDetail />} />
-          <Route path="/plan-select" element={<PlanSelect />} />
-          <Route path="/payment/:outcome" element={<PaymentResult />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/post-event" element={<PostEvent />} />
-<Route path="/post" element={<PostListing />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
-          <Route path="/profile/:userId" element={<Profile />} />
-          <Route path="/retailer" element={<RetailerLanding />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/space" element={<MySpace />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/chat/:convId" element={<ChatPage />} />
-          <Route path="/retailer/signup" element={<RetailerSignup />} />
-          <Route path="/business/post" element={<BusinessPostListing />} />
-          <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
-          <Route path="/partner" element={<PartnerDashboard />} />
-          <Route path="/group/:groupId" element={<StudyGroupChat />} />
-          <Route path="/groups" element={<StudyGroupsList />} />
-          <Route path="/focus" element={<FocusMode />} />
-          <Route path="/toolkit" element={<ToolkitPage />} />
-          <Route path="/qr" element={<QRToolPage />} />
-          <Route path="/notebook" element={<NotebookPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-
+        <AppRoutes />
       </HashRouter>
     </AppProvider>
   )
