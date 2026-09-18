@@ -136,7 +136,7 @@ export default function BottomNav() {
     <>
       {chooserOpen && <PostTypeModal onClose={() => setChooserOpen(false)} />}
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep/95 backdrop-blur border-t border-slate-border">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep/95 backdrop-blur border-t border-transparent">
         <div className="max-w-lg mx-auto flex items-center justify-around h-[68px] px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -147,38 +147,37 @@ export default function BottomNav() {
                 key={tab.label}
                 onClick={tab.onClick}
                 aria-label={tab.label}
-                className="flex flex-col items-center justify-center gap-1 flex-1 h-full relative text-center"
+                title={tab.label}
+                className="group flex items-center justify-center flex-1 h-full relative text-center focus:outline-none"
               >
                 <div
                   className={
                     tab.action
-                      ? 'relative w-11 h-11 -mt-4 rounded-full bg-ember text-white flex items-center justify-center shadow-lg ring-4 ring-slate-deep'
-                      : 'relative w-9 h-9 rounded-xl flex items-center justify-center'
+                      ? 'relative w-11 h-11 -mt-5 rounded-full bg-gold text-slate-deep flex items-center justify-center shadow-lg ring-4 ring-slate-deep transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-105 group-active:translate-y-0 group-active:scale-90'
+                      : `relative w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-110 group-active:scale-90 ${
+                          active ? 'bg-gold/10' : ''
+                        }`
                   }
                 >
                   <Icon
-                    size={tab.action ? 24 : 21}
+                    size={tab.action ? 24 : 22}
                     className={
                       tab.action
-                        ? 'text-white'
+                        ? 'text-slate-deep transition-transform duration-200 ease-out group-hover:rotate-3'
                         : active
-                          ? 'text-ember'
-                          : 'text-cream-muted'
+                          ? 'text-gold transition-all duration-200 ease-out group-hover:rotate-3'
+                          : 'text-cream-muted transition-all duration-200 ease-out group-hover:text-cream group-hover:rotate-[-3deg]'
                     }
                   />
+                  {active && !tab.action && (
+                    <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-gold transition-transform duration-200 group-hover:scale-125" aria-hidden="true" />
+                  )}
                   {tab.badge && (
                     <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">
                       {tab.badge > 9 ? '9+' : tab.badge}
                     </span>
                   )}
                 </div>
-                <span
-                  className={`text-[10px] leading-none ${
-                    active ? 'text-ember font-bold' : tab.action ? 'text-cream' : 'text-cream-muted'
-                  }`}
-                >
-                  {tab.label}
-                </span>
               </button>
             )
           })}
