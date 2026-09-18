@@ -31,33 +31,44 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
         className="w-full sm:max-w-sm bg-slate-card border border-slate-border rounded-3xl p-5"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-cream font-bold text-base">What are you posting?</p>
-          <button onClick={onClose} className="text-cream-muted hover:text-cream transition-colors">
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <p className="text-cream font-bold text-base">Create a post</p>
+            <p className="text-cream-muted text-xs mt-1">Choose one of the options already available on AtriumX.</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-cream-muted hover:text-cream transition-colors flex-shrink-0"
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => go(listingPath)}
-            className="flex items-center gap-3 p-4 rounded-2xl border border-slate-border hover:border-teal-light transition-colors text-left"
+            className="group flex flex-col items-start gap-4 p-4 rounded-2xl border border-slate-border hover:border-teal-light transition-colors text-left min-h-[126px]"
           >
-            <Tag size={20} className="text-teal-light flex-shrink-0" />
+            <span className="w-9 h-9 rounded-xl border border-slate-border flex items-center justify-center">
+              <Tag size={19} className="text-teal-light flex-shrink-0" />
+            </span>
             <div>
               <p className="text-cream font-bold text-sm">A listing</p>
-              <p className="text-cream-muted text-xs">Something you're selling</p>
+              <p className="text-cream-muted text-xs mt-1 leading-5">Something you're selling</p>
             </div>
           </button>
 
           <button
             onClick={() => go('/post-event')}
-            className="flex items-center gap-3 p-4 rounded-2xl border border-slate-border hover:border-gold transition-colors text-left"
+            className="group flex flex-col items-start gap-4 p-4 rounded-2xl border border-slate-border hover:border-gold transition-colors text-left min-h-[126px]"
           >
-            <CalendarDays size={20} className="text-gold flex-shrink-0" />
+            <span className="w-9 h-9 rounded-xl border border-slate-border flex items-center justify-center">
+              <CalendarDays size={19} className="text-gold flex-shrink-0" />
+            </span>
             <div>
               <p className="text-cream font-bold text-sm">An event</p>
-              <p className="text-cream-muted text-xs">Something happening on campus</p>
+              <p className="text-cream-muted text-xs mt-1 leading-5">Something happening on campus</p>
             </div>
           </button>
         </div>
