@@ -21,8 +21,8 @@ import { useNavigate } from 'react-router-dom'
 import { Atom, Ruler, Sigma, QrCode, ChevronDown, QrCode as ScanIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-const ACCENT = '#C98A1D'
-const TEXT = 'text-[#3A2E22]'
+const ACCENT = 'rgb(var(--atriumx-gold-rgb))'
+const TEXT = 'text-cream'
 
 type ToolkitTool = 'ptable' | 'conversions' | 'formulas'
 
@@ -51,14 +51,13 @@ export default function ToolsMenu({ triggerClassName }: { triggerClassName: stri
         <>
           <div className="fixed inset-0 z-[190]" onClick={closeAll} />
           <div
-            className="absolute right-0 top-full mt-2 z-[195] bg-white rounded-2xl py-2 w-56 shadow-lg border"
-            style={{ borderColor: `${ACCENT}55` }}
+            className="absolute right-0 top-full mt-2 z-[195] bg-slate-card rounded-2xl py-2 w-56 shadow-lg border border-slate-border"
           >
             {TOOLKIT_ITEMS.map(({ tool, label, icon: Icon }) => (
               <button
                 key={tool}
                 onClick={() => goToolkit(tool)}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-left hover:bg-[#FDF3E2] transition-colors ${TEXT}`}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-left hover:bg-slate-deep transition-colors ${TEXT}`}
               >
                 <Icon size={15} style={{ color: ACCENT }} />
                 {label}
@@ -70,7 +69,7 @@ export default function ToolsMenu({ triggerClassName }: { triggerClassName: stri
             <div className="relative">
               <button
                 onClick={() => setQrOpen(o => !o)}
-                className={`w-full flex items-center justify-between gap-2.5 px-4 py-2.5 text-sm font-semibold text-left hover:bg-[#FDF3E2] transition-colors ${TEXT}`}
+                className={`w-full flex items-center justify-between gap-2.5 px-4 py-2.5 text-sm font-semibold text-left hover:bg-slate-deep transition-colors ${TEXT}`}
               >
                 <span className="flex items-center gap-2.5">
                   <QrCode size={15} style={{ color: ACCENT }} />
@@ -81,19 +80,18 @@ export default function ToolsMenu({ triggerClassName }: { triggerClassName: stri
 
               {qrOpen && (
                 <div
-                  className="mx-2 mt-1 mb-1 bg-[#FDF3E2] rounded-xl py-1.5 border"
-                  style={{ borderColor: `${ACCENT}33` }}
+                  className="mx-2 mt-1 mb-1 bg-slate-deep rounded-xl py-1.5 border border-slate-border"
                 >
                   <button
                     onClick={() => goQr('generate')}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-left hover:bg-white/60 transition-colors ${TEXT}`}
+                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-left hover:bg-slate-card transition-colors ${TEXT}`}
                   >
                     <QrCode size={14} style={{ color: ACCENT }} />
                     Generator
                   </button>
                   <button
                     onClick={() => goQr('scan')}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-left hover:bg-white/60 transition-colors ${TEXT}`}
+                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-left hover:bg-slate-card transition-colors ${TEXT}`}
                   >
                     <ScanIcon size={14} style={{ color: ACCENT }} />
                     Scanner
