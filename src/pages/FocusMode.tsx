@@ -83,51 +83,45 @@ export default function FocusMode() {
     setEnteredTimerView(false)
   }
 
-  // Theme tokens — kept local to this screen only, separate from the
-  // site-wide black & white mode. Each theme carries its own desk-scene
-  // photography: a soft full-page backdrop, plus a study-card and a
-  // break-card image (lamp/plant for study, armchair/cushion for break).
+  // Focus defaults to the same AtriumX palette as the rest of the site.
+  // Girly Mode remains an explicit optional theme; its current pink palette
+  // is kept intact but is no longer embedded into the standard page theme.
   const theme = girly
     ? {
-        pageBg: '#FBE4EC',
-        pageImage: '/images/focus/desk-bg-pink.png',
-        text: 'text-[#3A1E2C]',
-        textMuted: 'text-[#8A5872]',
-        accent: '#C2185B',
-        accentSoft: '#F48FB1',
+        text: 'text-[var(--atriumx-focus-girly-text)]',
+        textMuted: 'text-[var(--atriumx-focus-girly-muted)]',
+        accent: 'var(--atriumx-focus-girly-accent)',
+        accentSoft: 'var(--atriumx-focus-girly-accent-soft)',
+        accentWash: 'color-mix(in srgb, var(--atriumx-focus-girly-accent) 13%, transparent)',
         studyImage: '/images/focus/study-pink.png',
         breakImage: '/images/focus/break-pink.png',
-        studyLabel: '#C2185B',
-        breakLabel: '#8B5FBF',
-        cardBg: 'bg-white/80 border-[#F3B6CE]',
-        activeCard: 'border-[#C2185B]/30',
-        statBg: 'bg-white/90 border-[#F3B6CE]',
-        progressTrack: '#F6C9DB',
+        studyLabel: 'var(--atriumx-focus-girly-accent)',
+        breakLabel: 'var(--atriumx-focus-girly-break)',
+        cardBg: 'bg-[var(--atriumx-focus-girly-card)] border-[var(--atriumx-focus-girly-border)]',
+        activeCard: 'border-[var(--atriumx-focus-girly-accent)]/30',
+        statBg: 'bg-[var(--atriumx-focus-girly-card-strong)] border-[var(--atriumx-focus-girly-border)]',
+        progressTrack: 'var(--atriumx-focus-girly-track)',
+        controlBg: 'bg-[var(--atriumx-focus-girly-card-strong)]',
       }
     : {
-        pageBg: '#FDF3E2',
-        pageImage: '/images/focus/desk-bg-neutral.png',
-        text: 'text-[#2B2013]',
-        textMuted: 'text-[#8A7A5E]',
-        accent: '#C98A1D',
-        accentSoft: '#E9C98A',
+        text: 'text-cream',
+        textMuted: 'text-cream-muted',
+        accent: 'rgb(var(--atriumx-gold-rgb))',
+        accentSoft: 'rgb(var(--atriumx-border-rgb))',
+        accentWash: 'rgb(var(--atriumx-gold-rgb) / 0.13)',
         studyImage: '/images/focus/study-neutral.png',
         breakImage: '/images/focus/break-neutral.png',
-        studyLabel: '#C98A1D',
-        breakLabel: '#8B5FBF',
-        cardBg: 'bg-white/80 border-[#EADFC4]',
-        activeCard: 'border-[#C98A1D]/30',
-        statBg: 'bg-white/90 border-[#EADFC4]',
-        progressTrack: '#F1E2C0',
+        studyLabel: 'rgb(var(--atriumx-teal-light-rgb))',
+        breakLabel: 'rgb(var(--atriumx-gold-rgb))',
+        cardBg: 'bg-slate-card/80 border-slate-border',
+        activeCard: 'border-gold/30',
+        statBg: 'bg-slate-card/90 border-slate-border',
+        progressTrack: 'rgb(var(--atriumx-border-rgb))',
+        controlBg: 'bg-slate-card/90',
       }
 
   return (
-    <div
-      className="min-h-[100dvh] relative overflow-hidden bg-cover bg-center transition-colors duration-500"
-      style={{ backgroundColor: theme.pageBg, backgroundImage: `url(${theme.pageImage})` }}
-    >
-      {/* Soft wash over the desk-scene backdrop so foreground cards/text stay legible */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: `${theme.pageBg}cc` }} />
+    <div className="min-h-[100dvh] relative overflow-hidden transition-colors duration-500 bg-slate-deep text-cream">
 
       {/* Top bar — z-30 so its dropdown (Toolbox, and QR's nested panel)
           always paints above the content below, which sits at z-10. Equal
@@ -137,27 +131,27 @@ export default function FocusMode() {
       <div className="relative z-30 flex items-center justify-between px-5 pt-5">
         <button
           onClick={() => navigate('/space')}
-          className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
+          className={`w-9 h-9 rounded-xl ${theme.controlBg} shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
         >
           <X size={18} />
         </button>
         <div className="flex items-center gap-2">
-          <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`} />
+          <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl ${theme.controlBg} shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`} />
           <button
             onClick={() => navigate('/notebook')}
-            className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
+            className={`w-9 h-9 rounded-xl ${theme.controlBg} shadow-sm flex items-center justify-center ${theme.text} hover:opacity-70 transition-opacity`}
             title="Notebook"
           >
             <NotebookPen size={17} />
           </button>
           <button
             onClick={() => setGirly(g => !g)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-colors bg-white/90 shadow-sm ${
-              girly ? 'border-[#C2185B] text-[#C2185B]' : 'border-[#EADFC4] text-[#8A7A5E]'
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-colors ${theme.controlBg} shadow-sm ${
+              girly ? 'border-[var(--atriumx-focus-girly-accent)] text-[var(--atriumx-focus-girly-accent)]' : 'border-slate-border text-cream-muted'
             }`}
           >
-            <Heart size={13} fill={girly ? '#C2185B' : 'none'} />
-            Girly Mode
+            <Heart size={13} fill={girly ? 'var(--atriumx-focus-girly-accent)' : 'none'} />
+            {girly ? 'Girly Mode' : 'AtriumX Mode'}
           </button>
         </div>
       </div>
@@ -165,7 +159,7 @@ export default function FocusMode() {
       <div className="relative z-10 max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
         {showResumePrompt && (
           <div className="flex flex-col items-center text-center gap-4 py-16">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center bg-white/90 border ${theme.activeCard}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${theme.controlBg} border ${theme.activeCard}`}>
               <GraduationCap size={26} style={{ color: theme.accent }} />
             </div>
             <h2 className={`font-serif text-2xl font-bold ${theme.text}`}>
@@ -294,7 +288,7 @@ export default function FocusMode() {
             <div className="flex items-center justify-center gap-4 mt-1">
               <button
                 onClick={handleReset}
-                className={`w-12 h-12 rounded-full flex items-center justify-center bg-white/90 shadow-sm ${theme.textMuted}`}
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${theme.controlBg} shadow-sm ${theme.textMuted}`}
               >
                 <RotateCcw size={18} />
               </button>
@@ -308,14 +302,14 @@ export default function FocusMode() {
               <div className="w-12 h-12" />
             </div>
 
-            <p className={`text-center text-xs ${theme.textMuted} px-4 py-2.5 rounded-full bg-white/70 flex items-center justify-center gap-1.5 mx-auto`}>
+            <p className={`text-center text-xs ${theme.textMuted} px-4 py-2.5 rounded-full ${theme.controlBg} flex items-center justify-center gap-1.5 mx-auto`}>
               {phase === 'study' ? 'Study minutes are being recorded as you go.' : "Break time isn't recorded — enjoy it."}
             </p>
 
             {/* Stats — Sessions Today is a real, ever-increasing count (no streak stat) */}
             <div className={`rounded-3xl border p-4 flex items-center justify-center gap-6 sm:gap-10 ${theme.statBg}`}>
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${theme.accent}22` }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: theme.accentWash }}>
                   <Target size={16} style={{ color: theme.accent }} />
                 </div>
                 <div>
@@ -325,7 +319,7 @@ export default function FocusMode() {
               </div>
               <div className="w-px h-9" style={{ background: theme.progressTrack }} />
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${theme.accent}22` }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: theme.accentWash }}>
                   <Flame size={16} style={{ color: theme.accent }} />
                 </div>
                 <div>
