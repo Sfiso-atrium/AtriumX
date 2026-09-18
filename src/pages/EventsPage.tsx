@@ -3,9 +3,9 @@
 // The Events board. Its own route rather than a fourth tab in the feed —
 // see the note in BottomNav.tsx for why.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, Plus } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Search, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -13,11 +13,6 @@ import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 import CategoryChips, { CategoryOption } from '../components/common/CategoryChips'
 
-// Same shape as the feed's filter — always shows every category, not just
-// ones that already have a posted event. Data-derived chips would make
-// the filter row empty (or missing) on a mostly-empty board, exactly
-// when someone would most want to see what kinds of events they COULD
-// filter to.
 const EVENT_FILTER_OPTIONS: CategoryOption[] = [
   { id: 'all', label: 'All' },
   ...EVENT_CATEGORIES.map(c => ({ id: c, label: c })),
@@ -41,12 +36,25 @@ export default function EventsPage() {
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     getEvents().then(data => { setEvents(data); setLoading(false) }).catch(() => setLoading(false))
   }, [currentUser])
 
-  const visible = filter === 'all' ? events : events.filter(e => e.category === filter)
+  const visible = useMemo(() => {
+    let list = filter === 'all' ? events : events.filter(e => e.category === filter)
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      list = list.filter(e => 
+        e.title.toLowerCase().includes(q) ||
+        (e.description && e.description.toLowerCase().includes(q)) ||
+        e.location.toLowerCase().includes(q) ||
+        e.category.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [events, filter, searchQuery])
 
   const handleCancel = async (ev: CampusEvent) => {
     await cancelEvent(ev.id)
@@ -59,37 +67,64 @@ export default function EventsPage() {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-20 pb-28">
+          {/* Discover header - same as Feed */}
           <div className="mb-5">
             <h1 className="font-serif text-2xl text-cream">Discover</h1>
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            <button
-              type="button"
-              onClick={() => navigate('/feed')}
-              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
-            >
-              Marketplace
-            </button>
-            <button
-              type="button"
-              className="bg-teal-primary border border-teal-light text-cream rounded-xl py-2.5 text-sm font-bold"
-            >
-              Events
-            </button>
+          {/* TOP NAVIGATION - Marketplace / Events toggle + Search (matches Panel 3) */}
+          <div className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              {/* Toggle - fixed height to prevent layout shift */}
+              <div className="flex bg-slate-card border border-slate-border rounded-xl p-1 h-10 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate('/feed')}
+                  className="min-w-[110px] text-cream-muted hover:text-cream rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                >
+                  Marketplace
+                </button>
+                <button
+                  type="button"
+                  className="min-w-[90px] bg-teal-primary border border-teal-light text-cream rounded-lg text-sm font-bold flex items-center justify-center"
+                >
+                  Events
+                </button>
+              </div>
+
+              {/* Unified search - searches listings and events - same line */}
+              <div className="flex-1 relative h-10">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search listings and events..."
+                  className="w-full h-10 bg-slate-card border border-slate-border rounded-xl pl-9 pr-10 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1 mt-2">
             <h1 className="font-serif text-2xl text-cream">Events</h1>
             <button
               onClick={() => navigate('/post-event')}
-              className="flex items-center gap-1.5 bg-gold text-slate-deep font-bold text-xs px-3 py-2 rounded-xl"
+              className="flex items-center gap-1.5 bg-gold text-slate-deep font-bold text-xs px-3 py-2 rounded-xl h-9"
             >
               <Plus size={14} /> Post
             </button>
           </div>
-          <p className="text-cream-muted text-sm mb-5">What's happening at your university.</p>
+          <p className="text-cream-muted text-sm mb-5">What&apos;s happening at your university.</p>
 
           <div className="-mx-4">
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
