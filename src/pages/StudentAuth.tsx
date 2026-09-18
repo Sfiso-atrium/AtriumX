@@ -54,7 +54,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || '/feed'
+        const dest = redirectAfterLogin || '/space'
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -76,7 +76,7 @@ if (user) {
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/feed')
+        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/space')
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -87,15 +87,19 @@ if (user) {
   return (
     <div className="min-h-screen bg-slate-deep">
       <Navbar />
-      <div className="max-w-sm mx-auto px-4 pt-12">
-        <h1 className="font-serif text-3xl text-cream mb-1">
+      <div className="max-w-md mx-auto px-4 pt-8 sm:pt-12 pb-10">
+        <div className="mb-7">
+          <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-2">AtriumX</p>
+          <h1 className="font-serif text-3xl text-cream mb-1">
           {mode === 'login' ? 'Welcome back' : 'Join your campus'}
         </h1>
-        <p className="text-cream-muted text-sm mb-8">
-          {mode === 'login' ? 'Sign in to your account' : 'Create your free account'}
-        </p>
+        <p className="text-cream-muted text-sm">
+            {mode === 'login' ? 'Sign in to continue to My Space and the rest of AtriumX' : 'Create your free account to get started with AtriumX'}
+          </p>
+        </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+          <div className="flex flex-col gap-3">
           {mode === 'register' && (
             <input
               type="text"
@@ -205,6 +209,7 @@ if (user) {
           >
             {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Sign in'}
           </button>
+          </div>
         </div>
       </div>
 
