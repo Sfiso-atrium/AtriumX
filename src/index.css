@@ -107,3 +107,65 @@ html.bw-mode body {
 .bw-mode .hover\:bg-slate-card:hover {
   background-color: transparent !important;
 }
+
+/* Focus Mode decorative bubbles use the same AtriumX theme variables, so they
+   automatically follow the current light/dark site palette without introducing
+   a second page-specific color system. */
+.focus-mode-bubbles {
+  filter: blur(0px);
+}
+
+.focus-bubble {
+  position: absolute;
+  display: block;
+  border: 1px solid rgb(var(--atriumx-border-rgb) / 0.55);
+  border-radius: 9999px;
+  opacity: 0.75;
+  animation: focusBubbleFloat 11s ease-in-out infinite;
+}
+
+.focus-bubble--one {
+  width: 11rem;
+  height: 11rem;
+  top: 12%;
+  left: -4rem;
+}
+
+.focus-bubble--two {
+  width: 8rem;
+  height: 8rem;
+  top: 36%;
+  right: -2.5rem;
+  animation-delay: -3s;
+}
+
+.focus-bubble--three {
+  width: 5.5rem;
+  height: 5.5rem;
+  bottom: 22%;
+  left: 10%;
+  animation-delay: -5s;
+}
+
+.focus-bubble--four {
+  width: 4rem;
+  height: 4rem;
+  bottom: 8%;
+  right: 12%;
+  animation-delay: -7s;
+}
+
+@keyframes focusBubbleFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-bubble {
+    animation: none;
+  }
+}
