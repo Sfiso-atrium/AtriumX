@@ -1091,12 +1091,6 @@ function NotebookSection() {
 // greets the student with a glanceable snapshot instead of dropping them
 // straight into a flat tab bar. Pulls light reads from tables the tabs
 // already use — no new data model, just a summarized view of it.
-
-// The one "signature" moment for My Space: a quiet gradient panel (built
-// entirely from colors already in the app's palette — no new tokens) that
-// greets the student with a glanceable snapshot instead of dropping them
-// straight into a flat tab bar. Pulls light reads from tables the tabs
-// already use — no new data model, just a summarized view of it.
 function TodaySnapshot({ userId }: { userId: string }) {
   const { currentUser } = useApp()
   const [nextDeadline, setNextDeadline] = useState<Deadline | null>(null)
@@ -1121,61 +1115,50 @@ function TodaySnapshot({ userId }: { userId: string }) {
 
   return (
     <div className="px-4 mt-4 flex flex-col gap-4">
-      {/* Greeting Banner - matches Panel 1 Desktop */}
-      <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-5 flex items-center justify-between">
+      <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-2xl p-5 flex items-center justify-between">
         <div>
-          <p className="text-[#0F172A] font-bold text-[18px] leading-tight">Good evening, {firstName} 👋</p>
-          <p className="text-slate-500 text-[13px] mt-1">Here&apos;s what&apos;s happening in your space.</p>
+          <p className="text-cream font-bold text-lg leading-tight">Good evening, {firstName} 👋</p>
+          <p className="text-cream-muted text-sm mt-1">Here&apos;s what&apos;s happening in your space.</p>
         </div>
-        <div className="hidden sm:block w-32 h-16 rounded-xl overflow-hidden flex-shrink-0 ml-4">
-          <img
-            src="/images/myspace/myspace-intro-summit.png"
-            alt=""
-            className="w-full h-full object-cover opacity-80"
-          />
+        <div className="hidden sm:block w-32 h-16 rounded-xl overflow-hidden flex-shrink-0 ml-4 bg-slate-deep border border-slate-border">
+          <img src="/images/myspace/myspace-intro-summit.png" alt="" className="w-full h-full object-cover opacity-80" />
         </div>
       </div>
-
-      {/* Snapshot Cards - HORIZONTAL always, scroll on mobile, no wrap */}
-      <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1"
-           style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-            <CalendarClock size={16} className="text-[#2563EB]" />
+      <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
+            <CalendarClock size={16} className="text-cream-muted" />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-500 text-[11px] font-medium leading-none">Upcoming Deadlines</p>
-            <p className="text-[#0F172A] text-[13px] font-bold mt-1 truncate">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Upcoming Deadlines</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
           </div>
         </div>
-
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] flex items-center justify-center flex-shrink-0">
-            <Timer size={16} className="text-[#16A34A]" />
+        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
+            <Timer size={16} className="text-cream-muted" />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-500 text-[11px] font-medium leading-none">Today&apos;s Focus</p>
-            <p className="text-[#0F172A] text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Today&apos;s Focus</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
           </div>
         </div>
-
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#FFFBEB] border border-[#FEF3C7] flex items-center justify-center flex-shrink-0">
-            <Wallet size={16} className="text-[#D97706]" />
+        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
+            <Wallet size={16} className="text-cream-muted" />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-500 text-[11px] font-medium leading-none">Budget Balance</p>
-            <p className="text-[#0F172A] text-[13px] font-bold mt-1 truncate">R{balance.toFixed(0)}</p>
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Budget Balance</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">R{balance.toFixed(0)}</p>
           </div>
         </div>
-
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#F5F3FF] border border-[#EDE9FE] flex items-center justify-center flex-shrink-0">
-            <Eye size={16} className="text-[#7C3AED]" />
+        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
+            <Eye size={16} className="text-cream-muted" />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-500 text-[11px] font-medium leading-none">Watchlist</p>
-            <p className="text-[#0F172A] text-[13px] font-bold mt-1 truncate">{watchCount} items</p>
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Watchlist</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{watchCount} items</p>
           </div>
         </div>
       </div>
@@ -1185,25 +1168,23 @@ function TodaySnapshot({ userId }: { userId: string }) {
 
 function RecentActivityEmpty() {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4">
-      <p className="text-[#0F172A] font-bold text-[13px] mb-4">Recent Activity</p>
-      <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-200 rounded-xl bg-[#F8FAFC]">
-        <div className="w-12 h-12 rounded-full bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center mb-3">
-          <Clock size={18} className="text-[#2563EB]" />
+    <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+      <p className="text-cream font-bold text-sm mb-4">Recent Activity</p>
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-border rounded-xl bg-slate-deep">
+        <div className="w-12 h-12 rounded-full bg-teal-faint border border-slate-border flex items-center justify-center mb-3">
+          <Clock size={18} className="text-teal-light" />
         </div>
-        <p className="text-[#0F172A] font-semibold text-sm">No activity yet</p>
-        <p className="text-slate-500 text-xs mt-1 max-w-[200px] leading-relaxed">
-          Your recent messages, listing updates and watchlist alerts will appear here.
-        </p>
+        <p className="text-cream font-semibold text-sm">No activity yet</p>
+        <p className="text-cream-muted text-xs mt-1 max-w-[200px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
       </div>
     </div>
   )
 }
 
 function RecentActivity() {
-  // Empty state only – data wiring will be handled separately
   return <RecentActivityEmpty />
 }
+
 
 export default function MySpace() {
   const navigate = useNavigate()
@@ -1254,16 +1235,15 @@ export default function MySpace() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24">
+    <div className="min-h-screen bg-slate-deep pb-24">
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
-      <div className="sticky top-0 z-50 bg-white border-b border-slate-200 h-14 flex items-center px-4 gap-3">
-        <span className="text-[#0F172A] font-bold flex-1">AtriumX</span>
-        <span className="text-[#0F172A] font-bold text-sm hidden sm:block">My Space</span>
-        <button onClick={() => navigate('/groups')} className="relative text-slate-500 hover:text-[#0F172A] transition-colors">
+      <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
+        <span className="text-cream font-bold flex-1">My Space</span>
+        <button onClick={() => navigate('/groups')} className="relative text-cream-muted hover:text-cream transition-colors">
           <Users size={20} />
           {unreadGroups > 0 && (
-            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
+            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">
               {unreadGroups > 9 ? '9+' : unreadGroups}
             </span>
           )}
@@ -1280,73 +1260,63 @@ export default function MySpace() {
 
       <TodaySnapshot userId={currentUser.id} />
 
-      {/* Main Content: Quick Access + Recent Activity side by side, horizontal groups even on mobile */}
       <div className="px-4 mt-6">
         <div className="flex flex-col lg:flex-row gap-5 items-start">
-          {/* Quick Access - horizontal placeholders */}
           <div className="flex-1 w-full min-w-0">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[#0F172A] font-bold text-[13px]">Quick Access</p>
-            </div>
-
-            {/* Groups arranged HORIZONTALLY, scroll on mobile, grid on desktop */}
+            <div className="flex items-center justify-between mb-3"><p className="text-cream font-bold text-sm">Quick Access</p></div>
             <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
-              {([
-                {
-                  title: 'Plan',
-                  tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[],
-                },
-                {
-                  title: 'Money',
-                  tabs: ['Budget'] as Tab[],
-                },
-                {
-                  title: 'Focus',
-                  tabs: ['Pomodoro'] as Tab[],
-                },
-                {
-                  title: 'Personal',
-                  tabs: ['Watchlist', 'Notebook'] as Tab[],
-                },
-              ]).map(group => (
-                <div key={group.title} className="min-w-[150px] flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col gap-2">
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.14em] px-1">
-                    {group.title}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {group.tabs.map(t => {
-                      const meta = TAB_META[t]
-                      const Icon = meta.icon
-                      const isActive = tab === t
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setTab(t)}
-                          className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-colors border ${
-                            isActive
-                              ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm'
-                              : 'bg-[#F8FAFC] border-slate-200 text-[#334155] hover:border-[#2563EB]/30 hover:bg-white'
-                          }`}
-                        >
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            isActive ? 'bg-white/15' : 'bg-white border border-slate-200'
-                          }`}>
-                            <Icon size={14} className={isActive ? 'text-white' : 'text-slate-500'} />
-                          </span>
-                          <span className="truncate">{t}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+          {([
+            {
+              title: 'Plan',
+              tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[],
+            },
+            {
+              title: 'Money',
+              tabs: ['Budget'] as Tab[],
+            },
+            {
+              title: 'Focus',
+              tabs: ['Pomodoro'] as Tab[],
+            },
+            {
+              title: 'Personal',
+              tabs: ['Watchlist', 'Notebook'] as Tab[],
+            },
+          ]).map(group => (
+            <div key={group.title} className="bg-slate-card border border-slate-border rounded-2xl p-3">
+              <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] mb-2 px-1">
+                {group.title}
+              </p>
+              <div className={`grid gap-2 ${group.tabs.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                {group.tabs.map(t => {
+                  const meta = TAB_META[t]
+                  const Icon = meta.icon
+                  const isActive = tab === t
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTab(t)}
+                      className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors border ${
+                        isActive
+                          ? 'bg-teal-primary border-teal-primary text-white'
+                          : 'bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream'
+                      }`}
+                    >
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isActive ? 'bg-white/10' : 'bg-slate-card'
+                      }`}>
+                        <Icon size={15} className={isActive ? 'text-white' : 'text-cream-muted'} />
+                      </span>
+                      <span className="truncate">{t}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
             </div>
           </div>
-
-          {/* Recent Activity - with empty state */}
-          <div className="w-full lg:w-[340px] flex-shrink-0">
-            <RecentActivity />
-          </div>
+          <div className="w-full lg:w-[340px] flex-shrink-0"><RecentActivity /></div>
         </div>
       </div>
 
