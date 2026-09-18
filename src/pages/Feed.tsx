@@ -149,31 +149,31 @@ const filteredBusiness = useMemo(() => {
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch">
-            <div className="flex h-12 bg-slate-card border border-slate-border rounded-lg p-1">
+          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2">
+            <div className="flex bg-slate-card border border-slate-border rounded-lg p-1">
               <button
                 type="button"
-                className="flex-1 h-full bg-teal-primary border border-teal-light text-cream rounded-md text-sm font-bold"
+                className="flex-1 bg-teal-primary border border-teal-light text-cream rounded-md py-2 text-sm font-bold"
               >
                 Marketplace
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/events')}
-                className="flex-1 h-full text-cream-muted hover:text-cream hover:border-teal-primary rounded-md text-sm font-medium transition-colors"
+                className="flex-1 text-cream-muted hover:text-cream hover:border-teal-primary rounded-md py-2 text-sm font-medium transition-colors"
               >
                 Events
               </button>
             </div>
 
-            <div className="relative h-12">
+            <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
               <input
                 type="text"
                 value={feedTab === 'marketplace' ? localSearch : bizSearch}
                 onChange={e => feedTab === 'marketplace' ? setLocalSearch(e.target.value) : setBizSearch(e.target.value)}
                 placeholder={feedTab === 'marketplace' ? 'Search listings...' : 'Search businesses...'}
-                className="w-full h-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+                className="w-full bg-slate-card/70 rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-light/40 transition-colors"
               />
               {(feedTab === 'marketplace' ? localSearch : bizSearch) && (
                 <button
@@ -188,12 +188,12 @@ const filteredBusiness = useMemo(() => {
           </div>
 
           <div className="px-4 pt-2 pb-1 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 bg-slate-card border border-slate-border rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
+            <label className="flex items-center gap-2 bg-slate-card/70 rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
               <span className="text-cream-muted">For:</span>
               <select
                 value={feedTab}
                 onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
-                className="bg-transparent text-cream focus:outline-none cursor-pointer"
+                className="bg-transparent text-cream focus:outline-none cursor-pointer appearance-none"
               >
                 <option value="marketplace">Students</option>
                 <option value="business">Businesses</option>
@@ -215,7 +215,7 @@ const filteredBusiness = useMemo(() => {
               inside this tab rather than another pill in the row above,
               so the tab row stays two items wide on a phone. */}
           <div className="px-4 pt-3">
-            <div className="flex bg-slate-card border border-slate-border rounded-xl p-1">
+            <div className="flex bg-slate-card/55 rounded-xl p-1">
               <button
                 onClick={() => setMarketMode('selling')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
@@ -253,7 +253,7 @@ const filteredBusiness = useMemo(() => {
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {lookingFor.map(w => (
-                    <div key={w.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                    <div key={w.id} className="bg-slate-card/65 rounded-2xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-cream font-bold text-sm truncate">
@@ -261,7 +261,7 @@ const filteredBusiness = useMemo(() => {
                           </p>
                           <div className="flex flex-wrap items-center gap-2 mt-1">
                             {w.category && (
-                              <span className="text-[10px] font-bold text-cream-muted border border-slate-border rounded-full px-2 py-0.5">
+                              <span className="text-[10px] font-bold text-cream-muted px-2 py-0.5">
                                 {w.category}
                               </span>
                             )}
@@ -297,7 +297,7 @@ const filteredBusiness = useMemo(() => {
               <select
                 value={residenceFilter}
                 onChange={e => setResidenceFilter(e.target.value)}
-                className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs focus:outline-none focus:border-teal-light"
+                className="bg-slate-card/65 rounded-xl px-3 py-2 text-cream text-xs focus:outline-none focus:ring-1 focus:ring-teal-light/30"
               >
                 <option value="all">All residences</option>
                 {residenceOptions.map(r => (
@@ -312,7 +312,7 @@ const filteredBusiness = useMemo(() => {
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
                 placeholder="Min R"
-                className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                className="w-20 bg-slate-card/65 rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-light/30"
               />
               <input
                 type="number"
@@ -321,7 +321,7 @@ const filteredBusiness = useMemo(() => {
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
                 placeholder="Max R"
-                className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                className="w-20 bg-slate-card/65 rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-light/30"
               />
 
               <button
@@ -329,7 +329,7 @@ const filteredBusiness = useMemo(() => {
                 className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                   negotiableOnly
                     ? 'bg-gold/10 text-gold border-gold/40'
-                    : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-light'
+                    : 'bg-slate-card/55 text-cream-muted hover:bg-slate-card/85'
                 }`}
               >
                 Open to offers
@@ -384,21 +384,21 @@ const filteredBusiness = useMemo(() => {
                   type="number" inputMode="numeric" min={0}
                   value={bizMinPrice} onChange={e => setBizMinPrice(e.target.value)}
                   placeholder="Min R"
-                  className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                  className="w-20 bg-slate-card/65 rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-light/30"
                 />
              
 <input
                   type="number" inputMode="numeric" min={0}
                   value={bizMaxPrice} onChange={e => setBizMaxPrice(e.target.value)}
                   placeholder="Max R"
-                  className="w-20 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+                  className="w-20 bg-slate-card/65 rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-light/30"
                 />
                 <button
                   onClick={() => setBizNegotiableOnly(v => !v)}
                   className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                     bizNegotiableOnly
                       ? 'bg-gold/10 text-gold border-gold/40'
-                      : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-light'
+                      : 'bg-slate-card/55 text-cream-muted hover:bg-slate-card/85'
                   }`}
                 >
                   Open to offers
