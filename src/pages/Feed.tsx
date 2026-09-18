@@ -17,16 +17,16 @@ const BUSINESS_CATEGORIES = [
 function EmptyState({ message, actionLabel, onAction }: { message: string; actionLabel?: string; onAction?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-primary">          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
         </svg>
       </div>
-      <p className="text-slate-500 text-sm mb-4">{message}</p>
+      <p className="text-cream-muted text-sm mb-4">{message}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors"
+          className="bg-teal-primary hover:bg-teal-primary/90 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors"
         >
           {actionLabel}
         </button>
@@ -145,41 +145,41 @@ const filteredBusiness = useMemo(() => {
 
         <div className="max-w-4xl mx-auto">
           <div className="px-4 pt-4 pb-2">
-            <h1 className="font-serif text-2xl text-slate-900">Discover</h1>
-            <p className="text-slate-500 text-sm mt-1">Explore the existing marketplace and events.</p>
+            <h1 className="font-serif text-2xl text-cream">Discover</h1>
+            <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
           <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2">
-            <div className="flex bg-[#FBFCFE] border border-[#EAF0F8] rounded-lg p-1">
+            <div className="flex bg-slate-card border border-slate-border rounded-lg p-1">
               <button
                 type="button"
-                className="flex-1 bg-blue-600 border border-blue-600 text-white rounded-md py-2 text-sm font-bold"
+                className="flex-1 bg-teal-primary border border-teal-primary text-white rounded-md py-2 text-sm font-bold"
               >
                 Marketplace
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/events')}
-                className="flex-1 text-slate-500 hover:text-slate-900 hover:border-blue-400 rounded-md py-2 text-sm font-medium transition-colors"
+                className="flex-1 text-cream-muted hover:text-cream hover:border-teal-light rounded-md py-2 text-sm font-medium transition-colors"
               >
                 Events
               </button>
             </div>
 
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
               <input
                 type="text"
                 value={feedTab === 'marketplace' ? localSearch : bizSearch}
                 onChange={e => feedTab === 'marketplace' ? setLocalSearch(e.target.value) : setBizSearch(e.target.value)}
                 placeholder={feedTab === 'marketplace' ? 'Search listings...' : 'Search businesses...'}
-                className="w-full bg-[#FBFCFE] rounded-lg pl-9 pr-9 py-2.5 text-slate-900 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-colors"
+                className="w-full bg-slate-card rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20 transition-colors"
               />
               {(feedTab === 'marketplace' ? localSearch : bizSearch) && (
                 <button
                   type="button"
                   onClick={() => feedTab === 'marketplace' ? setLocalSearch('') : setBizSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
                 >
                   <X size={14} />
                 </button>
@@ -188,12 +188,12 @@ const filteredBusiness = useMemo(() => {
           </div>
 
           <div className="px-4 pt-2 pb-1 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 bg-[#FBFCFE] rounded-lg px-3 py-2 text-sm font-medium text-slate-900 whitespace-nowrap">
-              <span className="text-slate-500">For:</span>
+            <label className="flex items-center gap-2 bg-slate-card rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
+              <span className="text-cream-muted">For:</span>
               <select
                 value={feedTab}
                 onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
-                className="bg-transparent text-slate-900 focus:outline-none cursor-pointer appearance-none"
+                className="bg-transparent text-cream focus:outline-none cursor-pointer appearance-none"
               >
                 <option value="marketplace">Students</option>
                 <option value="business">Businesses</option>
@@ -215,11 +215,11 @@ const filteredBusiness = useMemo(() => {
               inside this tab rather than another pill in the row above,
               so the tab row stays two items wide on a phone. */}
           <div className="px-4 pt-3">
-            <div className="flex bg-[#FCFDFF] rounded-xl p-1">
+            <div className="flex bg-slate-card/50 rounded-xl p-1">
               <button
                 onClick={() => setMarketMode('selling')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  marketMode === 'selling' ? 'bg-blue-600 text-white' : 'text-slate-500'
+                  marketMode === 'selling' ? 'bg-teal-primary text-white' : 'text-cream-muted'
                 }`}
               >
                 <Tag size={13} /> For sale
@@ -227,7 +227,7 @@ const filteredBusiness = useMemo(() => {
               <button
                 onClick={() => setMarketMode('wanted')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  marketMode === 'wanted' ? 'bg-blue-600 text-white' : 'text-slate-500'
+                  marketMode === 'wanted' ? 'bg-teal-primary text-white' : 'text-cream-muted'
                 }`}
               >
                 <HandHelping size={13} /> Looking for
@@ -237,42 +237,42 @@ const filteredBusiness = useMemo(() => {
 
           {marketMode === 'wanted' ? (
             <div className="px-4 pt-4">
-              <p className="text-slate-500 text-xs mb-4">
+              <p className="text-cream-muted text-xs mb-4">
                 What students here are hoping someone lists. Got one? Post it.
               </p>
               {lookingForLoading ? (
-                <p className="text-slate-500 text-sm">Loadingâ€¦</p>
+                <p className="text-cream-muted text-sm">Loadingâ€¦</p>
               ) : lookingFor.length === 0 ? (
                 <div className="text-center py-14">
-                  <HandHelping size={30} className="text-slate-500 mx-auto mb-3 opacity-50" />
-                  <p className="text-slate-900 font-bold text-sm mb-1">Nothing on the wanted board yet</p>
-                  <p className="text-slate-500 text-xs">
+                  <HandHelping size={30} className="text-cream-muted mx-auto mb-3 opacity-50" />
+                  <p className="text-cream font-bold text-sm mb-1">Nothing on the wanted board yet</p>
+                  <p className="text-cream-muted text-xs">
                     Add something to your watchlist in My Space and it shows up here.
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {lookingFor.map(w => (
-                    <div key={w.id} className="bg-[#FBFCFE] rounded-2xl p-4">
+                    <div key={w.id} className="bg-slate-card rounded-2xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-slate-900 font-bold text-sm truncate">
+                          <p className="text-cream font-bold text-sm truncate">
                             {w.keyword || w.category || 'Anything good'}
                           </p>
                           <div className="flex flex-wrap items-center gap-2 mt-1">
                             {w.category && (
-                              <span className="text-[10px] font-bold text-slate-500 px-2 py-0.5">
+                              <span className="text-[10px] font-bold text-cream-muted px-2 py-0.5">
                                 {w.category}
                               </span>
                             )}
                             {w.max_price != null && (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-[11px] text-cream-muted">
                                 up to R{Number(w.max_price).toFixed(2)}
                               </span>
                             )}
                           </div>
                         </div>
-                        <span className="text-slate-500 text-[11px] flex-shrink-0">
+                        <span className="text-cream-muted text-[11px] flex-shrink-0">
                           {w.seeker?.full_name ?? 'A student'}
                         </span>
                       </div>
@@ -286,7 +286,7 @@ const filteredBusiness = useMemo(() => {
           <div className="px-4 pb-2">
             <button
               onClick={() => setFiltersOpen(o => !o)}
-              className="text-blue-600 hover:text-blue-700 text-xs underline underline-offset-2 transition-colors"
+              className="text-teal-primary hover:text-teal-light text-xs underline underline-offset-2 transition-colors"
             >
               {filtersOpen ? 'Hide filters' : 'Filters'}
             </button>
@@ -297,7 +297,7 @@ const filteredBusiness = useMemo(() => {
               <select
                 value={residenceFilter}
                 onChange={e => setResidenceFilter(e.target.value)}
-                className="bg-[#FBFCFE] rounded-xl px-3 py-2 text-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="bg-slate-card rounded-xl px-3 py-2 text-cream text-xs focus:outline-none focus:ring-1 focus:ring-teal-primary/20"
               >
                 <option value="all">All residences</option>
                 {residenceOptions.map(r => (
@@ -312,7 +312,7 @@ const filteredBusiness = useMemo(() => {
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
                 placeholder="Min R"
-                className="w-20 bg-[#FBFCFE] rounded-xl px-3 py-2 text-slate-900 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="w-20 bg-slate-card rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20"
               />
               <input
                 type="number"
@@ -321,15 +321,15 @@ const filteredBusiness = useMemo(() => {
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
                 placeholder="Max R"
-                className="w-20 bg-[#FBFCFE] rounded-xl px-3 py-2 text-slate-900 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="w-20 bg-slate-card rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20"
               />
 
               <button
                 onClick={() => setNegotiableOnly(v => !v)}
                 className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                   negotiableOnly
-                    ? 'bg-blue-50 text-blue-600 border-blue-200'
-                    : 'bg-[#FCFDFF] text-slate-500 hover:bg-[#F7F9FC]'
+                    ? 'bg-teal-faint text-teal-primary border-blue-200'
+                    : 'bg-slate-card/50 text-cream-muted hover:bg-slate-card/70'
                 }`}
               >
                 Open to offers
@@ -338,7 +338,7 @@ const filteredBusiness = useMemo(() => {
           )}
 
           <div className="px-4 pb-2">
-            <p className="text-slate-500 text-xs">
+            <p className="text-cream-muted text-xs">
               {dbLoading ? 'Loading...' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}
             </p>
           </div>
@@ -372,7 +372,7 @@ const filteredBusiness = useMemo(() => {
             <div className="px-4 pb-2">
               <button
                 onClick={() => setBizFiltersOpen(o => !o)}
-                className="text-blue-600 hover:text-blue-700 text-xs underline underline-offset-2 transition-colors"
+                className="text-teal-primary hover:text-teal-light text-xs underline underline-offset-2 transition-colors"
               >
                 {bizFiltersOpen ? 'Hide filters' : 'Filters'}
               </button>
@@ -384,21 +384,21 @@ const filteredBusiness = useMemo(() => {
                   type="number" inputMode="numeric" min={0}
                   value={bizMinPrice} onChange={e => setBizMinPrice(e.target.value)}
                   placeholder="Min R"
-                  className="w-20 bg-[#FBFCFE] rounded-xl px-3 py-2 text-slate-900 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  className="w-20 bg-slate-card rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20"
                 />
              
 <input
                   type="number" inputMode="numeric" min={0}
                   value={bizMaxPrice} onChange={e => setBizMaxPrice(e.target.value)}
                   placeholder="Max R"
-                  className="w-20 bg-[#FBFCFE] rounded-xl px-3 py-2 text-slate-900 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  className="w-20 bg-slate-card rounded-xl px-3 py-2 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20"
                 />
                 <button
                   onClick={() => setBizNegotiableOnly(v => !v)}
                   className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                     bizNegotiableOnly
-                      ? 'bg-blue-50 text-blue-600 border-blue-200'
-                      : 'bg-[#FCFDFF] text-slate-500 hover:bg-[#F7F9FC]'
+                      ? 'bg-teal-faint text-teal-primary border-blue-200'
+                      : 'bg-slate-card/50 text-cream-muted hover:bg-slate-card/70'
                   }`}
                 >
                   Open to offers
@@ -406,7 +406,7 @@ const filteredBusiness = useMemo(() => {
               </div>
             )}
             <div className="px-4 pb-2">
-              <p className="text-slate-500 text-xs">
+              <p className="text-cream-muted text-xs">
                 {businessLoading ? 'Loading...' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
               </p>
             </div>
