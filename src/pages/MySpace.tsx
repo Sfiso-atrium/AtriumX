@@ -1231,27 +1231,57 @@ export default function MySpace() {
 
       <TodaySnapshot userId={currentUser.id} />
 
-      <div className="overflow-x-auto scrollbar-hide px-4 py-3">
-        <div className="flex gap-2 w-max">
-          {TABS.map(t => {
-            const meta = TAB_META[t]
-            const Icon = meta.icon
-            const isActive = tab === t
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-                  isActive
-                    ? 'bg-teal-primary border-teal-primary text-white'
-                    : 'bg-transparent text-cream-muted border-slate-border hover:border-teal-light'
-                }`}
-              >
-                <Icon size={14} className={isActive ? 'text-white' : 'text-cream-muted'} />
-                {t}
-              </button>
-            )
-          })}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            {
+              title: 'Plan',
+              tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[],
+            },
+            {
+              title: 'Money',
+              tabs: ['Budget'] as Tab[],
+            },
+            {
+              title: 'Focus',
+              tabs: ['Pomodoro'] as Tab[],
+            },
+            {
+              title: 'Personal',
+              tabs: ['Watchlist', 'Notebook'] as Tab[],
+            },
+          ]).map(group => (
+            <div key={group.title} className="bg-slate-card border border-slate-border rounded-2xl p-3">
+              <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] mb-2 px-1">
+                {group.title}
+              </p>
+              <div className={`grid gap-2 ${group.tabs.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                {group.tabs.map(t => {
+                  const meta = TAB_META[t]
+                  const Icon = meta.icon
+                  const isActive = tab === t
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTab(t)}
+                      className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors border ${
+                        isActive
+                          ? 'bg-teal-primary border-teal-primary text-white'
+                          : 'bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream'
+                      }`}
+                    >
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isActive ? 'bg-white/10' : 'bg-slate-card'
+                      }`}>
+                        <Icon size={15} className={isActive ? 'text-white' : 'text-cream-muted'} />
+                      </span>
+                      <span className="truncate">{t}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
