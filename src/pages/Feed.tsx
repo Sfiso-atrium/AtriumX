@@ -149,31 +149,31 @@ const filteredBusiness = useMemo(() => {
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2">
-            <div className="flex bg-slate-card border border-slate-border rounded-lg p-1">
+          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch">
+            <div className="flex h-12 bg-slate-card border border-slate-border rounded-lg p-1">
               <button
                 type="button"
-                className="flex-1 bg-teal-primary border border-teal-light text-cream rounded-md py-2 text-sm font-bold"
+                className="flex-1 h-full bg-teal-primary border border-teal-light text-cream rounded-md text-sm font-bold"
               >
                 Marketplace
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/events')}
-                className="flex-1 text-cream-muted hover:text-cream hover:border-teal-primary rounded-md py-2 text-sm font-medium transition-colors"
+                className="flex-1 h-full text-cream-muted hover:text-cream hover:border-teal-primary rounded-md text-sm font-medium transition-colors"
               >
                 Events
               </button>
             </div>
 
-            <div className="relative">
+            <div className="relative h-12">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
               <input
                 type="text"
                 value={feedTab === 'marketplace' ? localSearch : bizSearch}
                 onChange={e => feedTab === 'marketplace' ? setLocalSearch(e.target.value) : setBizSearch(e.target.value)}
                 placeholder={feedTab === 'marketplace' ? 'Search listings...' : 'Search businesses...'}
-                className="w-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+                className="w-full h-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
               />
               {(feedTab === 'marketplace' ? localSearch : bizSearch) && (
                 <button
