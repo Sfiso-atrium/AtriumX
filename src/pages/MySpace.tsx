@@ -168,11 +168,11 @@ function DeadlinesSection({ userId }: { userId: string }) {
         const due = new Date(d.due_at)
         const soon = due.getTime() - Date.now() < 24 * 60 * 60 * 1000
         return (
-          <div key={d.id} className={`bg-slate-card border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-ember' : 'border-slate-border border-l-teal-light/40'}`}>
+          <div key={d.id} className={`bg-slate-card border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-gold' : 'border-slate-border border-l-teal-light/40'}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-cream font-bold text-sm truncate">{d.title}</p>
-                <p className={`text-xs mt-0.5 ${soon ? 'text-ember' : 'text-cream-muted'}`}>
+                <p className={`text-xs mt-0.5 ${soon ? 'text-gold' : 'text-cream-muted'}`}>
                   {due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
                 {d.notes && <p className="text-cream-muted text-xs mt-1">{d.notes}</p>}
@@ -1254,11 +1254,11 @@ function DeadlinesPopup({ userId, onClose }: { userId: string; onClose: () => vo
             const due = new Date(d.due_at)
             const soon = due.getTime() - Date.now() < 24 * 60 * 60 * 1000
             return (
-              <div key={d.id} className={`bg-slate-deep border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-ember' : 'border-slate-border border-l-teal-light/40'}`}>
+              <div key={d.id} className={`bg-slate-deep border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-gold' : 'border-slate-border border-l-teal-light/40'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-cream font-bold text-sm truncate">{d.title}</p>
-                    <p className={`text-xs mt-0.5 ${soon ? 'text-ember' : 'text-cream-muted'}`}>{due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    <p className={`text-xs mt-0.5 ${soon ? 'text-gold' : 'text-cream-muted'}`}>{due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
                     {d.notes && <p className="text-cream-muted text-xs mt-1">{d.notes}</p>}
                   </div>
                   <DeleteBtn onClick={() => handleDelete(d.id)} />
