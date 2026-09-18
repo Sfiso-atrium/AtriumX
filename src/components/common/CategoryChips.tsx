@@ -37,10 +37,10 @@ export default function CategoryChips({
           <button
             key={cat.id}
             onClick={() => select(cat.id)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors border ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
               current === cat.id
-                ? 'bg-teal-primary text-cream border-teal-light'
-                : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-primary'
+                ? 'bg-teal-primary text-cream'
+                : 'bg-slate-card/55 text-cream-muted hover:bg-slate-card/85 hover:text-cream'
             }`}
           >
             {cat.label}
