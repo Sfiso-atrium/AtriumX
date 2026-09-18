@@ -328,7 +328,7 @@ const filteredBusiness = useMemo(() => {
                 onClick={() => setNegotiableOnly(v => !v)}
                 className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                   negotiableOnly
-                    ? 'bg-teal-faint text-teal-primary border-blue-200'
+                    ? 'bg-teal-faint text-teal-primary border-gold/30'
                     : 'bg-slate-card/50 text-cream-muted hover:bg-slate-card/70'
                 }`}
               >
@@ -397,7 +397,7 @@ const filteredBusiness = useMemo(() => {
                   onClick={() => setBizNegotiableOnly(v => !v)}
                   className={`text-xs px-3 py-2 rounded-xl border transition-colors ${
                     bizNegotiableOnly
-                      ? 'bg-teal-faint text-teal-primary border-blue-200'
+                      ? 'bg-teal-faint text-teal-primary border-gold/30'
                       : 'bg-slate-card/50 text-cream-muted hover:bg-slate-card/70'
                   }`}
                 >
