@@ -144,7 +144,28 @@ const filteredBusiness = useMemo(() => {
         <Navbar />
 
         <div className="max-w-4xl mx-auto">
-          <div className="px-4 pt-4 flex gap-2">
+          <div className="px-4 pt-4 pb-2">
+            <h1 className="font-serif text-2xl text-cream">Discover</h1>
+            <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
+          </div>
+
+          <div className="px-4 pt-2 pb-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className="bg-teal-primary border border-teal-light text-cream rounded-xl py-2.5 text-sm font-bold"
+            >
+              Marketplace
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/events')}
+              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
+            >
+              Events
+            </button>
+          </div>
+
+          <div className="px-4 pt-2 flex gap-2">
             <button
               onClick={() => setFeedTab('marketplace')}
               className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
