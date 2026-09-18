@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext'
 import { Listing, getListings, getBusinessListings, getResidences, getLookingFor, LookingForEntry } from '../services/dataService'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
-import CategoryChips from '../components/common/CategoryChips'
+import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
@@ -149,43 +149,64 @@ const filteredBusiness = useMemo(() => {
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="px-4 pt-2 pb-2 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className="bg-teal-primary border border-teal-light text-cream rounded-xl py-2.5 text-sm font-bold"
-            >
-              Marketplace
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/events')}
-              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
-            >
-              Events
-            </button>
+          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2">
+            <div className="flex bg-slate-card border border-slate-border rounded-lg p-1">
+              <button
+                type="button"
+                className="flex-1 bg-teal-primary border border-teal-light text-cream rounded-md py-2 text-sm font-bold"
+              >
+                Marketplace
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/events')}
+                className="flex-1 text-cream-muted hover:text-cream hover:border-teal-primary rounded-md py-2 text-sm font-medium transition-colors"
+              >
+                Events
+              </button>
+            </div>
+
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
+              <input
+                type="text"
+                value={feedTab === 'marketplace' ? localSearch : bizSearch}
+                onChange={e => feedTab === 'marketplace' ? setLocalSearch(e.target.value) : setBizSearch(e.target.value)}
+                placeholder={feedTab === 'marketplace' ? 'Search listings...' : 'Search businesses...'}
+                className="w-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+              />
+              {(feedTab === 'marketplace' ? localSearch : bizSearch) && (
+                <button
+                  type="button"
+                  onClick={() => feedTab === 'marketplace' ? setLocalSearch('') : setBizSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="px-4 pt-2 flex gap-2">
-            <button
-              onClick={() => setFeedTab('marketplace')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                feedTab === 'marketplace'
-                  ? 'bg-teal-primary border-teal-light text-cream'
-                  : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-              }`}
-            >
-              Students
-            </button>
-            <button
-              onClick={() => setFeedTab('business')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                feedTab === 'business'
-                  ? 'bg-teal-primary border-teal-light text-cream'
-                  : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-              }`}
-            >
-              Businesses
-            </button>
+          <div className="px-4 pt-2 pb-1 flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 bg-slate-card border border-slate-border rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
+              <span className="text-cream-muted">For:</span>
+              <select
+                value={feedTab}
+                onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
+                className="bg-transparent text-cream focus:outline-none cursor-pointer"
+              >
+                <option value="marketplace">Students</option>
+                <option value="business">Businesses</option>
+              </select>
+            </label>
+
+            <div className="min-w-0 flex-1">
+              {feedTab === 'marketplace' ? (
+                <CategoryChips categories={STUDENT_CATEGORIES} active={activeCategory} />
+              ) : (
+                <CategoryChips categories={BUSINESS_CATEGORIES} active={bizCategory} onSelect={setBizCategory} />
+              )}
+            </div>
           </div>
 
           {feedTab === 'marketplace' && (
@@ -262,27 +283,6 @@ const filteredBusiness = useMemo(() => {
             </div>
           ) : (
           <>
-          <div className="px-4 pt-4 pb-2 relative">
-            <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-cream-muted" />
-            <input
-              type="text"
-              value={localSearch}
-              onChange={e => setLocalSearch(e.target.value)}
-              placeholder="Search listings..."
-              className="w-full bg-slate-card border border-slate-border rounded-xl pl-9 pr-10 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
-            />
-            {localSearch && (
-              <button
-                onClick={() => setLocalSearch('')}
-                className="absolute right-7 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <CategoryChips />
-
           <div className="px-4 pb-2">
             <button
               onClick={() => setFiltersOpen(o => !o)}
@@ -369,27 +369,6 @@ const filteredBusiness = useMemo(() => {
 
 {feedTab === 'business' && (
             <>
-            <div className="px-4 pt-4 pb-2 relative">
-              <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-cream-muted" />
-              <input
-                type="text"
-                value={bizSearch}
-                onChange={e => setBizSearch(e.target.value)}
-                placeholder="Search businesses..."
-                className="w-full bg-slate-card border border-slate-border rounded-xl pl-9 pr-10 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
-              />
-              {bizSearch && (
-                <button
-                  onClick={() => setBizSearch('')}
-                  className="absolute right-7 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            <CategoryChips categories={BUSINESS_CATEGORIES} active={bizCategory} onSelect={setBizCategory} />
-
             <div className="px-4 pb-2">
               <button
                 onClick={() => setBizFiltersOpen(o => !o)}
