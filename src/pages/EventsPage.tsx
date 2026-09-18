@@ -59,6 +59,27 @@ export default function EventsPage() {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-20 pb-28">
+          <div className="mb-5">
+            <h1 className="font-serif text-2xl text-cream">Discover</h1>
+            <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => navigate('/feed')}
+              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
+            >
+              Marketplace
+            </button>
+            <button
+              type="button"
+              className="bg-teal-primary border border-teal-light text-cream rounded-xl py-2.5 text-sm font-bold"
+            >
+              Events
+            </button>
+          </div>
+
           <div className="flex items-center justify-between mb-1">
             <h1 className="font-serif text-2xl text-cream">Events</h1>
             <button
