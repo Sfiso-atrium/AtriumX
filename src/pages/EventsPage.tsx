@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, Plus } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Search, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -41,12 +41,22 @@ export default function EventsPage() {
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     getEvents().then(data => { setEvents(data); setLoading(false) }).catch(() => setLoading(false))
   }, [currentUser])
 
-  const visible = filter === 'all' ? events : events.filter(e => e.category === filter)
+  const visible = events.filter(e => {
+    const matchesCategory = filter === 'all' || e.category === filter
+    const q = search.trim().toLowerCase()
+    const matchesSearch = !q ||
+      e.title.toLowerCase().includes(q) ||
+      e.description.toLowerCase().includes(q) ||
+      e.location.toLowerCase().includes(q) ||
+      (e.host?.full_name ?? '').toLowerCase().includes(q)
+    return matchesCategory && matchesSearch
+  })
 
   const handleCancel = async (ev: CampusEvent) => {
     await cancelEvent(ev.id)
@@ -59,25 +69,47 @@ export default function EventsPage() {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-20 pb-28">
-          <div className="mb-5">
+          <div className="px-0 pt-4 pb-2">
             <h1 className="font-serif text-2xl text-cream">Discover</h1>
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            <button
-              type="button"
-              onClick={() => navigate('/feed')}
-              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
-            >
-              Marketplace
-            </button>
-            <button
-              type="button"
-              className="bg-teal-primary border border-teal-light text-cream rounded-xl py-2.5 text-sm font-bold"
-            >
-              Events
-            </button>
+          <div className="pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch">
+            <div className="flex h-12 bg-slate-card border border-slate-border rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => navigate('/feed')}
+                className="flex-1 h-full text-cream-muted hover:text-cream hover:border-teal-primary rounded-md text-sm font-medium transition-colors"
+              >
+                Marketplace
+              </button>
+              <button
+                type="button"
+                className="flex-1 h-full bg-teal-primary border border-teal-light text-cream rounded-md text-sm font-bold"
+              >
+                Events
+              </button>
+            </div>
+
+            <div className="relative h-12">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search events..."
+                className="w-full h-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between mb-1">
