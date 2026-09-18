@@ -6,30 +6,30 @@ export default {
     extend: {
 colors: {
         slate: {
-          deep: '#0A0F1E',
-          card: '#111827',
-          border: '#1F2D3D',
+          deep: 'rgb(var(--atriumx-bg-deep-rgb) / <alpha-value>)',
+          card: 'rgb(var(--atriumx-bg-card-rgb) / <alpha-value>)',
+          border: 'rgb(var(--atriumx-border-rgb) / <alpha-value>)',
         },
         teal: {
-          primary: '#0D9488',
-          light: '#14B8A6',
-          faint: '#0D948822',
+          primary: 'rgb(var(--atriumx-teal-primary-rgb) / <alpha-value>)',
+          light: 'rgb(var(--atriumx-teal-light-rgb) / <alpha-value>)',
+          faint: 'rgb(var(--atriumx-teal-primary-rgb) / 0.133)',
         },
         sapphire: {
-          primary: '#16305C',
-          light: '#3C5F94',
+          primary: 'rgb(var(--atriumx-sapphire-primary-rgb) / <alpha-value>)',
+          light: 'rgb(var(--atriumx-sapphire-light-rgb) / <alpha-value>)',
         },
         cream: {
-          DEFAULT: '#F0F4F8',
-          muted: '#8B949E',
+          DEFAULT: 'rgb(var(--atriumx-cream-rgb) / <alpha-value>)',
+          muted: 'rgb(var(--atriumx-cream-muted-rgb) / <alpha-value>)',
         },
         gold: {
-          DEFAULT: '#D4A017',
-          muted: '#A6790F',
+          DEFAULT: 'rgb(var(--atriumx-gold-rgb) / <alpha-value>)',
+          muted: 'rgb(var(--atriumx-gold-muted-rgb) / <alpha-value>)',
         },
         ember: {
-          DEFAULT: '#D4A017',
-          dark: '#A6790F',
+          DEFAULT: 'rgb(var(--atriumx-gold-rgb) / <alpha-value>)',
+          dark: 'rgb(var(--atriumx-gold-muted-rgb) / <alpha-value>)',
         },
       },
       fontFamily: {
