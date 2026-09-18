@@ -425,7 +425,7 @@ function GoldPaperFall() {
             key={i}
             style={{
               position: 'absolute', top: '-24px', left: `${left}vw`,
-              width: '7px', height: '14px', background: '#F2B84B',
+              width: '7px', height: '14px', background: 'rgb(var(--atriumx-gold-rgb))',
               transform: `rotate(${rotate}deg)`,
               animation: `goldFall ${duration}s linear ${delay}s forwards`,
             }}
@@ -567,7 +567,7 @@ function PomodoroSection({ userId }: { userId: string }) {
       <TabIntro tab="Pomodoro" />
       <section className="pomodoro-card relative overflow-hidden rounded-3xl border border-slate-border bg-gradient-to-br from-slate-card to-slate-deep p-6 sm:p-8">
         <div className="absolute inset-x-0 bottom-0 h-24 opacity-20 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(13,148,136,0.25),transparent_65%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgb(var(--atriumx-teal-primary-rgb)/0.25),transparent_65%)]" />
         </div>
 
         <div className="relative grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-center">
