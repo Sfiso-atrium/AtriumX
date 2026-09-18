@@ -31,13 +31,13 @@ export default function CategoryChips({
   const select = categories ? (onSelect ?? (() => {})) : setActiveCategory
 
   return (
-    <div className="overflow-x-auto scrollbar-hide px-4 py-3">
+    <div className="overflow-x-auto scrollbar-hide px-0 py-2">
       <div className="flex gap-2 w-max">
         {options.map(cat => (
           <button
             key={cat.id}
             onClick={() => select(cat.id)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors border ${
               current === cat.id
                 ? 'bg-teal-primary text-cream border-teal-light'
                 : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-primary'
