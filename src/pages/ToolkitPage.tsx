@@ -27,10 +27,9 @@ import {
   type Subject, type Formula,
 } from '../data/formulas'
 
-const PAGE_BG = '#FDF3E2'
-const TEXT = 'text-[#3A2E22]'
-const TEXT_MUTED = 'text-[#8A7A5E]'
-const ACCENT = '#C98A1D'
+const PAGE_BG = 'bg-slate-deep'
+const TEXT = 'text-cream'
+const TEXT_MUTED = 'text-cream-muted'
 
 const CATEGORIES: ElementCategory[] = ['metal', 'nonmetal', 'metalloid']
 
@@ -65,7 +64,7 @@ function ElementDetail({ element, onClose }: { element: PeriodicElement; onClose
   return (
     <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/30 px-4 pb-6 sm:pb-0" onClick={onClose}>
       <div
-        className="w-full sm:max-w-sm rounded-3xl border bg-white p-6 flex flex-col gap-3"
+        className="w-full sm:max-w-sm rounded-3xl border border-slate-border bg-slate-card p-6 flex flex-col gap-3"
         style={{ borderColor: color.border }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -141,12 +140,7 @@ function ConversionsView() {
           <button
             key={c.id}
             onClick={() => selectCategory(c.id)}
-            className="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors"
-            style={
-              category === c.id
-                ? { background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }
-                : { background: '#FFFFFF99', borderColor: '#EADFC4', color: '#8A7A5E' }
-            }
+            className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors ${category === c.id ? 'bg-gold/10 border-gold/40 text-gold-muted' : 'bg-slate-card/60 border-slate-border text-cream-muted'}`}
           >
             {c.label}
           </button>
@@ -154,21 +148,19 @@ function ConversionsView() {
       </div>
 
       {/* From */}
-      <div className="rounded-2xl border bg-white/90 p-4 flex flex-col gap-2" style={{ borderColor: `${ACCENT}44` }}>
+      <div className="rounded-2xl border border-slate-border bg-slate-card/90 p-4 flex flex-col gap-2">
         <label className={`text-[11px] ${TEXT_MUTED}`}>From</label>
         <div className="flex gap-2">
           <input
             type="number"
             value={rawValue}
             onChange={(e) => setRawValue(e.target.value)}
-            className={`flex-1 min-w-0 rounded-xl border px-3 py-2 text-lg font-semibold ${TEXT} focus:outline-none`}
-            style={{ borderColor: '#EADFC4' }}
+            className={`flex-1 min-w-0 rounded-xl border border-slate-border px-3 py-2 text-lg font-semibold ${TEXT} bg-slate-deep focus:outline-none`}
           />
           <select
             value={fromId}
             onChange={(e) => setFromId(e.target.value)}
-            className={`rounded-xl border px-2 py-2 text-sm ${TEXT} bg-white`}
-            style={{ borderColor: '#EADFC4' }}
+            className={`rounded-xl border border-slate-border px-2 py-2 text-sm ${TEXT} bg-slate-deep`}
           >
             {units.map((u) => (
               <option key={u.id} value={u.id}>{u.label}</option>
@@ -180,24 +172,22 @@ function ConversionsView() {
       {/* Swap */}
       <button
         onClick={swap}
-        className="self-center text-xs font-semibold px-3 py-1 rounded-full border"
-        style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+        className="self-center text-xs font-semibold px-3 py-1 rounded-full border border-slate-border text-cream-muted"
       >
         ⇅ Swap
       </button>
 
       {/* To */}
-      <div className="rounded-2xl border p-4 flex flex-col gap-2" style={{ background: `${ACCENT}14`, borderColor: `${ACCENT}66` }}>
-        <label className="text-[11px]" style={{ color: '#8A5E12' }}>To</label>
+      <div className="rounded-2xl border border-gold/40 bg-gold/10 p-4 flex flex-col gap-2">
+        <label className="text-[11px] text-gold-muted">To</label>
         <div className="flex gap-2">
-          <div className="flex-1 min-w-0 rounded-xl border px-3 py-2 text-lg font-semibold bg-white/80 truncate" style={{ borderColor: `${ACCENT}44`, color: '#8A5E12' }}>
+          <div className="flex-1 min-w-0 rounded-xl border border-gold/30 px-3 py-2 text-lg font-semibold bg-slate-card/80 text-gold-muted truncate">
             {resultDisplay || '—'}
           </div>
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            className="rounded-xl border px-2 py-2 text-sm bg-white"
-            style={{ borderColor: `${ACCENT}44`, color: '#8A5E12' }}
+            className="rounded-xl border border-gold/30 px-2 py-2 text-sm bg-slate-card text-gold-muted"
           >
             {units.map((u) => (
               <option key={u.id} value={u.id}>{u.label}</option>
@@ -213,13 +203,12 @@ function FormulaDetail({ formula, onClose }: { formula: Formula; onClose: () => 
   return (
     <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/30 px-4 pb-6 sm:pb-0" onClick={onClose}>
       <div
-        className="w-full sm:max-w-sm rounded-3xl border bg-white p-6 flex flex-col gap-4 max-h-[85vh] overflow-y-auto"
-        style={{ borderColor: `${ACCENT}66` }}
+        className="w-full sm:max-w-sm rounded-3xl border border-gold/40 bg-slate-card p-6 flex flex-col gap-4 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide" style={{ color: '#8A5E12' }}>{formula.topic}</p>
+            <p className="text-xs uppercase tracking-wide text-gold-muted">{formula.topic}</p>
             <h2 className={`font-serif text-2xl font-bold ${TEXT}`}>{formula.name}</h2>
           </div>
           <button onClick={onClose} className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${TEXT_MUTED} hover:opacity-70`}>
@@ -227,7 +216,7 @@ function FormulaDetail({ formula, onClose }: { formula: Formula; onClose: () => 
           </button>
         </div>
 
-        <div className="rounded-2xl p-4 font-mono text-base font-semibold" style={{ background: `${ACCENT}14`, color: '#8A5E12' }}>
+        <div className="rounded-2xl p-4 font-mono text-base font-semibold bg-gold/10 text-gold-muted">
           {formula.expression}
         </div>
 
@@ -246,7 +235,7 @@ function FormulaDetail({ formula, onClose }: { formula: Formula; onClose: () => 
         </div>
 
         {formula.notes && (
-          <p className={`text-[12px] leading-relaxed ${TEXT_MUTED} border-t pt-3`} style={{ borderColor: '#EADFC4' }}>
+          <p className={`text-[12px] leading-relaxed ${TEXT_MUTED} border-t border-slate-border pt-3`}>
             {formula.notes}
           </p>
         )}
@@ -281,12 +270,7 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
           <button
             key={s}
             onClick={() => setSubject(s)}
-            className="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors"
-            style={
-              subject === s
-                ? { background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }
-                : { background: '#FFFFFF99', borderColor: '#EADFC4', color: '#8A7A5E' }
-            }
+            className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors ${subject === s ? 'bg-gold/10 border-gold/40 text-gold-muted' : 'bg-slate-card/60 border-slate-border text-cream-muted'}`}
           >
             {SUBJECT_LABEL[s]}
           </button>
@@ -300,8 +284,7 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by formula name, topic, or variable"
-          className={`w-full rounded-2xl border bg-white/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none`}
-          style={{ borderColor: `${ACCENT}66` }}
+          className={`w-full rounded-2xl border border-slate-border bg-slate-card/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:text-cream-muted focus:outline-none`}
         />
       </div>
 
@@ -321,18 +304,18 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
             // without an extra tap — manual toggles only matter when browsing.
             const isOpen = isSearching || openTopics.has(topic)
             return (
-              <div key={topic} className="rounded-2xl border bg-white/90 overflow-hidden" style={{ borderColor: '#EADFC4' }}>
+              <div key={topic} className="rounded-2xl border border-slate-border bg-slate-card/90 overflow-hidden">
                 <button
                   onClick={() => toggleTopic(topic)}
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
-                  <span className="text-sm font-bold" style={{ color: '#8A5E12' }}>{topic}</span>
+                  <span className="text-sm font-bold text-gold-muted">{topic}</span>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs ${TEXT_MUTED}`}>{topicFormulas.length}</span>
                     <ChevronDown
                       size={16}
-                      className="transition-transform"
-                      style={{ color: '#8A7A5E', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      className={`${TEXT_MUTED} transition-transform`}
+                      style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
                     />
                   </div>
                 </button>
@@ -342,8 +325,7 @@ function FormulasView({ onSelect }: { onSelect: (f: Formula) => void }) {
                       <button
                         key={f.id}
                         onClick={() => onSelect(f)}
-                        className="text-left rounded-xl border bg-white px-4 py-3 transition-transform active:scale-[0.99]"
-                        style={{ borderColor: '#EADFC4' }}
+                        className="text-left rounded-xl border border-slate-border bg-slate-deep px-4 py-3 transition-transform active:scale-[0.99]"
                       >
                         <p className={`text-sm font-semibold ${TEXT}`}>{f.name}</p>
                         <p className={`text-xs font-mono mt-0.5 truncate ${TEXT_MUTED}`}>{f.expression}</p>
@@ -386,16 +368,16 @@ export default function ToolkitPage() {
     .sort((a, b) => (a.footnoteIndex ?? 0) - (b.footnoteIndex ?? 0))
 
   return (
-    <div className="min-h-[100dvh]" style={{ backgroundColor: PAGE_BG }}>
+    <div className={`min-h-[100dvh] ${PAGE_BG}`}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-5">
         <button
           onClick={() => navigate('/focus')}
-          className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`}
+          className={`w-9 h-9 rounded-xl bg-slate-card shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`}
         >
           <X size={18} />
         </button>
-        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
+        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-slate-card shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
       </div>
 
       <div className="max-w-2xl mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
@@ -411,10 +393,9 @@ export default function ToolkitPage() {
         {/* A single tab for the tool you're actually on - switching tools
             now happens through the dropdown above, not by tapping between
             tabs that were all visible at once. */}
-        <div className="border-b" style={{ borderColor: '#EADFC4' }}>
+        <div className="border-b border-slate-border">
           <span
-            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2"
-            style={{ borderColor: ACCENT, color: '#8A5E12' }}
+            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2 border-gold text-gold-muted"
           >
             {tab === 'ptable' ? 'Periodic Table' : tab === 'conversions' ? 'Conversions' : 'Formulas'}
           </span>
@@ -429,8 +410,7 @@ export default function ToolkitPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by name, symbol, or atomic number"
-                className={`w-full rounded-2xl border bg-white/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none`}
-                style={{ borderColor: `${ACCENT}66` }}
+                className={`w-full rounded-2xl border border-slate-border bg-slate-card/90 pl-9 pr-4 py-2.5 text-sm ${TEXT} placeholder:text-cream-muted focus:outline-none`}
               />
             </div>
 
