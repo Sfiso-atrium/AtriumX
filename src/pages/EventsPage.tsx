@@ -132,18 +132,7 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <div className="px-4 pt-2 pb-1 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="font-serif text-2xl text-cream">Events</h2>
-              <p className="text-cream-muted text-sm mt-1">What's happening at your university.</p>
-            </div>
-            <button
-              onClick={() => navigate('/post-event')}
-              className="flex items-center gap-1.5 bg-gold text-slate-deep font-bold text-xs px-3 py-2 rounded-xl"
-            >
-              <Plus size={14} /> Post
-            </button>
-          </div>
+
 
           <div className="px-4 pt-3">
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
