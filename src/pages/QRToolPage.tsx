@@ -18,10 +18,9 @@ import QRCode from 'qrcode'
 import jsQR from 'jsqr'
 import ToolsMenu from '../components/common/ToolsMenu'
 
-const PAGE_BG = '#FDF3E2'
-const TEXT = 'text-[#3A2E22]'
-const TEXT_MUTED = 'text-[#8A7A5E]'
-const ACCENT = '#C98A1D'
+const PAGE_BG = 'bg-slate-deep'
+const TEXT = 'text-cream'
+const TEXT_MUTED = 'text-cream-muted'
 
 function looksLikeUrl(text: string): boolean {
   try {
@@ -49,7 +48,7 @@ function GenerateView() {
     QRCode.toCanvas(canvas, generated, {
       width: 240,
       margin: 1,
-      color: { dark: '#3A2E22', light: '#FDF3E2' },
+      color: { dark: 'rgb(var(--atriumx-cream-rgb))', light: 'rgb(var(--atriumx-bg-deep-rgb))' },
     }).catch(() => {})
   }, [generated])
 
@@ -88,14 +87,12 @@ function GenerateView() {
         placeholder="Paste a link or type any text, then press Enter to generate"
         rows={3}
         enterKeyHint="go"
-        className={`w-full rounded-2xl border bg-white/90 px-4 py-3 text-sm ${TEXT} placeholder:${TEXT_MUTED} focus:outline-none resize-none`}
-        style={{ borderColor: `${ACCENT}66` }}
+        className={`w-full rounded-2xl border border-slate-border bg-slate-card/90 px-4 py-3 text-sm ${TEXT} placeholder:text-cream-muted focus:outline-none resize-none`}
       />
 
       <div className="flex flex-col items-center gap-3 py-4">
         <div
-          className="rounded-2xl border p-4 bg-white flex items-center justify-center"
-          style={{ borderColor: `${ACCENT}44`, width: 272, height: 272 }}
+          className="rounded-2xl border border-slate-border p-4 bg-white flex items-center justify-center" style={{ width: 272, height: 272 }}
         >
           {generated.trim() ? (
             <canvas ref={canvasRef} width={240} height={240} />
@@ -109,15 +106,13 @@ function GenerateView() {
           <div className="flex gap-2">
             <button
               onClick={downloadPng}
-              className="px-4 py-2 rounded-full text-xs font-semibold border"
-              style={{ background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }}
+              className="px-4 py-2 rounded-full text-xs font-semibold border bg-gold/10 border-gold/40 text-gold-muted"
             >
               Save image
             </button>
             <button
               onClick={copyText}
-              className="px-4 py-2 rounded-full text-xs font-semibold border flex items-center gap-1.5"
-              style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-slate-border text-cream-muted flex items-center gap-1.5"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
               {copied ? 'Copied' : 'Copy text'}
@@ -213,8 +208,7 @@ function ScanView() {
           <p className={`text-sm ${TEXT}`}>{error}</p>
           <button
             onClick={scanAgain}
-            className="px-4 py-2 rounded-full text-xs font-semibold border"
-            style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+            className="px-4 py-2 rounded-full text-xs font-semibold border border-slate-border text-cream-muted"
           >
             Try again
           </button>
@@ -229,8 +223,7 @@ function ScanView() {
                 href={result}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 rounded-full text-xs font-semibold border flex items-center gap-1.5"
-                style={{ background: `${ACCENT}22`, borderColor: `${ACCENT}88`, color: '#8A5E12' }}
+                className="px-4 py-2 rounded-full text-xs font-semibold border bg-gold/10 border-gold/40 text-gold-muted flex items-center gap-1.5"
               >
                 <ExternalLink size={13} />
                 Open link
@@ -238,8 +231,7 @@ function ScanView() {
             )}
             <button
               onClick={copyResult}
-              className="px-4 py-2 rounded-full text-xs font-semibold border flex items-center gap-1.5"
-              style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-slate-border text-cream-muted flex items-center gap-1.5"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
               {copied ? 'Copied' : 'Copy'}
@@ -247,7 +239,7 @@ function ScanView() {
             <button
               onClick={scanAgain}
               className="px-4 py-2 rounded-full text-xs font-semibold border"
-              style={{ borderColor: '#EADFC4', color: '#8A7A5E' }}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-slate-border text-cream-muted"
             >
               Scan again
             </button>
@@ -255,12 +247,11 @@ function ScanView() {
         </div>
       ) : (
         <div
-          className="rounded-2xl overflow-hidden border relative bg-black"
-          style={{ borderColor: `${ACCENT}44`, aspectRatio: '1 / 1' }}
+          className="rounded-2xl overflow-hidden border border-slate-border relative bg-black" style={{ aspectRatio: '1 / 1' }}
         >
           <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
           <canvas ref={canvasRef} className="hidden" />
-          <div className="absolute inset-6 border-2 rounded-2xl pointer-events-none" style={{ borderColor: '#FDF3E2AA' }} />
+          <div className="absolute inset-6 border-2 border-cream/50 rounded-2xl pointer-events-none" />
         </div>
       )}
       {!result && !error && (
@@ -280,15 +271,15 @@ export default function QRToolPage() {
   const tab: 'scan' | 'generate' = requestedMode === 'generate' ? 'generate' : 'scan'
 
   return (
-    <div className="min-h-[100dvh]" style={{ backgroundColor: PAGE_BG }}>
+    <div className={`min-h-[100dvh] ${PAGE_BG}`}>
       <div className="flex items-center justify-between px-5 pt-5">
         <button
           onClick={() => navigate('/focus')}
-          className={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`}
+          className={`w-9 h-9 rounded-xl bg-slate-card shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`}
         >
           <X size={18} />
         </button>
-        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
+        <ToolsMenu triggerClassName={`w-9 h-9 rounded-xl bg-slate-card shadow-sm flex items-center justify-center ${TEXT} hover:opacity-70 transition-opacity`} />
       </div>
 
       <div className="max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
@@ -302,10 +293,9 @@ export default function QRToolPage() {
         {/* A single tab for the mode you're actually on - switching
             between Scanner and Generator now happens through the dropdown
             above, under QR Code's own submenu. */}
-        <div className="border-b" style={{ borderColor: '#EADFC4' }}>
+        <div className="border-b border-slate-border">
           <span
-            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2"
-            style={{ borderColor: ACCENT, color: '#8A5E12' }}
+            className="inline-block px-4 py-2 text-sm font-semibold -mb-px border-b-2 border-gold text-gold-muted"
           >
             {tab === 'scan' ? 'Scanner' : 'Generator'}
           </span>
