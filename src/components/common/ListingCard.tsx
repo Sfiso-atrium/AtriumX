@@ -25,10 +25,10 @@ const navigate = useNavigate()
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className={`relative bg-slate-card rounded-2xl overflow-hidden transition-colors cursor-pointer ${
+      className={`relative bg-slate-card/75 rounded-2xl overflow-hidden transition-all cursor-pointer ${
         isFeatured
-          ? 'border-2 border-gold hover:border-gold'
-          : 'border border-slate-border hover:border-teal-primary'
+          ? 'ring-1 ring-gold/45 hover:ring-gold/60'
+          : 'hover:bg-slate-card/90 hover:shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
       }`}
     >
       {isFeatured && (
@@ -43,7 +43,7 @@ const navigate = useNavigate()
             {listing.title}
           </h3>
           {!isFeatured && badge && (
-            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
+            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/65 text-gold">
               {badge}
             </span>
           )}
@@ -59,7 +59,7 @@ const navigate = useNavigate()
               <Star
                 key={i}
                 size={13}
-                className={i < Math.round(sellerData.avg_rating) ? 'fill-gold text-gold' : 'text-slate-border'}
+                className={i < Math.round(sellerData.avg_rating) ? 'fill-gold text-gold' : 'text-cream-muted/35'}
               />
             ))}
             <span className="text-cream-muted text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
@@ -79,14 +79,14 @@ const navigate = useNavigate()
             {listing.custom_category || listing.category}
           </span>
           {listing.is_negotiable && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold">
               Open to offers
             </span>
           )}
         </div>
 
 {isOwner && (
-          <div className="flex items-center justify-between pt-1 border-t border-slate-border">
+          <div className="flex items-center justify-between pt-1">
             <span className="text-cream-muted text-xs">{contactCount} interested</span>
             <div className="flex items-center gap-3">
               {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
