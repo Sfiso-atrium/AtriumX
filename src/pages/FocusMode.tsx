@@ -1,7 +1,7 @@
 // src/pages/FocusMode.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Play, Pause, RotateCcw, Heart, Target, Flame, GraduationCap, Coffee, NotebookPen } from 'lucide-react'
+import { X, Play, Pause, RotateCcw, Target, Flame, GraduationCap, Coffee, NotebookPen, ChevronDown } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useFocusSession } from '../hooks/useFocusSession'
 import { getTodayStudyMinutes } from '../services/dataService'
@@ -83,55 +83,92 @@ export default function FocusMode() {
     setEnteredTimerView(false)
   }
 
-  // Focus Mode opens in the normal AtriumX visual language with no page photography.
-  // Cozy Mode restores the existing neutral focus imagery; Girly Mode restores the
-  // existing pink imagery. Session behaviour is independent of visual mode.
+  // AtriumX is the web default with bubbles. Cozy and Girly restore the
+  // previous full-page desk photography; the timer/card behaviour remains unchanged.
   const theme = visualMode === 'girly'
     ? {
-        text: 'text-[var(--atriumx-focus-girly-text)]',
-        textMuted: 'text-[var(--atriumx-focus-girly-muted)]',
-        accent: 'var(--atriumx-focus-girly-accent)',
-        accentSoft: 'var(--atriumx-focus-girly-accent-soft)',
-        accentWash: 'color-mix(in srgb, var(--atriumx-focus-girly-accent) 13%, transparent)',
+        pageBg: '#FBE4EC',
+        pageImage: '/images/focus/desk-bg-pink.png',
+        text: 'text-[#3A1E2C]',
+        textMuted: 'text-[#8A5872]',
+        accent: '#C2185B',
+        accentSoft: '#F48FB1',
+        accentWash: '#C2185B22',
         studyImage: '/images/focus/study-pink.png',
         breakImage: '/images/focus/break-pink.png',
-        studyLabel: 'var(--atriumx-focus-girly-accent)',
-        breakLabel: 'var(--atriumx-focus-girly-break)',
-        cardBg: 'bg-[var(--atriumx-focus-girly-card)] border-[var(--atriumx-focus-girly-border)]',
-        activeCard: 'border-[var(--atriumx-focus-girly-accent)]/30',
-        statBg: 'bg-[var(--atriumx-focus-girly-card-strong)] border-[var(--atriumx-focus-girly-border)]',
-        progressTrack: 'var(--atriumx-focus-girly-track)',
-        controlBg: 'bg-[var(--atriumx-focus-girly-card-strong)]',
-        bubbles: [
-          'color-mix(in srgb, var(--atriumx-focus-girly-accent) 16%, transparent)',
-          'color-mix(in srgb, var(--atriumx-focus-girly-break) 13%, transparent)',
-          'color-mix(in srgb, var(--atriumx-focus-girly-accent-soft) 18%, transparent)',
-        ],
+        studyLabel: '#C2185B',
+        breakLabel: '#8B5FBF',
+        cardBg: 'bg-white/80 border-[#F3B6CE]',
+        activeCard: 'border-[#C2185B]/30',
+        statBg: 'bg-white/90 border-[#F3B6CE]',
+        progressTrack: '#F6C9DB',
+        controlBg: 'bg-white/90',
+        bubbles: [],
       }
-    : {
-        text: 'text-cream',
-        textMuted: 'text-cream-muted',
-        accent: 'rgb(var(--atriumx-gold-rgb))',
-        accentSoft: 'rgb(var(--atriumx-border-rgb))',
-        accentWash: 'rgb(var(--atriumx-gold-rgb) / 0.13)',
-        studyImage: visualMode === 'cozy' ? '/images/focus/study-neutral.png' : null,
-        breakImage: visualMode === 'cozy' ? '/images/focus/break-neutral.png' : null,
-        studyLabel: 'rgb(var(--atriumx-teal-light-rgb))',
-        breakLabel: 'rgb(var(--atriumx-gold-rgb))',
-        cardBg: 'bg-slate-card/80 border-slate-border',
-        activeCard: 'border-gold/30',
-        statBg: 'bg-slate-card/90 border-slate-border',
-        progressTrack: 'rgb(var(--atriumx-border-rgb))',
-        controlBg: 'bg-slate-card/90',
-        bubbles: [
-          'color-mix(in srgb, rgb(var(--atriumx-teal-light-rgb)) 16%, transparent)',
-          'color-mix(in srgb, rgb(var(--atriumx-gold-rgb)) 13%, transparent)',
-          'color-mix(in srgb, rgb(var(--atriumx-sapphire-light-rgb)) 14%, transparent)',
-        ],
-      }
+    : visualMode === 'cozy'
+      ? {
+          pageBg: '#FDF3E2',
+          pageImage: '/images/focus/desk-bg-neutral.png',
+          text: 'text-[#2B2013]',
+          textMuted: 'text-[#8A7A5E]',
+          accent: '#C98A1D',
+          accentSoft: '#E9C98A',
+          accentWash: '#C98A1D22',
+          studyImage: '/images/focus/study-neutral.png',
+          breakImage: '/images/focus/break-neutral.png',
+          studyLabel: '#C98A1D',
+          breakLabel: '#8B5FBF',
+          cardBg: 'bg-white/80 border-[#EADFC4]',
+          activeCard: 'border-[#C98A1D]/30',
+          statBg: 'bg-white/90 border-[#EADFC4]',
+          progressTrack: '#F1E2C0',
+          controlBg: 'bg-white/90',
+          bubbles: [],
+        }
+      : {
+          pageBg: 'rgb(var(--atriumx-bg-deep-rgb))',
+          pageImage: null,
+          text: 'text-cream',
+          textMuted: 'text-cream-muted',
+          accent: 'rgb(var(--atriumx-gold-rgb))',
+          accentSoft: 'rgb(var(--atriumx-border-rgb))',
+          accentWash: 'rgb(var(--atriumx-gold-rgb) / 0.13)',
+          studyImage: null,
+          breakImage: null,
+          studyLabel: 'rgb(var(--atriumx-teal-light-rgb))',
+          breakLabel: 'rgb(var(--atriumx-gold-rgb))',
+          cardBg: 'bg-slate-card/80 border-slate-border',
+          activeCard: 'border-gold/30',
+          statBg: 'bg-slate-card/90 border-slate-border',
+          progressTrack: 'rgb(var(--atriumx-border-rgb))',
+          controlBg: 'bg-slate-card/90',
+          bubbles: [
+            'color-mix(in srgb, rgb(var(--atriumx-teal-light-rgb)) 16%, transparent)',
+            'color-mix(in srgb, rgb(var(--atriumx-gold-rgb)) 13%, transparent)',
+            'color-mix(in srgb, rgb(var(--atriumx-sapphire-light-rgb)) 14%, transparent)',
+          ],
+        }
+
+  const visualModeLabel = visualMode === 'atriumx'
+    ? 'AtriumX'
+    : visualMode === 'cozy'
+      ? 'Cozy Mode'
+      : 'Girly Mode'
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden transition-colors duration-500 bg-slate-deep text-cream">
+    <div
+      className="min-h-[100dvh] relative overflow-hidden bg-cover bg-center transition-colors duration-500"
+      style={{
+        backgroundColor: theme.pageBg,
+        ...(theme.pageImage ? { backgroundImage: `url(${theme.pageImage})` } : {}),
+      }}
+    >
+      {theme.pageImage && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `${theme.pageBg}cc` }}
+        />
+      )}
 
       {/* Top bar — z-30 so its dropdown (Toolbox, and QR's nested panel)
           always paints above the content below, which sits at z-10. Equal
@@ -154,38 +191,31 @@ export default function FocusMode() {
           >
             <NotebookPen size={17} />
           </button>
-          <div className={`flex items-center gap-1 p-1 rounded-full border ${theme.controlBg} shadow-sm`} aria-label="Focus visual mode">
-            <button
-              onClick={() => setVisualMode('atriumx')}
-              className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'atriumx' ? 'bg-slate-deep text-cream' : 'text-cream-muted hover:text-cream'}`}
-              aria-pressed={visualMode === 'atriumx'}
+          <div className="relative">
+            <select
+              value={visualMode}
+              onChange={e => setVisualMode(e.target.value as 'atriumx' | 'cozy' | 'girly')}
+              aria-label="Focus visual mode"
+              className={`appearance-none pr-8 pl-3.5 py-2 rounded-xl border text-xs font-bold shadow-sm focus:outline-none ${theme.controlBg} ${theme.text}`}
             >
-              AtriumX
-            </button>
-            <button
-              onClick={() => setVisualMode('cozy')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'cozy' ? 'bg-gold/15 text-gold' : 'text-cream-muted hover:text-cream'}`}
-              aria-pressed={visualMode === 'cozy'}
-            >
-              <Coffee size={12} /> Cozy Mode
-            </button>
-            <button
-              onClick={() => setVisualMode('girly')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'girly' ? 'text-[var(--atriumx-focus-girly-accent)]' : 'text-cream-muted hover:text-cream'}`}
-              aria-pressed={visualMode === 'girly'}
-            >
-              <Heart size={12} fill={visualMode === 'girly' ? 'var(--atriumx-focus-girly-accent)' : 'none'} /> Girly Mode
-            </button>
+              <option value="atriumx">AtriumX</option>
+              <option value="cozy">Cozy Mode</option>
+              <option value="girly">Girly Mode</option>
+            </select>
+            <ChevronDown size={14} className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted}`} />
+            <span className="sr-only">Current mode: {visualModeLabel}</span>
           </div>
         </div>
       </div>
 
-      <div className="focus-mode-bubbles pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <span className="focus-bubble focus-bubble--one" style={{ background: theme.bubbles[0] }} />
-        <span className="focus-bubble focus-bubble--two" style={{ background: theme.bubbles[1] }} />
-        <span className="focus-bubble focus-bubble--three" style={{ background: theme.bubbles[2] }} />
-        <span className="focus-bubble focus-bubble--four" style={{ background: theme.bubbles[0] }} />
-      </div>
+      {theme.bubbles.length > 0 && (
+        <div className="focus-mode-bubbles pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+          <span className="focus-bubble focus-bubble--one" style={{ background: theme.bubbles[0] }} />
+          <span className="focus-bubble focus-bubble--two" style={{ background: theme.bubbles[1] }} />
+          <span className="focus-bubble focus-bubble--three" style={{ background: theme.bubbles[2] }} />
+          <span className="focus-bubble focus-bubble--four" style={{ background: theme.bubbles[0] }} />
+        </div>
+      )}
 
       <div className="relative z-10 max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
         {showResumePrompt && (
