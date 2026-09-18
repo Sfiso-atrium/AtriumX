@@ -7,19 +7,19 @@
   --atriumx-bg-card-rgb: 252 253 255;
   --atriumx-border-rgb: 234 240 248;
 
-  /* AtriumX action colour — blue is the single dominant accent. */
-  --atriumx-teal-primary-rgb: 37 99 235;
-  --atriumx-teal-light-rgb: 59 130 246;
-  --atriumx-sapphire-primary-rgb: 29 78 216;
-  --atriumx-sapphire-light-rgb: 96 165 250;
+  /* AtriumX action colour — restored to the existing gold accent. */
+  --atriumx-teal-primary-rgb: 212 160 23;
+  --atriumx-teal-light-rgb: 233 201 138;
+  --atriumx-sapphire-primary-rgb: 184 134 11;
+  --atriumx-sapphire-light-rgb: 245 214 151;
 
   /* Main and supporting text. */
   --atriumx-cream-rgb: 15 23 42;
   --atriumx-cream-muted-rgb: 100 116 139;
 
-  /* Legacy accent tokens now point to the same blue family. */
-  --atriumx-gold-rgb: 37 99 235;
-  --atriumx-gold-muted-rgb: 29 78 216;
+  /* Gold remains the shared AtriumX action/accent family. */
+  --atriumx-gold-rgb: 212 160 23;
+  --atriumx-gold-muted-rgb: 184 134 11;
 
   /* Existing Focus Mode alternate palette. */
   --atriumx-focus-girly-text: #3A1E2C;
