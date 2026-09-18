@@ -18,7 +18,7 @@ function formatTime(totalSeconds: number) {
 export default function FocusMode() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
-  const [girly, setGirly] = useState(false)
+  const [visualMode, setVisualMode] = useState<'atriumx' | 'cozy' | 'girly'>('atriumx')
 
   // Draft values for the setup form — only committed to the shared
   // session (and localStorage) once "Start Focus Session" is pressed.
@@ -83,10 +83,10 @@ export default function FocusMode() {
     setEnteredTimerView(false)
   }
 
-  // Focus defaults to the same AtriumX palette as the rest of the site.
-  // Girly Mode remains an explicit optional theme; its current pink palette
-  // is kept intact but is no longer embedded into the standard page theme.
-  const theme = girly
+  // Focus Mode opens in the normal AtriumX visual language with no page photography.
+  // Cozy Mode restores the existing neutral focus imagery; Girly Mode restores the
+  // existing pink imagery. Session behaviour is independent of visual mode.
+  const theme = visualMode === 'girly'
     ? {
         text: 'text-[var(--atriumx-focus-girly-text)]',
         textMuted: 'text-[var(--atriumx-focus-girly-muted)]',
@@ -102,6 +102,11 @@ export default function FocusMode() {
         statBg: 'bg-[var(--atriumx-focus-girly-card-strong)] border-[var(--atriumx-focus-girly-border)]',
         progressTrack: 'var(--atriumx-focus-girly-track)',
         controlBg: 'bg-[var(--atriumx-focus-girly-card-strong)]',
+        bubbles: [
+          'color-mix(in srgb, var(--atriumx-focus-girly-accent) 16%, transparent)',
+          'color-mix(in srgb, var(--atriumx-focus-girly-break) 13%, transparent)',
+          'color-mix(in srgb, var(--atriumx-focus-girly-accent-soft) 18%, transparent)',
+        ],
       }
     : {
         text: 'text-cream',
@@ -109,8 +114,8 @@ export default function FocusMode() {
         accent: 'rgb(var(--atriumx-gold-rgb))',
         accentSoft: 'rgb(var(--atriumx-border-rgb))',
         accentWash: 'rgb(var(--atriumx-gold-rgb) / 0.13)',
-        studyImage: '/images/focus/study-neutral.png',
-        breakImage: '/images/focus/break-neutral.png',
+        studyImage: visualMode === 'cozy' ? '/images/focus/study-neutral.png' : null,
+        breakImage: visualMode === 'cozy' ? '/images/focus/break-neutral.png' : null,
         studyLabel: 'rgb(var(--atriumx-teal-light-rgb))',
         breakLabel: 'rgb(var(--atriumx-gold-rgb))',
         cardBg: 'bg-slate-card/80 border-slate-border',
@@ -118,6 +123,11 @@ export default function FocusMode() {
         statBg: 'bg-slate-card/90 border-slate-border',
         progressTrack: 'rgb(var(--atriumx-border-rgb))',
         controlBg: 'bg-slate-card/90',
+        bubbles: [
+          'color-mix(in srgb, rgb(var(--atriumx-teal-light-rgb)) 16%, transparent)',
+          'color-mix(in srgb, rgb(var(--atriumx-gold-rgb)) 13%, transparent)',
+          'color-mix(in srgb, rgb(var(--atriumx-sapphire-light-rgb)) 14%, transparent)',
+        ],
       }
 
   return (
@@ -144,16 +154,37 @@ export default function FocusMode() {
           >
             <NotebookPen size={17} />
           </button>
-          <button
-            onClick={() => setGirly(g => !g)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-colors ${theme.controlBg} shadow-sm ${
-              girly ? 'border-[var(--atriumx-focus-girly-accent)] text-[var(--atriumx-focus-girly-accent)]' : 'border-slate-border text-cream-muted'
-            }`}
-          >
-            <Heart size={13} fill={girly ? 'var(--atriumx-focus-girly-accent)' : 'none'} />
-            {girly ? 'Girly Mode' : 'AtriumX Mode'}
-          </button>
+          <div className={`flex items-center gap-1 p-1 rounded-full border ${theme.controlBg} shadow-sm`} aria-label="Focus visual mode">
+            <button
+              onClick={() => setVisualMode('atriumx')}
+              className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'atriumx' ? 'bg-slate-deep text-cream' : 'text-cream-muted hover:text-cream'}`}
+              aria-pressed={visualMode === 'atriumx'}
+            >
+              AtriumX
+            </button>
+            <button
+              onClick={() => setVisualMode('cozy')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'cozy' ? 'bg-gold/15 text-gold' : 'text-cream-muted hover:text-cream'}`}
+              aria-pressed={visualMode === 'cozy'}
+            >
+              <Coffee size={12} /> Cozy Mode
+            </button>
+            <button
+              onClick={() => setVisualMode('girly')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${visualMode === 'girly' ? 'text-[var(--atriumx-focus-girly-accent)]' : 'text-cream-muted hover:text-cream'}`}
+              aria-pressed={visualMode === 'girly'}
+            >
+              <Heart size={12} fill={visualMode === 'girly' ? 'var(--atriumx-focus-girly-accent)' : 'none'} /> Girly Mode
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div className="focus-mode-bubbles pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <span className="focus-bubble focus-bubble--one" style={{ background: theme.bubbles[0] }} />
+        <span className="focus-bubble focus-bubble--two" style={{ background: theme.bubbles[1] }} />
+        <span className="focus-bubble focus-bubble--three" style={{ background: theme.bubbles[2] }} />
+        <span className="focus-bubble focus-bubble--four" style={{ background: theme.bubbles[0] }} />
       </div>
 
       <div className="relative z-10 max-w-md mx-auto px-5 pb-10 pt-6 flex flex-col gap-5">
@@ -230,12 +261,12 @@ export default function FocusMode() {
 
         {showTimer && (
           <>
-            {/* STUDY card — lamp/plant photo bled into the right edge, text on the left */}
+            {/* STUDY card — imagery appears only in Cozy or Girly visual mode. */}
             <div
-              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] bg-cover bg-no-repeat bg-right transition-all ${phase === 'study' ? theme.activeCard : theme.cardBg}`}
-              style={{ backgroundImage: `url(${theme.studyImage})` }}
+              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] ${theme.cardBg} transition-all ${phase === 'study' ? theme.activeCard : ''}`}
+              style={theme.studyImage ? { backgroundImage: `url(${theme.studyImage})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'right' } : undefined}
             >
-              <div className="relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center">
+              <div className={`relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center ${theme.studyImage ? 'pr-2' : ''}` }>
                 <p
                   className="text-[11px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"
                   style={{ color: theme.studyLabel }}
@@ -263,12 +294,12 @@ export default function FocusMode() {
               </div>
             </div>
 
-            {/* BREAK card — armchair/cushion photo bled into the right edge */}
+            {/* BREAK card — imagery appears only in Cozy or Girly visual mode. */}
             <div
-              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] bg-cover bg-no-repeat bg-right transition-all ${phase === 'break' ? theme.activeCard : theme.cardBg}`}
-              style={{ backgroundImage: `url(${theme.breakImage})` }}
+              className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 min-h-[220px] sm:min-h-[260px] ${theme.cardBg} transition-all ${phase === 'break' ? theme.activeCard : ''}`}
+              style={theme.breakImage ? { backgroundImage: `url(${theme.breakImage})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'right' } : undefined}
             >
-              <div className="relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center">
+              <div className={`relative max-w-[65%] sm:max-w-[60%] h-full flex flex-col justify-center ${theme.breakImage ? 'pr-2' : ''}` }>
                 <p
                   className="text-[11px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"
                   style={{ color: theme.breakLabel }}
