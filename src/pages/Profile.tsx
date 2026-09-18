@@ -58,8 +58,9 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
           <span className="text-cream font-bold">{profile.full_name}</span>
         </div>
 
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
-          <div className="flex items-start gap-4 mb-6">
+        <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+          <div className="bg-slate-card border border-slate-border rounded-2xl p-5 mb-6">
+          <div className="flex items-start gap-4">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
               style={{ backgroundColor: profile.avatar_color }}
@@ -83,7 +84,23 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
                 {new Date(profile.joined_date).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
               </p>
             </div>
-</div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-slate-border">
+            <div className="rounded-xl bg-slate-deep/40 px-3 py-2.5 text-center">
+              <p className="text-cream font-bold text-sm">{profile.total_listings}</p>
+              <p className="text-cream-muted text-[11px]">Listings</p>
+            </div>
+            <div className="rounded-xl bg-slate-deep/40 px-3 py-2.5 text-center">
+              <p className="text-cream font-bold text-sm">{profile.avg_rating > 0 ? profile.avg_rating : '—'}</p>
+              <p className="text-cream-muted text-[11px]">Rating</p>
+            </div>
+            <div className="rounded-xl bg-slate-deep/40 px-3 py-2.5 text-center">
+              <p className="text-cream font-bold text-sm">{new Date(profile.joined_date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}</p>
+              <p className="text-cream-muted text-[11px]">Joined</p>
+            </div>
+          </div>
+          </div>
 
           {profile.account_type === 'business' && (business?.physical_address || business?.website) && (
             <div className="flex flex-col gap-1.5 mb-6 text-sm">
@@ -113,7 +130,7 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
             </p>
           )}
           {isOwn && (
-            <div className="flex flex-col gap-2 mb-6">
+            <div className="grid grid-cols-2 gap-2 mb-6">
               <button
                 onClick={() => navigate('/profile/edit')}
                 className="w-full border border-slate-border hover:border-teal-primary text-cream text-sm font-medium py-2.5 rounded-xl transition-colors"
@@ -129,9 +146,13 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
             </div>
           )}
 
-          <h2 className="text-cream font-bold text-base mb-3">
-            Active Listings ({activeListings.length})
-          </h2>
+          <div className="flex items-end justify-between gap-3 mb-3">
+            <div>
+              <p className="text-cream-muted text-xs uppercase tracking-wide">{isOwn ? 'Your AtriumX' : 'AtriumX'}</p>
+              <h2 className="text-cream font-bold text-lg">{isOwn ? 'My Listings' : 'Active Listings'}</h2>
+            </div>
+            <span className="text-cream-muted text-xs">{activeListings.length} active</span>
+          </div>
 
           {activeListings.length === 0 ? (
             <p className="text-cream-muted text-sm mb-6">
@@ -151,10 +172,13 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
             <>
               <button
                 onClick={() => setShowSold(!showSold)}
-                className="flex items-center gap-2 text-cream-muted text-sm mb-3 hover:text-cream transition-colors"
+                className="w-full flex items-center justify-between gap-3 text-cream-muted text-sm mb-4 px-4 py-3 border border-slate-border rounded-xl hover:text-cream hover:border-teal-primary transition-colors"
               >
-                <span>{showSold ? '▲' : '▼'}</span>
-                {soldListings.length} Sold Item{soldListings.length !== 1 ? 's' : ''}
+                <span className="flex items-center gap-2">
+                  <span className="text-xs">{showSold ? '▲' : '▼'}</span>
+                  Sold Listings
+                </span>
+                <span>{soldListings.length}</span>
               </button>
               {showSold && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 opacity-60 mb-6">
@@ -171,13 +195,15 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
               of the seller's listings it came from. */}
           {ratings.length > 0 && (
             <>
-              <hr className="border-slate-border mb-4" />
+              <hr className="border-slate-border my-6" />
               <button
                 onClick={() => setShowReviews(!showReviews)}
-                className="flex items-center gap-2 text-cream font-bold text-base mb-3 w-full"
+                className="w-full flex items-center justify-between gap-3 text-cream font-bold text-base mb-3 px-4 py-3 border border-slate-border rounded-xl hover:border-teal-primary transition-colors"
               >
-                <span className="text-cream-muted text-sm font-normal">{showReviews ? '▲' : '▼'}</span>
-                Reviews ({ratings.length})
+                <span>Reviews</span>
+                <span className="text-cream-muted text-xs font-normal">
+                  {ratings.length} · {showReviews ? 'Hide' : 'View'}
+                </span>
               </button>
               {showReviews && (
                 <div className="flex flex-col gap-3">
