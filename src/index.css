@@ -9,33 +9,10 @@
   padding: 0;
 }
 
+@import url('/atriumx-theme.css');
+
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
-
-  /* Single AtriumX visual source. Keep these values aligned with the
-     existing palette; components should consume theme classes/tokens
-     instead of carrying their own page-wide colour palettes. */
-  --atriumx-bg-deep-rgb: 10 15 30;
-  --atriumx-bg-card-rgb: 17 24 39;
-  --atriumx-border-rgb: 31 45 61;
-  --atriumx-teal-primary-rgb: 13 148 136;
-  --atriumx-teal-light-rgb: 20 184 166;
-  --atriumx-sapphire-primary-rgb: 22 48 92;
-  --atriumx-sapphire-light-rgb: 60 95 148;
-  --atriumx-cream-rgb: 240 244 248;
-  --atriumx-cream-muted-rgb: 139 148 158;
-  --atriumx-gold-rgb: 212 160 23;
-  --atriumx-gold-muted-rgb: 166 121 15;
-  --atriumx-focus-girly-text: #3A1E2C;
-  --atriumx-focus-girly-muted: #8A5872;
-  --atriumx-focus-girly-accent: #C2185B;
-  --atriumx-focus-girly-accent-soft: #F48FB1;
-  --atriumx-focus-girly-break: #8B5FBF;
-  --atriumx-focus-girly-card: rgb(255 255 255 / 0.80);
-  --atriumx-focus-girly-card-strong: rgb(255 255 255 / 0.90);
-  --atriumx-focus-girly-border: #F3B6CE;
-  --atriumx-focus-girly-track: #F6C9DB;
 }
 
 body {
@@ -85,31 +62,31 @@ html.bw-mode body {
 }
 
 .bw-mode .bg-slate-deep {
-  background-color: #FFFFFF !important;
+  background-color: rgb(var(--atriumx-bw-bg-deep-rgb)) !important;
 }
 
 .bw-mode .bg-slate-card {
-  background-color: #F4F4F5 !important;
+  background-color: rgb(var(--atriumx-bw-bg-card-rgb)) !important;
 }
 
 .bw-mode .border-slate-border {
-  border-color: #D4D4D8 !important;
+  border-color: rgb(var(--atriumx-bw-border-rgb)) !important;
 }
 
 .bw-mode .border-slate-deep {
-  border-color: #FFFFFF !important;
+  border-color: rgb(var(--atriumx-bw-bg-deep-rgb)) !important;
 }
 
 .bw-mode .text-cream {
-  color: #0A0A0A !important;
+  color: rgb(var(--atriumx-bw-cream-rgb)) !important;
 }
 
 .bw-mode .text-cream-muted {
-  color: #52525B !important;
+  color: rgb(var(--atriumx-bw-cream-muted-rgb)) !important;
 }
 
 .bw-mode .text-slate-border {
-  color: #D4D4D8 !important;
+  color: rgb(var(--atriumx-bw-border-rgb)) !important;
 }
 
 /* The Pomodoro timer card uses a gradient background (Tailwind's
@@ -119,7 +96,7 @@ html.bw-mode body {
    near-black, making the timer unreadable. */
 .bw-mode .pomodoro-card {
   background-image: none !important;
-  background-color: #F4F4F5 !important;
+  background-color: rgb(var(--atriumx-bw-bg-card-rgb)) !important;
 }
 
 /* Several menus/lists use hover:bg-slate-deep or hover:bg-slate-card for
