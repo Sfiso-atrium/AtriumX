@@ -1091,6 +1091,7 @@ function NotebookSection() {
 // greets the student with a glanceable snapshot instead of dropping them
 // straight into a flat tab bar. Pulls light reads from tables the tabs
 // already use — no new data model, just a summarized view of it.
+
 function TodaySnapshot({ userId }: { userId: string }) {
   const { currentUser } = useApp()
   const [nextDeadline, setNextDeadline] = useState<Deadline | null>(null)
@@ -1118,7 +1119,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
       <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-2xl p-5 flex items-center justify-between">
         <div>
           <p className="text-cream font-bold text-lg leading-tight">Good evening, {firstName} 👋</p>
-          <p className="text-cream-muted text-sm mt-1">Here&apos;s what&apos;s happening in your space.</p>
+          <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
         </div>
         <div className="hidden sm:block w-32 h-16 rounded-xl overflow-hidden flex-shrink-0 ml-4 bg-slate-deep border border-slate-border">
           <img src="/images/myspace/myspace-intro-summit.png" alt="" className="w-full h-full object-cover opacity-80" />
@@ -1139,7 +1140,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
             <Timer size={16} className="text-cream-muted" />
           </div>
           <div className="min-w-0">
-            <p className="text-cream-muted text-[11px] font-medium leading-none">Today&apos;s Focus</p>
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Today's Focus</p>
             <p className="text-cream text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
           </div>
         </div>
@@ -1185,11 +1186,388 @@ function RecentActivity() {
   return <RecentActivityEmpty />
 }
 
+function ModalShell({ title, onClose, onPlus, children }: { title: string; onClose: () => void; onPlus?: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-slate-card border border-slate-border rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-border flex-shrink-0">
+          <p className="text-cream font-bold text-base">{title}</p>
+          <div className="flex items-center gap-2">
+            {onPlus && (
+              <button onClick={onPlus} className="w-8 h-8 rounded-xl bg-teal-primary border border-teal-light text-cream flex items-center justify-center hover:opacity-90 transition-opacity">
+                <Plus size={16} />
+              </button>
+            )}
+            <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-deep border border-slate-border text-cream-muted hover:text-cream flex items-center justify-center transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeadlinesPopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { showToast } = useApp()
+  const [items, setItems] = useState<Deadline[]>([])
+  const [title, setTitle] = useState('')
+  const [dueAt, setDueAt] = useState('')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const load = () => getDeadlines(userId).then(d => { setItems(d); setLoading(false) })
+  useEffect(() => { load() }, [userId])
+  const handleAdd = async () => {
+    if (!title.trim() || !dueAt) { showToast('Add a title and a due date.', 'error'); return }
+    const { error } = await createDeadline(userId, title.trim(), new Date(dueAt).toISOString(), notes)
+    if (error) { showToast(error, 'error'); return }
+    setTitle(''); setDueAt(''); setNotes(''); setShowAdd(false)
+    showToast('Deadline added.', 'success')
+    load()
+  }
+  const handleDelete = async (id: string) => {
+    await deleteDeadline(id)
+    setItems(prev => prev.filter(d => d.id !== id))
+  }
+  return (
+    <ModalShell title="Deadlines" onClose={onClose} onPlus={() => setShowAdd(v => !v)}>
+      {showAdd && (
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4 mb-4 flex flex-col gap-2">
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam / assignment title" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <input type="datetime-local" value={dueAt} onChange={e => setDueAt(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
+          <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+        </div>
+      )}
+      {loading ? <p className="text-cream-muted text-sm">Loading...</p> : items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-8">
+          <PartyPopper size={28} className="text-cream-muted" />
+          <p className="text-cream-muted text-sm text-center">No deadlines yet - tap + to add one.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {items.map(d => {
+            const due = new Date(d.due_at)
+            const soon = due.getTime() - Date.now() < 24 * 60 * 60 * 1000
+            return (
+              <div key={d.id} className={`bg-slate-deep border rounded-2xl p-4 border-l-4 ${soon ? 'border-slate-border border-l-ember' : 'border-slate-border border-l-teal-light/40'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-cream font-bold text-sm truncate">{d.title}</p>
+                    <p className={`text-xs mt-0.5 ${soon ? 'text-ember' : 'text-cream-muted'}`}>{due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    {d.notes && <p className="text-cream-muted text-xs mt-1">{d.notes}</p>}
+                  </div>
+                  <DeleteBtn onClick={() => handleDelete(d.id)} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+function SchedulePopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { showToast } = useApp()
+  const [items, setItems] = useState<ScheduleEntry[]>([])
+  const [day, setDay] = useState('1')
+  const [time, setTime] = useState('')
+  const [module, setModule] = useState('')
+  const [room, setRoom] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const load = () => getScheduleEntries(userId).then(setItems)
+  useEffect(() => { load() }, [userId])
+  const handleAdd = async () => {
+    if (!module.trim() || !time) { showToast('Add a module and a time.', 'error'); return }
+    const { error } = await createScheduleEntry(userId, Number(day), time, module.trim(), room)
+    if (error) { showToast(error, 'error'); return }
+    setModule(''); setTime(''); setRoom(''); setShowAdd(false)
+    load()
+  }
+  const handleDelete = async (id: string) => {
+    await deleteScheduleEntry(id)
+    setItems(prev => prev.filter(s => s.id !== id))
+  }
+  return (
+    <ModalShell title="Schedule" onClose={onClose} onPlus={() => setShowAdd(v => !v)}>
+      {showAdd && (
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4 mb-4 flex flex-col gap-2">
+          <select value={day} onChange={e => setDay(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light">
+            {DAYS.map((d,i) => <option key={i} value={String(i)}>{d}</option>)}
+          </select>
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
+          <input value={module} onChange={e => setModule(e.target.value)} placeholder="Module / subject" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <input value={room} onChange={e => setRoom(e.target.value)} placeholder="Room (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+        </div>
+      )}
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-8">
+          <Calendar size={28} className="text-cream-muted" />
+          <p className="text-cream-muted text-sm text-center">No classes yet - tap + to add one.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map(s => (
+            <div key={s.id} className="bg-slate-deep border border-slate-border rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-cream font-bold text-sm truncate">{s.module_name}</p>
+                <p className="text-cream-muted text-xs mt-0.5">{DAYS[s.day_of_week]} - {s.start_time} {s.room ? `• ${s.room}` : ''}</p>
+              </div>
+              <DeleteBtn onClick={() => handleDelete(s.id)} />
+            </div>
+          ))}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+function TimetablePopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { showToast } = useApp()
+  const [courses, setCourses] = useState<StudyCourse[]>([])
+  const [preps, setPreps] = useState<StudyPrepNote[]>([])
+  const [courseName, setCourseName] = useState('')
+  const [minutes, setMinutes] = useState('')
+  const [openDayForm, setOpenDayForm] = useState<number | null>(null)
+  const [prepTarget, setPrepTarget] = useState<StudyCourse | null>(null)
+  const load = async () => {
+    const c = await getStudyCourses(userId)
+    const p = await getStudyPrepNotes(userId)
+    setCourses(c); setPreps(p)
+  }
+  useEffect(() => { load() }, [userId])
+  const handleAddCourse = async (dayIdx: number) => {
+    if (!courseName.trim() || !minutes) { showToast('Add a course name and minutes.', 'error'); return }
+    const { error } = await createStudyCourse(userId, courseName.trim(), dayIdx, Number(minutes))
+    if (error) { showToast(error, 'error'); return }
+    setCourseName(''); setMinutes(''); setOpenDayForm(null)
+    load()
+  }
+  const handleDeleteCourse = async (id: string) => {
+    await deleteStudyCourse(id)
+    setCourses(prev => prev.filter(c => c.id !== id))
+    setPreps(prev => prev.filter(p => p.course_id !== id))
+  }
+  return (
+    <ModalShell title="Timetable" onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        {DAYS.map((dayName, dayIdx) => {
+          const dayCourses = courses.filter(c => c.day_of_week === dayIdx)
+          return (
+            <div key={dayIdx} className="bg-slate-deep border border-slate-border rounded-2xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-teal-faint border border-teal-light/25 flex items-center justify-center"><Calendar size={14} className="text-teal-light" /></div>
+                  <p className="text-cream font-bold text-xs">{dayName}</p>
+                </div>
+                {dayCourses.length < 3 && (
+                  <button onClick={() => setOpenDayForm(openDayForm === dayIdx ? null : dayIdx)} className="flex items-center gap-1 border border-teal-light/40 text-teal-light text-[11px] font-bold px-2 py-1 rounded-lg">
+                    <Plus size={12} /> Add
+                  </button>
+                )}
+              </div>
+              {openDayForm === dayIdx && (
+                <div className="flex gap-2 mb-3">
+                  <input value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Course" className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                  <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Min" className="w-16 bg-slate-card border border-slate-border rounded-xl px-2 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                  <button onClick={() => handleAddCourse(dayIdx)} className="bg-ember text-white font-bold text-xs px-3 rounded-xl">Add</button>
+                </div>
+              )}
+              {dayCourses.length === 0 ? <p className="text-cream-muted text-[11px]">No courses planned yet</p> : (
+                <div className="flex flex-col gap-2">
+                  {dayCourses.map(c => {
+                    const prep = preps.find(p => p.course_id === c.id)
+                    return (
+                      <div key={c.id} className="bg-slate-card border border-slate-border rounded-xl p-3 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-cream font-bold text-xs truncate">{c.course_name}</p>
+                          <p className="text-cream-muted text-[11px]">{c.minutes} min {prep ? (prep.clarified ? '• clarified' : '• needs prep') : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {prep && !prep.clarified && <button onClick={() => setPrepTarget(c)} className="text-gold text-[11px] font-bold">Prep</button>}
+                          <DeleteBtn onClick={() => handleDeleteCourse(c.id)} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {prepTarget && <PrepModal course={prepTarget} onClose={() => setPrepTarget(null)} onSubmitted={() => { setPrepTarget(null); load() }} />}
+      </div>
+    </ModalShell>
+  )
+}
+
+function BudgetPopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { showToast } = useApp()
+  const [items, setItems] = useState<BudgetEntry[]>([])
+  const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
+  const [direction, setDirection] = useState<'in' | 'out'>('in')
+  const load = () => getBudgetEntries(userId).then(setItems)
+  useEffect(() => { load() }, [userId])
+  const balance = items.reduce((s, e) => s + (e.direction === 'in' ? e.amount : -e.amount), 0)
+  const handleAdd = async () => {
+    const num = Number(amount)
+    if (!num) { showToast('Enter an amount.', 'error'); return }
+    const { error } = await createBudgetEntry(userId, num, direction, note)
+    if (error) { showToast(error, 'error'); return }
+    setAmount(''); setNote(''); load()
+  }
+  const handleDelete = async (id: string) => {
+    await deleteBudgetEntry(id)
+    setItems(prev => prev.filter(e => e.id !== id))
+  }
+  return (
+    <ModalShell title="Budget" onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4">
+          <p className="text-cream-muted text-xs mb-1">Balance</p>
+          <p className={`text-2xl font-serif font-bold ${balance >= 0 ? 'text-teal-light' : 'text-red-400'}`}>R{balance.toFixed(2)}</p>
+        </div>
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4 flex flex-col gap-2">
+          <p className="text-cream font-bold text-sm">Log money</p>
+          <div className="flex gap-2">
+            <button onClick={() => setDirection('in')} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'in' ? 'bg-teal-primary text-white' : 'bg-slate-card text-cream-muted border border-slate-border'}`}>Money in</button>
+            <button onClick={() => setDirection('out')} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'out' ? 'bg-ember text-white' : 'bg-slate-card text-cream-muted border border-slate-border'}`}>Money out</button>
+          </div>
+          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount (R)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {items.map(e => (
+            <div key={e.id} className="bg-slate-deep border border-slate-border rounded-2xl p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className={`font-bold text-sm ${e.direction === 'in' ? 'text-teal-light' : 'text-ember'}`}>{e.direction === 'in' ? '+' : '-'}R{e.amount.toFixed(2)}</p>
+                {e.note && <p className="text-cream-muted text-xs truncate">{e.note}</p>}
+              </div>
+              <DeleteBtn onClick={() => handleDelete(e.id)} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ModalShell>
+  )
+}
+
+function PomodoroPopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const navigate = useNavigate()
+  const [todayMinutes, setTodayMinutes] = useState(0)
+  const [yesterdayMinutes, setYesterdayMinutes] = useState(0)
+  useEffect(() => {
+    getTodayStudyMinutes(userId).then(setTodayMinutes)
+    getYesterdayStudyMinutes(userId).then(setYesterdayMinutes)
+  }, [userId])
+  return (
+    <ModalShell title="Pomodoro" onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-deep border border-slate-border rounded-2xl p-4">
+            <p className="text-cream-muted text-xs mb-2">Today</p>
+            <p className="text-teal-light text-3xl font-serif font-bold">{todayMinutes} min</p>
+            <p className="text-cream-muted text-xs mt-2">Studied today</p>
+          </div>
+          <div className="bg-slate-deep border border-slate-border rounded-2xl p-4">
+            <p className="text-cream-muted text-xs mb-2">Yesterday</p>
+            <p className="text-cream text-3xl font-serif font-bold">{yesterdayMinutes} min</p>
+            <p className="text-cream-muted text-xs mt-2">Studied yesterday</p>
+          </div>
+        </div>
+        <button onClick={() => { onClose(); navigate('/focus') }} className="w-full bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <Timer size={18} /> Enter Focus Mode
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function WatchlistPopup({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { showToast } = useApp()
+  const [items, setItems] = useState<Watchlist[]>([])
+  const [keyword, setKeyword] = useState('')
+  const [category, setCategory] = useState('all')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const load = () => getWatchlists(userId).then(setItems)
+  useEffect(() => { load() }, [userId])
+  const handleAdd = async () => {
+    if (!keyword.trim()) { showToast('Add a keyword.', 'error'); return }
+    const { error } = await createWatchlist(userId, keyword.trim(), category, maxPrice ? Number(maxPrice) : undefined)
+    if (error) { showToast(error, 'error'); return }
+    setKeyword(''); setCategory('all'); setMaxPrice(''); setShowAdd(false); load()
+  }
+  const handleDelete = async (id: string) => {
+    await deleteWatchlist(id)
+    setItems(prev => prev.filter(w => w.id !== id))
+  }
+  return (
+    <ModalShell title="Watchlist" onClose={onClose} onPlus={() => setShowAdd(v => !v)}>
+      {showAdd && (
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4 mb-4 flex flex-col gap-2">
+          <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="Keyword (e.g. mini-fridge)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <select value={category} onChange={e => setCategory(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light">
+            {STUDENT_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max price (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Watch</button>
+        </div>
+      )}
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-8">
+          <Eye size={28} className="text-cream-muted" />
+          <p className="text-cream-muted text-sm text-center">No watches yet - tap + to add one.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map(w => (
+            <div key={w.id} className="bg-slate-deep border border-slate-border rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex flex-wrap gap-1.5">
+                {w.keyword && <span className="bg-teal-faint text-teal-light text-xs font-bold px-2 py-1 rounded-lg">"{w.keyword}"</span>}
+                {w.category && <span className="bg-teal-faint text-teal-light text-xs font-bold px-2 py-1 rounded-lg">{w.category}</span>}
+                {w.max_price != null && <span className="bg-teal-faint text-teal-light text-xs font-bold px-2 py-1 rounded-lg">under R{w.max_price}</span>}
+              </div>
+              <DeleteBtn onClick={() => handleDelete(w.id)} />
+            </div>
+          ))}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+function NotebookPopup({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate()
+  const [passcode, setPasscode] = useState('')
+  return (
+    <ModalShell title="Notebook" onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="bg-slate-deep border border-slate-border rounded-2xl p-4">
+          <p className="text-cream font-bold text-sm mb-2">Private Notebook</p>
+          <p className="text-cream-muted text-xs mb-3">Private notes, locked with a passcode only you know. Not even AtriumX can read them.</p>
+          <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)} placeholder="Enter passcode" className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+        </div>
+        <button onClick={() => { onClose(); navigate('/notebook') }} className="w-full bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <NotebookText size={18} /> Open Notebook
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
 
 export default function MySpace() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
-  const [tab, setTab] = useState<Tab>('Deadlines')
+  const [tab, setTab] = useState<Tab | null>(null)
   const [showIntro, setShowIntro] = useState(false)
   const [unreadGroups, setUnreadGroups] = useState(0)
 
@@ -1220,16 +1598,8 @@ export default function MySpace() {
           <Lock size={24} className="text-cream-muted" />
         </div>
         <p className="text-cream font-bold text-lg">My Space is only available for students</p>
-        <p className="text-cream-muted text-sm max-w-sm leading-relaxed">
-          Deadlines, timetables, budgeting and focus sessions are built for student accounts. Your business
-          account can still post listings, chat with buyers and manage your storefront from your profile.
-        </p>
-        <button
-          onClick={() => navigate(`/profile/${currentUser.id}`)}
-          className="bg-teal-primary hover:opacity-85 text-white font-bold px-5 py-2.5 rounded-xl transition-opacity mt-2"
-        >
-          Go to My Profile
-        </button>
+        <p className="text-cream-muted text-sm max-w-sm leading-relaxed">Deadlines, timetables, budgeting and focus sessions are built for student accounts. Your business account can still post listings, chat with buyers and manage your storefront from your profile.</p>
+        <button onClick={() => navigate(`/profile/${currentUser.id}`)} className="bg-teal-primary hover:opacity-85 text-white font-bold px-5 py-2.5 rounded-xl transition-opacity mt-2">Go to My Profile</button>
       </div>
     )
   }
@@ -1242,20 +1612,10 @@ export default function MySpace() {
         <span className="text-cream font-bold flex-1">My Space</span>
         <button onClick={() => navigate('/groups')} className="relative text-cream-muted hover:text-cream transition-colors">
           <Users size={20} />
-          {unreadGroups > 0 && (
-            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">
-              {unreadGroups > 9 ? '9+' : unreadGroups}
-            </span>
-          )}
+          {unreadGroups > 0 && <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">{unreadGroups > 9 ? '9+' : unreadGroups}</span>}
         </button>
         <NotificationBell />
-        <button
-          onClick={() => navigate(`/profile/${currentUser.id}`)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-          style={{ backgroundColor: currentUser.avatar_color }}
-        >
-          {currentUser.avatar_initials}
-        </button>
+        <button onClick={() => navigate(`/profile/${currentUser.id}`)} className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: currentUser.avatar_color }}>{currentUser.avatar_initials}</button>
       </div>
 
       <TodaySnapshot userId={currentUser.id} />
@@ -1265,70 +1625,45 @@ export default function MySpace() {
           <div className="flex-1 w-full min-w-0">
             <div className="flex items-center justify-between mb-3"><p className="text-cream font-bold text-sm">Quick Access</p></div>
             <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
-          {([
-            {
-              title: 'Plan',
-              tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[],
-            },
-            {
-              title: 'Money',
-              tabs: ['Budget'] as Tab[],
-            },
-            {
-              title: 'Focus',
-              tabs: ['Pomodoro'] as Tab[],
-            },
-            {
-              title: 'Personal',
-              tabs: ['Watchlist', 'Notebook'] as Tab[],
-            },
-          ]).map(group => (
-            <div key={group.title} className="bg-slate-card border border-slate-border rounded-2xl p-3">
-              <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] mb-2 px-1">
-                {group.title}
-              </p>
-              <div className={`grid gap-2 ${group.tabs.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-                {group.tabs.map(t => {
-                  const meta = TAB_META[t]
-                  const Icon = meta.icon
-                  const isActive = tab === t
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTab(t)}
-                      className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors border ${
-                        isActive
-                          ? 'bg-teal-primary border-teal-primary text-white'
-                          : 'bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream'
-                      }`}
-                    >
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isActive ? 'bg-white/10' : 'bg-slate-card'
-                      }`}>
-                        <Icon size={15} className={isActive ? 'text-white' : 'text-cream-muted'} />
-                      </span>
-                      <span className="truncate">{t}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+              {([
+                { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[] },
+                { title: 'Money', tabs: ['Budget'] as Tab[] },
+                { title: 'Focus', tabs: ['Pomodoro'] as Tab[] },
+                { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[] },
+              ]).map(group => (
+                <div key={group.title} className="min-w-[150px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex flex-col gap-2">
+                  <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] px-1">{group.title}</p>
+                  <div className="flex flex-col gap-2">
+                    {group.tabs.map(t => {
+                      const meta = TAB_META[t]
+                      const Icon = meta.icon
+                      return (
+                        <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-colors border bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream">
+                          <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-card border border-slate-border"><Icon size={14} className="text-cream-muted" /></span>
+                          <span className="truncate">{t}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div className="w-full lg:w-[340px] flex-shrink-0"><RecentActivity /></div>
         </div>
       </div>
 
-      <div className="px-4 mt-6">
-        {tab === 'Deadlines' && <DeadlinesSection userId={currentUser.id} />}
-        {tab === 'Timetable' && <TimetableSection userId={currentUser.id} />}
-        {tab === 'Schedule' && <ScheduleSection userId={currentUser.id} />}
-        {tab === 'Budget' && <BudgetSection userId={currentUser.id} />}
-        {tab === 'Pomodoro' && <PomodoroSection userId={currentUser.id} />}
-        {tab === 'Watchlist' && <WatchlistSection userId={currentUser.id} />}
-        {tab === 'Notebook' && <NotebookSection />}
-      </div>
+      {tab && (
+        <>
+          {tab === 'Deadlines' && <DeadlinesPopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Timetable' && <TimetablePopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Schedule' && <SchedulePopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Budget' && <BudgetPopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Pomodoro' && <PomodoroPopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Watchlist' && <WatchlistPopup userId={currentUser.id} onClose={() => setTab(null)} />}
+          {tab === 'Notebook' && <NotebookPopup onClose={() => setTab(null)} />}
+        </>
+      )}
 
       <BottomNav />
     </div>
