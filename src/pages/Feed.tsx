@@ -150,7 +150,7 @@ const filteredBusiness = useMemo(() => {
           </div>
 
           <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2">
-            <div className="flex bg-slate-card border border-slate-border rounded-lg p-1">
+            <div className="flex bg-slate-card border border-[#d6dee9] rounded-lg p-1">
               <button
                 type="button"
                 className="flex-1 bg-teal-primary border border-teal-primary text-white rounded-md py-2 text-sm font-bold"
@@ -173,7 +173,7 @@ const filteredBusiness = useMemo(() => {
                 value={feedTab === 'marketplace' ? localSearch : bizSearch}
                 onChange={e => feedTab === 'marketplace' ? setLocalSearch(e.target.value) : setBizSearch(e.target.value)}
                 placeholder={feedTab === 'marketplace' ? 'Search listings...' : 'Search businesses...'}
-                className="w-full bg-slate-card rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20 transition-colors"
+                className="w-full bg-slate-card border border-[#d6dee9] rounded-lg pl-9 pr-9 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:ring-1 focus:ring-teal-primary/20 transition-colors"
               />
               {(feedTab === 'marketplace' ? localSearch : bizSearch) && (
                 <button
@@ -188,7 +188,7 @@ const filteredBusiness = useMemo(() => {
           </div>
 
           <div className="px-4 pt-2 pb-1 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 bg-slate-card rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
+            <label className="flex items-center gap-2 bg-slate-card border border-[#d6dee9] rounded-lg px-3 py-2 text-sm font-medium text-cream whitespace-nowrap">
               <span className="text-cream-muted">For:</span>
               <select
                 value={feedTab}
@@ -215,7 +215,7 @@ const filteredBusiness = useMemo(() => {
               inside this tab rather than another pill in the row above,
               so the tab row stays two items wide on a phone. */}
           <div className="px-4 pt-3">
-            <div className="flex bg-slate-card/50 rounded-xl p-1">
+            <div className="flex bg-slate-card/50 border border-[#d6dee9] rounded-xl p-1">
               <button
                 onClick={() => setMarketMode('selling')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
@@ -358,7 +358,7 @@ const filteredBusiness = useMemo(() => {
           ) : (
             <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filtered.map(listing => (
-                <ListingCard key={listing.id} listing={listing} />
+                <div className="border border-[#d6dee9] rounded-2xl overflow-hidden"><ListingCard key={listing.id} listing={listing} /></div>
               ))}
             </div>
           )}
@@ -426,7 +426,7 @@ const filteredBusiness = useMemo(() => {
             ) : (
               <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {filteredBusiness.map(listing => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <div className="border border-[#d6dee9] rounded-2xl overflow-hidden"><ListingCard key={listing.id} listing={listing} /></div>
                 ))}
               </div>
             )}
