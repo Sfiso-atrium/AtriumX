@@ -72,14 +72,14 @@ export default function Navbar() {
   return (
     <>
       <nav className="sticky top-0 z-40 bg-slate-deep border-b-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Open navigation menu"
               className="w-9 h-9 rounded-lg flex items-center justify-center text-cream-muted hover:text-cream hover:bg-slate-card transition-colors flex-shrink-0"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6" />
             </button>
 
             <button
@@ -87,7 +87,12 @@ export default function Navbar() {
               className="flex items-center min-w-0"
               aria-label="AtriumX home"
             >
-              <img src="/logo.png" alt="AtriumX" className="h-10 w-auto flex-shrink-0" />
+              <div className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="AtriumX" className="h-11 w-11 object-contain flex-shrink-0" />
+                <span className="text-2xl font-extrabold tracking-tight text-cream whitespace-nowrap">
+                  Atrium<span className="text-gold">X</span>
+                </span>
+              </div>
             </button>
           </div>
 
