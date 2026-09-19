@@ -36,7 +36,7 @@ stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="ro
 }
 
 export default function Feed() {
-const { activeCategory, showToast, currentUser } = useApp()
+const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
   const navigate = useNavigate()
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
     const saved = localStorage.getItem('feed_last_tab')
@@ -219,7 +219,7 @@ const filteredBusiness = useMemo(() => {
 
             <div className="min-w-0 flex-1">
               {feedTab === 'marketplace' ? (
-                <CategoryChips categories={STUDENT_CATEGORIES} active={activeCategory} />
+                <CategoryChips categories={STUDENT_CATEGORIES} active={activeCategory} onSelect={setActiveCategory} />
               ) : (
                 <CategoryChips categories={BUSINESS_CATEGORIES} active={bizCategory} onSelect={setBizCategory} />
               )}
