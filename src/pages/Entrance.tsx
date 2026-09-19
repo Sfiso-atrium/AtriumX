@@ -222,7 +222,7 @@ export default function Entrance() {
         {/* RIGHT SIDE - IMAGE - desktop only per requirement */}
         <div className="hidden lg:flex relative bg-[#F1F5F9] overflow-hidden h-screen sticky top-0">
           <img
-            src="/images/entrance/campus-library.png"
+            src="/images/entrance/campus-library.jpg"
             alt="Campus library shelves"
             className="absolute inset-0 w-full h-full object-cover"
           />
