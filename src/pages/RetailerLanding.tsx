@@ -144,7 +144,7 @@ export default function RetailerLanding() {
               '1 photo per listing',
               'Up to 2 active listings',
               'Unlimited messaging with students',
-              'Gold "Sponsored" badge on your listings',
+              '"Sponsored" badge on your listings',
               '14-day active window',
             ]}
           />
