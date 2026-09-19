@@ -8,7 +8,7 @@ import BottomNav from '../components/common/BottomNav'
 type StudentPlanKey = 'ghost' | 'visible' | 'loud' | 'unmissable'
 const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
   ghost: [
-    '1 photo per listing',
+    'Text only — no photos',
     '1 active listing',
     '3 messages per conversation',
     '3-day visibility',
