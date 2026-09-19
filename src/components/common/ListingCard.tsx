@@ -25,15 +25,15 @@ const navigate = useNavigate()
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className={`relative bg-slate-card rounded-2xl overflow-hidden transition-all cursor-pointer ${
+      className={`relative bg-slate-card/75 rounded-2xl overflow-hidden transition-all cursor-pointer ${
         isFeatured
           ? 'ring-1 ring-teal-primary/10 hover:ring-teal-primary/20'
-          : 'hover:bg-slate-card/70 hover:shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
+          : 'hover:bg-slate-card/90 hover:shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
       }`}
     >
       {isFeatured && (
         <div className="bg-teal-primary text-white text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
-          <Star size={12} className="fill-white" />
+          <Star size={12} className="fill-slate-deep" />
           {isCampusPartner ? 'Campus Partner' : 'Featured'}
         </div>
       )}
@@ -75,7 +75,7 @@ const navigate = useNavigate()
         ) : null}
 
         <div className="flex items-center gap-2 flex-wrap pt-1">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-primary capitalize">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
             {listing.custom_category || listing.category}
           </span>
           {listing.is_negotiable && (
