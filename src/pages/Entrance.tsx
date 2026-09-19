@@ -65,7 +65,7 @@ export default function Entrance() {
           </button>
           <button
             onClick={() => navigate('/student?mode=register')}
-            className="bg-gold hover:opacity-85 text-black text-xs sm:text-sm font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-opacity whitespace-nowrap"
+            className="bg-cream hover:opacity-85 text-white text-xs sm:text-sm font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-opacity whitespace-nowrap"
           >
             Get Started
           </button>
@@ -77,11 +77,11 @@ export default function Entrance() {
           <InstallAppButton />
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-10 items-center mb-14">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-14">
           <div>
-            <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
+            <div className="h-[3px] w-16 rounded-full bg-cream/70 mb-7" />
 
-            <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-3">
+            <p className="text-cream-muted text-xs font-bold uppercase tracking-wider mb-3">
               Campus Community &amp; My Space
             </p>
 
@@ -91,26 +91,25 @@ export default function Entrance() {
 
             <ul className="space-y-2.5 mb-8 max-w-xl">
               <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0" />
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
                 <span><span className="text-cream font-bold">Know what's happening on your campus</span> — events, deals and activity, all in one feed.</span>
               </li>
               <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-teal-light flex-shrink-0" />
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
                 <span><span className="text-cream font-bold">Find out what your peers need</span> — and sell it to them on the marketplace.</span>
               </li>
               <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-sapphire-light flex-shrink-0" />
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
                 <span><span className="text-cream font-bold">Manage your studying</span> — deadlines, timetable and focus sessions in My Space.</span>
               </li>
             </ul>
           </div>
 
-          <div className="relative">
-            <div className="absolute -inset-3 bg-gradient-to-br from-teal-light/20 via-gold/10 to-ember/20 rounded-[2rem] blur-xl" aria-hidden="true" />
+          <div className="hidden lg:block">
             <img
               src="/images/entrance/campus-library.png"
               alt="Campus library shelves"
-              className="relative w-full h-64 sm:h-80 lg:h-[440px] object-cover rounded-2xl border border-slate-border shadow-lg"
+              className="w-full h-[440px] object-cover rounded-2xl border border-slate-border shadow-lg"
             />
           </div>
         </div>
@@ -123,7 +122,7 @@ export default function Entrance() {
             </div>
             <button
               onClick={() => { window.location.href = '/Welcome.html' }}
-              className="w-full bg-gold hover:opacity-85 text-black font-bold py-3 rounded-xl transition-opacity mb-3"
+              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
             >
               Explore AtriumX
             </button>
@@ -137,7 +136,7 @@ export default function Entrance() {
             </div>
             <button
               onClick={() => navigate('/retailer')}
-              className="w-full bg-teal-primary hover:opacity-85 text-black font-bold py-3 rounded-xl transition-opacity mb-3"
+              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
             >
               Explore Business
             </button>
@@ -151,7 +150,7 @@ export default function Entrance() {
             </div>
             <button
               onClick={handleMySpace}
-              className="w-full bg-sapphire-light hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
+              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
             >
               {currentUser ? 'Open My Space' : 'Sign In to Open My Space'}
             </button>
