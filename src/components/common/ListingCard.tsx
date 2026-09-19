@@ -1,5 +1,6 @@
+import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, Pencil } from 'lucide-react'
+import { Star, Pencil, Heart, Image as ImageIcon } from 'lucide-react'
 import { Listing, Profile, PLAN_TIERS, PlanKey, BUSINESS_PLAN_ORDER } from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 interface ListingCardProps {
@@ -7,6 +8,7 @@ interface ListingCardProps {
   seller?: Profile | any
   isOwner?: boolean
 }
+
 
 function formatPrice(price: number) {
   return `R ${price.toLocaleString('en-ZA')}`
@@ -21,35 +23,91 @@ const navigate = useNavigate()
   const badge = PLAN_TIERS[listing.plan_tier as PlanKey]?.badge ?? null
   const isCampusPartner = listing.plan_tier === 'campus_partner'
   const isFeatured = listing.plan_tier === 'unmissable' || isCampusPartner
+  const imageUrl = listing.image_urls?.[0]
+  const likedStorageKey = 'atriumx-liked-listings'
+  const [liked, setLiked] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(likedStorageKey) || '[]')
+      setLiked(Array.isArray(stored) && stored.includes(listing.id))
+    } catch {
+      setLiked(false)
+    }
+  }, [listing.id])
+
+  const toggleLike = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setLiked(current => {
+      const next = !current
+      try {
+        const stored = JSON.parse(localStorage.getItem(likedStorageKey) || '[]')
+        const currentIds = Array.isArray(stored) ? stored : []
+        const updated = next
+          ? Array.from(new Set([...currentIds, listing.id]))
+          : currentIds.filter((id: string) => id !== listing.id)
+        localStorage.setItem(likedStorageKey, JSON.stringify(updated))
+      } catch {
+        // Keep the visual like state even if localStorage is unavailable.
+      }
+      return next
+    })
+  }
 
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className={`relative bg-slate-card/75 rounded-2xl overflow-hidden transition-all cursor-pointer ${
-        isFeatured
-          ? 'ring-1 ring-teal-primary/10 hover:ring-teal-primary/20'
-          : 'hover:bg-slate-card/90 hover:shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
-      }`}
+      className="relative bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden transition-all cursor-pointer hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)]"
     >
-      {isFeatured && (
-        <div className="bg-teal-primary text-white text-xs font-bold uppercase tracking-wide text-center py-1.5 flex items-center justify-center gap-1.5">
-          <Star size={12} className="fill-slate-deep" />
-          {isCampusPartner ? 'Campus Partner' : 'Featured'}
-        </div>
-      )}
+      <div className="relative aspect-[4/3] bg-[#f5f8fc] overflow-hidden">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={listing.title || 'Listing image'}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-300">
+            <ImageIcon size={30} strokeWidth={1.5} />
+          </div>
+        )}
+
+        <button
+          type="button"
+          aria-label={liked ? 'Unlike listing' : 'Like listing'}
+          aria-pressed={liked}
+          onClick={toggleLike}
+          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 ${
+            liked ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
+          }`}
+        >
+          <Heart size={18} className={liked ? 'fill-current' : ''} />
+        </button>
+
+        {isFeatured && (
+          <div className="absolute top-3 left-3 bg-white/95 text-blue-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm border border-white">
+            <span className="inline-flex items-center gap-1">
+              <Star size={11} className="fill-current" />
+              {isCampusPartner ? 'Campus Partner' : 'Featured'}
+            </span>
+          </div>
+        )}
+      </div>
+
 <div className="p-4 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-cream font-bold text-base leading-snug break-words flex-1 min-w-0">
+          <h3 className="text-slate-900 font-bold text-base leading-snug break-words flex-1 min-w-0">
             {listing.title}
           </h3>
-          {!isFeatured && badge && (
-            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-teal-faint text-teal-primary">
+            {!isFeatured && badge && (
+            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-600">
               {badge}
             </span>
           )}
         </div>
 
-        <p className="text-cream-muted text-xs">
+        <p className="text-slate-500 text-xs">
           {sellerData?.full_name || sellerData?.sellerName || 'Unknown seller'}
         </p>
 
@@ -59,27 +117,27 @@ const navigate = useNavigate()
               <Star
                 key={i}
                 size={13}
-                className={i < Math.round(sellerData.avg_rating) ? 'fill-teal-primary text-teal-primary' : 'text-cream-muted/35'}
+                className={i < Math.round(sellerData.avg_rating) ? 'fill-blue-600 text-blue-600' : 'text-slate-300'}
               />
             ))}
-            <span className="text-cream-muted text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
+            <span className="text-slate-500 text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
           </div>
         )}
 
 {listing.residence ? (
-          <p className="text-cream-muted text-xs">{listing.residence}</p>
+          <p className="text-slate-500 text-xs">{listing.residence}</p>
         ) : (listing.business_address || listing.business_website) ? (
-          <p className="text-cream-muted text-xs truncate">
+          <p className="text-slate-500 text-xs truncate">
             {listing.business_address || listing.business_website}
           </p>
         ) : null}
 
         <div className="flex items-center gap-2 flex-wrap pt-1">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-faint text-teal-light capitalize">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 capitalize">
             {listing.custom_category || listing.category}
           </span>
           {listing.is_negotiable && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-teal-faint text-teal-primary">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
               Open to offers
             </span>
           )}
@@ -87,7 +145,7 @@ const navigate = useNavigate()
 
 {isOwner && (
           <div className="flex items-center justify-between pt-1">
-            <span className="text-cream-muted text-xs">{contactCount} interested</span>
+            <span className="text-slate-500 text-xs">{contactCount} interested</span>
             <div className="flex items-center gap-3">
               {listing.expires_at && <ListingCountdown expiresAt={listing.expires_at} />}
  {listing.status !== 'sold' && (
@@ -97,7 +155,7 @@ const navigate = useNavigate()
                     const editPath = BUSINESS_PLAN_ORDER.includes(listing.plan_tier as PlanKey) ? '/business/post' : '/post'
                     navigate(editPath, { state: { plan: listing.plan_tier, editListing: listing } })
                   }}
-                  className="flex items-center gap-1 text-cream-muted hover:text-teal-primary text-xs font-medium transition-colors"
+                  className="flex items-center gap-1 text-slate-500 hover:text-blue-600 text-xs font-medium transition-colors"
                 >
                   <Pencil size={12} />
                   Edit
