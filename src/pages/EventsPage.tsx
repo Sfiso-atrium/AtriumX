@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, Plus, Image as ImageIcon } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Image as ImageIcon, Search, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getAllEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -50,7 +50,7 @@ function EventCard({ event, canCancel, onCancel }: { event: CampusEvent; canCanc
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') navigate(`/event/${event.id}`)
       }}
-      className="group w-[290px] sm:w-[320px] flex-shrink-0 snap-start bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[#d5e0ef] hover:shadow-[0_16px_34px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+      className="group w-[290px] sm:w-[320px] flex-shrink-0 snap-start bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
     >
       <div className="relative aspect-[4/3] bg-[#f5f8fc] overflow-hidden">
         {event.image_url ? (
@@ -123,7 +123,7 @@ function HorizontalSection({ title, icon, events, currentUserId, onCancel }: {
   if (events.length === 0) return null
 
   return (
-    <section className="mb-7">
+    <section className="mb-8">
       <div className="flex items-center justify-between gap-3 mb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           {icon}
@@ -151,6 +151,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     getAllEvents()
@@ -161,10 +162,16 @@ export default function EventsPage() {
       .catch(() => setLoading(false))
   }, [currentUser])
 
-  const visible = useMemo(
-    () => (filter === 'all' ? events : events.filter(e => e.category === filter)),
-    [events, filter]
-  )
+  const visible = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    const categoryFiltered = filter === 'all' ? events : events.filter(e => e.category === filter)
+    if (!query) return categoryFiltered
+    return categoryFiltered.filter(event =>
+      event.title.toLowerCase().includes(query) ||
+      event.location.toLowerCase().includes(query) ||
+      (event.description ?? '').toLowerCase().includes(query)
+    )
+  }, [events, filter, searchQuery])
 
   const now = Date.now()
   const weekFromNow = now + 7 * 86400000
@@ -204,43 +211,67 @@ export default function EventsPage() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28">
-          <div className="mb-5">
+        <div className="max-w-4xl mx-auto pb-28">
+          <div className="px-4 pt-4 pb-2">
             <h1 className="font-serif text-2xl text-cream">Discover</h1>
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-6 max-w-xl">
-            <button
-              type="button"
-              onClick={() => navigate('/feed')}
-              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
-            >
-              Marketplace
-            </button>
-            <button
-              type="button"
-              className="bg-teal-primary border border-teal-light text-white rounded-xl py-2.5 text-sm font-bold"
-            >
-              Events
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 mb-1">
-            <div>
-              <h1 className="font-serif text-2xl text-cream">Events</h1>
-              <p className="text-cream-muted text-sm mt-1">What's happening around your student community.</p>
+          <div className="px-4 pt-2 pb-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch border-b border-[#e8eef6]">
+            <div className="flex h-12 bg-white border border-slate-border rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => navigate('/feed')}
+                className="flex-1 h-full text-cream-muted hover:text-blue-600 hover:bg-blue-50/60 rounded-lg text-sm font-medium transition-colors"
+              >
+                Marketplace
+              </button>
+              <button
+                type="button"
+                className="flex-1 h-full bg-blue-50 text-blue-600 border-b-2 border-blue-600 rounded-lg text-sm font-bold transition-colors"
+              >
+                Events
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/post-event')}
-              className="flex items-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors flex-shrink-0"
-            >
-              <Plus size={14} /> Post
-            </button>
+
+            <div className="relative h-12">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search events..."
+                className="w-full h-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="-mx-4 mt-4 mb-6">
+          <div className="px-4 pt-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h2 className="font-serif text-2xl text-cream">Events</h2>
+                <p className="text-cream-muted text-sm mt-1">What's happening around your student community.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/post-event')}
+                className="flex items-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors flex-shrink-0"
+              >
+                <Plus size={14} /> Post
+              </button>
+            </div>
+          </div>
+
+          <div className="-mx-4 mt-2 mb-6">
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
           </div>
 
