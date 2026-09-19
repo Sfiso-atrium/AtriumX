@@ -33,7 +33,7 @@ const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
     'Up to 3 photos',
     'Up to 3 active listings',
     'Pinned to top of category',
-    'Gold "★ Featured" banner on your listing cards',
+    '"Featured" badge on your listing cards',
     'All Loud features',
     '30-day visibility',
   ],
