@@ -15,7 +15,7 @@ import {
   getUnreadStudyGroupCount,
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
-import NotificationBell from '../components/common/NotificationBell'
+import Navbar from '../components/common/Navbar'
 import { useFocusSession } from '../hooks/useFocusSession'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -1608,14 +1608,23 @@ export default function MySpace() {
     <div className="min-h-screen bg-slate-deep pb-24">
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
-      <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3">
-        <span className="text-cream font-bold flex-1">My Space</span>
-        <button onClick={() => navigate('/groups')} className="relative text-cream-muted hover:text-cream transition-colors">
-          <Users size={20} />
-          {unreadGroups > 0 && <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-slate-deep">{unreadGroups > 9 ? '9+' : unreadGroups}</span>}
+      <Navbar />
+
+      <div className="px-4 sm:px-6 lg:px-8 pt-5 flex items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-cream">My Space</h1>
+        <button
+          onClick={() => navigate('/groups')}
+          className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-gold hover:bg-slate-card/60 transition-colors"
+          aria-label="Open study groups"
+          title="Study groups"
+        >
+          <Users size={23} strokeWidth={2.2} />
+          {unreadGroups > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+              {unreadGroups > 9 ? '9+' : unreadGroups}
+            </span>
+          )}
         </button>
-        <NotificationBell />
-        <button onClick={() => navigate(`/profile/${currentUser.id}`)} className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: currentUser.avatar_color }}>{currentUser.avatar_initials}</button>
       </div>
 
       <TodaySnapshot userId={currentUser.id} />
