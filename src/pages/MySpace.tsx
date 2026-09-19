@@ -65,7 +65,7 @@ function TabIntro({ tab }: { tab: Tab }) {
   return (
     <div className="flex items-start gap-2.5 mb-1">
       <div className="w-7 h-7 rounded-full border border-slate-border bg-slate-card flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon size={14} className="text-cream-muted" />
+        <Icon size={14} className="text-gold" />
       </div>
       <p className="text-cream-muted text-sm leading-snug pt-0.5">{TAB_INTRO[tab]}</p>
     </div>
@@ -1121,14 +1121,11 @@ function TodaySnapshot({ userId }: { userId: string }) {
           <p className="text-cream font-bold text-lg leading-tight">Good evening, {firstName} 👋</p>
           <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
         </div>
-        <div className="hidden sm:block w-32 h-16 rounded-xl overflow-hidden flex-shrink-0 ml-4 bg-slate-deep border border-slate-border">
-          <img src="/images/myspace/myspace-intro-summit.png" alt="" className="w-full h-full object-cover opacity-80" />
-        </div>
       </div>
       <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' as any }}>
         <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <CalendarClock size={16} className="text-cream-muted" />
+            <CalendarClock size={16} className="text-gold" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Upcoming Deadlines</p>
@@ -1137,7 +1134,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
         </div>
         <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Timer size={16} className="text-cream-muted" />
+            <Timer size={16} className="text-gold" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Today's Focus</p>
@@ -1146,7 +1143,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
         </div>
         <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Wallet size={16} className="text-cream-muted" />
+            <Wallet size={16} className="text-gold" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Budget Balance</p>
@@ -1155,7 +1152,7 @@ function TodaySnapshot({ userId }: { userId: string }) {
         </div>
         <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Eye size={16} className="text-cream-muted" />
+            <Eye size={16} className="text-gold" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Watchlist</p>
@@ -1173,7 +1170,7 @@ function RecentActivityEmpty() {
       <p className="text-cream font-bold text-sm mb-4">Recent Activity</p>
       <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-border rounded-xl bg-slate-deep">
         <div className="w-12 h-12 rounded-full bg-teal-faint border border-slate-border flex items-center justify-center mb-3">
-          <Clock size={18} className="text-teal-light" />
+          <Clock size={18} className="text-gold" />
         </div>
         <p className="text-cream font-semibold text-sm">No activity yet</p>
         <p className="text-cream-muted text-xs mt-1 max-w-[200px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
@@ -1618,7 +1615,7 @@ export default function MySpace() {
           aria-label="Open study groups"
           title="Study groups"
         >
-          <Users size={23} strokeWidth={2.2} />
+          <Users size={23} strokeWidth={2.2} className="text-gold" />
           {unreadGroups > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
               {unreadGroups > 9 ? '9+' : unreadGroups}
@@ -1648,7 +1645,7 @@ export default function MySpace() {
                       const Icon = meta.icon
                       return (
                         <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-colors border bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream">
-                          <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-card border border-slate-border"><Icon size={14} className="text-cream-muted" /></span>
+                          <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-card border border-slate-border"><Icon size={14} className="text-gold" /></span>
                           <span className="truncate">{t}</span>
                         </button>
                       )
