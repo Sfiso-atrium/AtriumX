@@ -27,7 +27,7 @@ const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
     'Reply to student messages',
     'Reply to reviews',
     'Pinned to top of the Business tab',
-    'Gold "Campus Partner" banner on your listings',
+    '"Campus Partner" badge on your listings',
     '30-day visibility',
   ],
 }
