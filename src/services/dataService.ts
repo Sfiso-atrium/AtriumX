@@ -2431,6 +2431,31 @@ export async function getEvents(): Promise<CampusEvent[]> {
   return data as CampusEvent[]
 }
 
+// Full active-event board for the Discover Events page. Unlike getEvents(),
+// this intentionally includes past events so the UI can show a Past section.
+export async function getAllEvents(): Promise<CampusEvent[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, host:profiles_public!inner(*)')
+    .eq('status', 'active')
+    .order('starts_at', { ascending: true })
+
+  if (error || !data) return []
+  return data as CampusEvent[]
+}
+
+export async function getEventById(id: string): Promise<CampusEvent | null> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, host:profiles_public!inner(*)')
+    .eq('id', id)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as CampusEvent
+}
+
 export async function createEvent(payload: {
   hostId: string
   title: string
