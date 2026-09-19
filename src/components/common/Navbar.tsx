@@ -10,6 +10,7 @@ import {
   Menu,
   MessageCircle,
   NotebookPen,
+  PlusCircle,
   ShieldCheck,
   UserRound,
   X,
@@ -25,6 +26,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [discoverOpen, setDiscoverOpen] = useState(false)
   const [pushOn, setPushOn] = useState(false)
   const [pushBlocked, setPushBlocked] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
@@ -63,15 +65,12 @@ export default function Navbar() {
     setMenuOpen(false)
     setHelpOpen(false)
     setMoreOpen(false)
+    setDiscoverOpen(false)
   }
 
   function go(path: string) {
     closeMenu()
     navigate(path)
-  }
-
-  function isActive(path: string, exact = false) {
-    return exact ? location.pathname === path : location.pathname === path || location.pathname.startsWith(`${path}/`)
   }
 
   return (
@@ -104,10 +103,18 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {currentUser ? (
               <>
+                <button
+                  onClick={() => navigate('/plan-select')}
+                  className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
+                  aria-label="Create a post"
+                  title="Create a post"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 ring-1 ring-slate-border hover:ring-teal-primary transition-all"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 ring-1 ring-slate-border hover:ring-teal-light transition-all"
                   style={{ backgroundColor: currentUser.avatar_color }}
                   aria-label="Open profile"
                   title="Profile"
@@ -118,7 +125,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => navigate('/student')}
-                className="bg-teal-primary hover:bg-teal-primary/90 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors flex-shrink-0"
+                className="bg-ember hover:bg-ember-dark text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors flex-shrink-0"
               >
                 Sign In
               </button>
@@ -167,41 +174,53 @@ export default function Navbar() {
             <nav className="space-y-1">
               <button
                 onClick={() => go('/space')}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold transition-colors ${
-                  isActive('/space', true) ? 'bg-teal-primary text-white shadow-sm' : 'text-cream hover:bg-slate-deep'
-                }`}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <UserRound className={`w-5 h-5 ${isActive('/space', true) ? 'text-white' : 'text-teal-primary'}`} />
+                <UserRound className="w-5 h-5 text-teal-light" />
                 My Space
               </button>
 
               <button
-                onClick={() => go('/feed')}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold transition-colors ${
-                  isActive('/feed', true) ? 'bg-teal-primary text-white shadow-sm' : 'text-cream hover:bg-slate-deep'
-                }`}
+                onClick={() => setDiscoverOpen((open) => !open)}
+                className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <Compass className={`w-5 h-5 ${isActive('/feed', true) ? 'text-white' : 'text-teal-primary'}`} />
-                Discover
+                <span className="flex items-center gap-3">
+                  <Compass className="w-5 h-5 text-teal-light" />
+                  Discover
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${discoverOpen ? 'rotate-180' : ''}`} />
               </button>
+
+              {discoverOpen && (
+                <div className="ml-8 mt-1 mb-1 space-y-1 border-l border-slate-border pl-3">
+                  <button
+                    onClick={() => go('/feed')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
+                  >
+                    Marketplace
+                  </button>
+                  <button
+                    onClick={() => go('/events')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
+                  >
+                    Events
+                  </button>
+                </div>
+              )}
 
               <button
                 onClick={() => go('/chat')}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold transition-colors ${
-                  isActive('/chat', true) ? 'bg-teal-primary text-white shadow-sm' : 'text-cream hover:bg-slate-deep'
-                }`}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <MessageCircle className={`w-5 h-5 ${isActive('/chat', true) ? 'text-white' : 'text-teal-primary'}`} />
+                <MessageCircle className="w-5 h-5 text-teal-light" />
                 Messages
               </button>
 
               <button
                 onClick={() => go(`/profile/${currentUser.id}`)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold transition-colors ${
-                  isActive('/profile') ? 'bg-teal-primary text-white shadow-sm' : 'text-cream hover:bg-slate-deep'
-                }`}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <UserRound className={`w-5 h-5 ${isActive('/profile') ? 'text-white' : 'text-teal-primary'}`} />
+                <UserRound className="w-5 h-5 text-teal-light" />
                 Profile
               </button>
             </nav>
@@ -267,7 +286,7 @@ export default function Navbar() {
                 onClick={handleTogglePush}
                 disabled={pushLoading || pushBlocked}
                 className={`mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors disabled:opacity-60 ${
-                  pushOn ? 'text-teal-primary hover:bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
+                  pushOn ? 'text-gold hover:bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
                 }`}
               >
                 {pushOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
@@ -288,18 +307,31 @@ export default function Navbar() {
             </p>
             <nav className="space-y-1">
               <button
-                onClick={() => go('/feed')}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
+                onClick={() => setDiscoverOpen((open) => !open)}
+                className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <Compass className="w-5 h-5 text-teal-primary" />
-                Discover
+                <span className="flex items-center gap-3">
+                  <Compass className="w-5 h-5 text-teal-light" />
+                  Discover
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${discoverOpen ? 'rotate-180' : ''}`} />
               </button>
-              <button
-                onClick={() => go('/events')}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
-              >
-                Events
-              </button>
+              {discoverOpen && (
+                <div className="ml-8 mt-1 space-y-1 border-l border-slate-border pl-3">
+                  <button
+                    onClick={() => go('/feed')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
+                  >
+                    Marketplace
+                  </button>
+                  <button
+                    onClick={() => go('/events')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
+                  >
+                    Events
+                  </button>
+                </div>
+              )}
             </nav>
           </>
         )}
@@ -308,7 +340,7 @@ export default function Navbar() {
           <button
             onClick={toggleBwMode}
             className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${
-              bwMode ? 'text-teal-primary bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
+              bwMode ? 'text-gold bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
             }`}
           >
             <Contrast className="w-4 h-4" />
@@ -325,11 +357,11 @@ export default function Navbar() {
             </button>
             {helpOpen && (
               <div className="space-y-1 px-1 pb-2">
-                <a href="/How-it-works.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-primary text-sm py-2 pl-3 transition-colors">How It Works</a>
-                <a href="/Faq.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-primary text-sm py-2 pl-3 transition-colors">FAQ</a>
-                <a href="/Safety.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-primary text-sm py-2 pl-3 transition-colors">Safety Tips</a>
-                <a href="/Terms.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-primary text-sm py-2 pl-3 transition-colors">Terms of Service</a>
-                <a href="/Privacy.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-primary text-sm py-2 pl-3 transition-colors">Privacy Policy</a>
+                <a href="/How-it-works.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">How It Works</a>
+                <a href="/Faq.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">FAQ</a>
+                <a href="/Safety.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Safety Tips</a>
+                <a href="/Terms.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Terms of Service</a>
+                <a href="/Privacy.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Privacy Policy</a>
               </div>
             )}
           </div>
