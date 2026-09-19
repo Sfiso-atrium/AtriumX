@@ -38,7 +38,7 @@ export default function Entrance() {
   return (
     <div className="min-h-screen bg-slate-deep">
 
-      <nav className="max-w-3xl mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 pt-6">
+      <nav className="max-w-6xl mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 pt-6">
         <div className="flex items-center min-w-0 flex-shrink">
           <img src="/logo.png" alt="AtriumX" className="h-7 sm:h-9 w-auto -mr-1 sm:-mr-1.5 flex-shrink-0" />
           <span className="font-serif text-base sm:text-xl truncate">
@@ -71,25 +71,49 @@ export default function Entrance() {
           </button>
         </div>
       </nav>
-      <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
+      <main className="max-w-6xl mx-auto px-6 pt-10 pb-16">
 
         <div className="flex justify-end mb-4">
           <InstallAppButton />
         </div>
 
-        <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
+        <div className="grid lg:grid-cols-2 gap-10 items-center mb-14">
+          <div>
+            <div className="h-[3px] w-16 rounded-full bg-gradient-to-r from-teal-light via-gold to-ember mb-7" />
 
-        <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-3">
-          Campus Community &amp; My Space
-        </p>
+            <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-3">
+              Campus Community &amp; My Space
+            </p>
 
-        <h1 className="font-serif font-normal text-4xl sm:text-5xl text-cream leading-[1.15] mb-5 max-w-2xl">
-          Your campus life, organised in one place.
-        </h1>
+            <h1 className="font-serif font-normal text-4xl sm:text-5xl text-cream leading-[1.15] mb-6 max-w-xl">
+              Your campus life, organised in one place.
+            </h1>
 
-        <p className="text-cream-muted text-base leading-relaxed max-w-xl mb-10">
-          Keep your My Space organised, browse the marketplace, stay on top of events, and chat with your campus community — all in one place.
-        </p>
+            <ul className="space-y-2.5 mb-8 max-w-xl">
+              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0" />
+                <span><span className="text-cream font-bold">Know what's happening on your campus</span> — events, deals and activity, all in one feed.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-teal-light flex-shrink-0" />
+                <span><span className="text-cream font-bold">Find out what your peers need</span> — and sell it to them on the marketplace.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-sapphire-light flex-shrink-0" />
+                <span><span className="text-cream font-bold">Manage your studying</span> — deadlines, timetable and focus sessions in My Space.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="relative">
+            <div className="absolute -inset-3 bg-gradient-to-br from-teal-light/20 via-gold/10 to-ember/20 rounded-[2rem] blur-xl" aria-hidden="true" />
+            <img
+              src="/images/entrance/campus-library.png"
+              alt="Campus library shelves"
+              className="relative w-full h-64 sm:h-80 lg:h-[440px] object-cover rounded-2xl border border-slate-border shadow-lg"
+            />
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-4 mb-14">
           <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-gold rounded-2xl p-6 transition-colors">
@@ -167,7 +191,7 @@ export default function Entrance() {
 
       </main>
 
-      <footer className="max-w-3xl mx-auto px-6 pb-10 text-center">
+      <footer className="max-w-6xl mx-auto px-6 pb-10 text-center">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs mb-4">
           <a href="/How-it-works.html" className="text-cream-muted hover:text-teal-light transition-colors">How It Works</a>
           <a href="/Faq.html" className="text-cream-muted hover:text-teal-light transition-colors">FAQ</a>
