@@ -127,7 +127,7 @@ export interface ChatReport extends Report {
 // ── PLAN CONSTANTS ─────────────────────────────────────────────────────────
 
 export const PLAN_TIERS = {
-  ghost:       { label: 'Ghost',       price: 'Free', priceNum: 0,   days: 3,  maxListings: 1, maxPhotos: 1, maxVariants: 0,   maxMsgs: 3,   canChat: true, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0,   searchBoost: false, badge: null },
+  ghost:       { label: 'Ghost',       price: 'Free', priceNum: 0,   days: 3,  maxListings: 1, maxPhotos: 0, maxVariants: 0,   maxMsgs: 3,   canChat: true, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0,   searchBoost: false, badge: null },
   visible:     { label: 'Visible',     price: 'R29',  priceNum: 29,  days: 7,  maxListings: 1, maxPhotos: 1, maxVariants: 3,   maxMsgs: 10,  canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 0,   searchBoost: false, badge: 'Spotted' },
   loud:        { label: 'Loud',        price: 'R79',  priceNum: 79,  days: 14, maxListings: 2, maxPhotos: 2, maxVariants: 8,   maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 3,   searchBoost: false, badge: 'Verified' },
   unmissable:  { label: 'Unmissable',  price: 'R149', priceNum: 149, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 999, maxMsgs: 999, canChat: true, canRenew: true,  canNegBadge: true,  pushNotif: true,  bulkPost: 999, searchBoost: true,  badge: 'Featured' },
