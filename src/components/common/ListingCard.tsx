@@ -57,18 +57,18 @@ const navigate = useNavigate()
   return (
     <div
       onClick={() => listing.id && navigate(`/listing/${listing.id}`)}
-      className="relative bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden transition-all cursor-pointer hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)]"
+      className="group relative bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1.5 hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)]"
     >
       <div className="relative aspect-[4/3] bg-[#f5f8fc] overflow-hidden">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={listing.title || 'Listing image'}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
+          <div className="w-full h-full flex items-center justify-center text-slate-300 transition-transform duration-500 ease-out group-hover:scale-110 group-hover:text-slate-400">
             <ImageIcon size={30} strokeWidth={1.5} />
           </div>
         )}
