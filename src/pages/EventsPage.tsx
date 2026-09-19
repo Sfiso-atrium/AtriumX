@@ -61,7 +61,7 @@ function EventCard({ event, canCancel, onCancel }: { event: CampusEvent; canCanc
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300 transition-transform duration-500 ease-out group-hover:scale-110 group-hover:text-slate-400">
             <ImageIcon size={30} strokeWidth={1.5} />
             <span className="text-xs">No event poster</span>
           </div>
