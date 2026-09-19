@@ -31,6 +31,12 @@ export default function Navbar() {
   const [pushBlocked, setPushBlocked] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
 
+  // Sign in/up, business account creation, and the retailer landing page are
+  // entry points without their own account context yet, so the sidemenu
+  // (which is all about a signed-in user's spaces) has nothing useful to
+  // offer there.
+  const hideSidemenu = ['/student', '/retailer', '/retailer/signup'].includes(location.pathname)
+
   useEffect(() => {
     if (!menuOpen || !currentUser || !pushSupported()) return
 
@@ -78,23 +84,28 @@ export default function Navbar() {
       <nav className="sticky top-0 z-40 bg-slate-deep border-b-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open navigation menu"
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-cream-muted hover:text-cream hover:bg-slate-card transition-colors flex-shrink-0"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+            {!hideSidemenu && (
+              <button
+                onClick={() => setMenuOpen(true)}
+                aria-label="Open navigation menu"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-cream-muted hover:text-cream hover:bg-slate-card transition-colors flex-shrink-0"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            )}
 
             <button
               onClick={() => navigate(currentUser ? '/space' : '/')}
               className="flex items-center min-w-0"
               aria-label="AtriumX home"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-[3px]">
                 <img src="/logo.png" alt="AtriumX" className="h-11 w-11 object-contain flex-shrink-0" />
-                <span className="text-2xl font-extrabold tracking-tight text-teal-primary whitespace-nowrap">
-                  Atrium<span>X</span>
+                <span
+                  className="text-2xl font-extrabold text-teal-primary whitespace-nowrap"
+                  style={{ letterSpacing: '3px' }}
+                >
+                  trium<span>X</span>
                 </span>
               </div>
             </button>
