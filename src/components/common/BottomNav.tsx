@@ -152,7 +152,7 @@ export default function BottomNav() {
     <>
       {chooserOpen && <PostTypeModal onClose={() => setChooserOpen(false)} />}
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep/95 backdrop-blur border-t border-transparent">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep/95 backdrop-blur border-t-0 lg:hidden">
         <div className="max-w-lg mx-auto flex items-center justify-around h-[68px] px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -176,13 +176,13 @@ export default function BottomNav() {
                   }
                 >
                   <Icon
-                    size={tab.action ? 24 : tab.label === 'My Space' ? 27 : 22}
+                    size={26}
                     className={
                       tab.action
                         ? 'text-slate-deep transition-transform duration-200 ease-out group-hover:rotate-3'
                         : active
                           ? 'text-gold transition-all duration-200 ease-out group-hover:rotate-3'
-                          : 'text-cream-muted transition-all duration-200 ease-out group-hover:text-cream group-hover:rotate-[-3deg]'
+                          : 'text-black transition-all duration-200 ease-out group-hover:text-black group-hover:rotate-[-3deg]'
                     }
                   />
                   {active && !tab.action && (
