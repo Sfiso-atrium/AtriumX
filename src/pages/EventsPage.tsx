@@ -1,57 +1,148 @@
 // src/pages/EventsPage.tsx
-//
-// The Events board. Its own route rather than a fourth tab in the feed â€”
-// see the note in BottomNav.tsx for why.
+// Events board: image-led cards, horizontal sections, and an event details route.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, Plus, Search, X } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Image as ImageIcon } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { getEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
+import { getAllEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 import CategoryChips, { CategoryOption } from '../components/common/CategoryChips'
 
-// Same shape as the feed's filter â€” always shows every category, not just
-// ones that already have a posted event. Data-derived chips would make
-// the filter row empty (or missing) on a mostly-empty board, exactly
-// when someone would most want to see what kinds of events they COULD
-// filter to.
 const EVENT_FILTER_OPTIONS: CategoryOption[] = [
   { id: 'all', label: 'All' },
   ...EVENT_CATEGORIES.map(c => ({ id: c, label: c })),
 ]
-
-function EmptyState({ message, actionLabel, onAction }: { message: string; actionLabel?: string; onAction?: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
-        <CalendarDays size={28} className="text-teal-primary" />
-      </div>
-      <p className="text-cream-muted text-sm mb-4">{message}</p>
-      {actionLabel && onAction && (
-        <button
-          onClick={onAction}
-          className="bg-ember hover:bg-ember-dark text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors"
-        >
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  )
-}
 
 function formatWhen(iso: string): string {
   const d = new Date(iso)
   const today = new Date()
   const tomorrow = new Date(today.getTime() + 86400000)
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
-
   const time = d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
   if (sameDay(d, today)) return `Today, ${time}`
   if (sameDay(d, tomorrow)) return `Tomorrow, ${time}`
   return `${d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`
+}
+
+// There is no dedicated campus/off-campus column in the current event model,
+// so locations are classified conservatively using common campus-place terms.
+function isCampusLocation(location: string): boolean {
+  const value = location.toLowerCase()
+  const campusTerms = [
+    'campus', 'student centre', 'student center', 'science block', 'lecture hall',
+    'sports ground', 'sports grounds', 'university grounds', 'quad', 'courtyard',
+    'residence', 'res', 'library', 'main hall', 'student village',
+  ]
+  return campusTerms.some(term => value.includes(term))
+}
+
+function EventCard({ event, canCancel, onCancel }: { event: CampusEvent; canCancel: boolean; onCancel: () => void }) {
+  const navigate = useNavigate()
+
+  return (
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/event/${event.id}`)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') navigate(`/event/${event.id}`)
+      }}
+      className="group w-[290px] sm:w-[320px] flex-shrink-0 snap-start bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[#d5e0ef] hover:shadow-[0_16px_34px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+    >
+      <div className="relative aspect-[4/3] bg-[#f5f8fc] overflow-hidden">
+        {event.image_url ? (
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
+            <ImageIcon size={30} strokeWidth={1.5} />
+            <span className="text-xs">No event poster</span>
+          </div>
+        )}
+
+        <span className="absolute top-3 left-3 bg-white/95 text-blue-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm">
+          {event.category}
+        </span>
+
+        <span className="absolute top-3 right-3 bg-white/95 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+          {event.price == null ? 'Free' : `R${Number(event.price).toFixed(2)}`}
+        </span>
+      </div>
+
+      <div className="p-4 flex flex-col gap-2.5">
+        <div>
+          <h3 className="text-slate-900 font-bold text-base leading-snug break-words line-clamp-2 transition-colors group-hover:text-blue-600">
+            {event.title}
+          </h3>
+          <p className="text-blue-600 text-xs font-bold mt-1">{formatWhen(event.starts_at)}</p>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+          <MapPin size={13} className="flex-shrink-0 text-blue-500" />
+          <span className="truncate">{event.location}</span>
+        </div>
+
+        {event.description && (
+          <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">{event.description}</p>
+        )}
+
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="text-slate-500 text-[11px] truncate">by {event.host?.full_name ?? 'a student'}</span>
+          {canCancel && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation()
+                onCancel()
+              }}
+              className="text-blue-600 text-[11px] font-bold hover:text-blue-700 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function HorizontalSection({ title, icon, events, currentUserId, onCancel }: {
+  title: string
+  icon?: ReactNode
+  events: CampusEvent[]
+  currentUserId?: string
+  onCancel: (event: CampusEvent) => void
+}) {
+  if (events.length === 0) return null
+
+  return (
+    <section className="mb-7">
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          {icon}
+          <h2 className="text-cream font-bold text-sm truncate">{title}</h2>
+        </div>
+        <span className="text-cream-muted text-[11px] flex-shrink-0">Swipe to explore</span>
+      </div>
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
+        {events.map(event => (
+          <EventCard
+            key={event.id}
+            event={event}
+            canCancel={currentUserId === event.host_id}
+            onCancel={() => onCancel(event)}
+          />
+        ))}
+      </div>
+    </section>
+  )
 }
 
 export default function EventsPage() {
@@ -60,26 +151,52 @@ export default function EventsPage() {
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
-  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    getEvents().then(data => { setEvents(data); setLoading(false) }).catch(() => setLoading(false))
+    getAllEvents()
+      .then(data => {
+        setEvents(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [currentUser])
 
-  const visible = events.filter(e => {
-    const matchesCategory = filter === 'all' || e.category === filter
-    const q = search.trim().toLowerCase()
-    const matchesSearch = !q ||
-      e.title.toLowerCase().includes(q) ||
-      e.description.toLowerCase().includes(q) ||
-      e.location.toLowerCase().includes(q) ||
-      (e.host?.full_name ?? '').toLowerCase().includes(q)
-    return matchesCategory && matchesSearch
+  const visible = useMemo(
+    () => (filter === 'all' ? events : events.filter(e => e.category === filter)),
+    [events, filter]
+  )
+
+  const now = Date.now()
+  const weekFromNow = now + 7 * 86400000
+  const twoWeeksFromNow = now + 14 * 86400000
+
+  const upcomingSoon = visible.filter(e => {
+    const starts = new Date(e.starts_at).getTime()
+    return starts >= now && starts <= weekFromNow && isCampusLocation(e.location)
   })
 
-  const handleCancel = async (ev: CampusEvent) => {
-    await cancelEvent(ev.id)
-    setEvents(prev => prev.filter(e => e.id !== ev.id))
+  const nextWeek = visible.filter(e => {
+    const starts = new Date(e.starts_at).getTime()
+    return starts > weekFromNow && starts <= twoWeeksFromNow && isCampusLocation(e.location)
+  })
+
+  const laterCampus = visible.filter(e => {
+    const starts = new Date(e.starts_at).getTime()
+    return starts > twoWeeksFromNow && isCampusLocation(e.location)
+  })
+
+  const outsideCampus = visible.filter(e => {
+    const starts = new Date(e.starts_at).getTime()
+    return starts >= now && !isCampusLocation(e.location)
+  })
+
+  const past = visible
+    .filter(e => new Date(e.starts_at).getTime() < now)
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
+
+  const handleCancel = async (event: CampusEvent) => {
+    await cancelEvent(event.id)
+    setEvents(prev => prev.filter(e => e.id !== event.id))
     showToast('Event cancelled.', 'success')
   }
 
@@ -87,127 +204,102 @@ export default function EventsPage() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-
-        <div className="max-w-4xl mx-auto">
-          <div className="px-4 pt-4 pb-2">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28">
+          <div className="mb-5">
             <h1 className="font-serif text-2xl text-cream">Discover</h1>
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
-          <div className="px-4 pt-2 pb-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch">
-            <div className="flex h-12 bg-slate-card border border-slate-border rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => navigate('/feed')}
-                className="flex-1 h-full text-cream-muted hover:text-cream hover:border-teal-primary rounded-md text-sm font-medium transition-colors"
-              >
-                Marketplace
-              </button>
-              <button
-                type="button"
-                className="flex-1 h-full bg-teal-primary border border-teal-light text-cream rounded-md text-sm font-bold"
-              >
-                Events
-              </button>
-            </div>
-
-            <div className="relative h-12">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search events..."
-                className="w-full h-full bg-slate-card border border-slate-border rounded-lg pl-9 pr-9 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+          <div className="grid grid-cols-2 gap-2 mb-6 max-w-xl">
+            <button
+              type="button"
+              onClick={() => navigate('/feed')}
+              className="bg-slate-card border border-slate-border text-cream-muted hover:text-cream hover:border-teal-primary rounded-xl py-2.5 text-sm font-medium transition-colors"
+            >
+              Marketplace
+            </button>
+            <button
+              type="button"
+              className="bg-teal-primary border border-teal-light text-white rounded-xl py-2.5 text-sm font-bold"
+            >
+              Events
+            </button>
           </div>
 
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div>
+              <h1 className="font-serif text-2xl text-cream">Events</h1>
+              <p className="text-cream-muted text-sm mt-1">What's happening around your student community.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/post-event')}
+              className="flex items-center gap-1.5 bg-ember hover:bg-ember-dark text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors flex-shrink-0"
+            >
+              <Plus size={14} /> Post
+            </button>
+          </div>
 
-
-          <div className="px-4 pt-3">
+          <div className="-mx-4 mt-4 mb-6">
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
           </div>
 
-          <div className="px-4 pt-2 pb-2">
-            <p className="text-cream-muted text-xs">
-              {loading ? 'Loading...' : `${visible.length} event${visible.length !== 1 ? 's' : ''} found`}
-            </p>
-          </div>
-
           {loading ? (
-            <p className="px-4 text-cream-muted text-sm">Loading events...</p>
+            <p className="text-cream-muted text-sm">Loading events…</p>
           ) : visible.length === 0 ? (
-            <EmptyState
-              message={search.trim() || filter !== 'all' ? 'No events match your search.' : 'Nothing here yet. Be the first to post.'}
-              actionLabel="Post an Event"
-              onAction={() => navigate('/post-event')}
-            />
-          ) : (
-            <div className="px-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {visible.map(ev => (
-                <div
-                  key={ev.id}
-                  className="relative bg-slate-card rounded-2xl overflow-hidden transition-colors border border-slate-border hover:border-teal-primary"
-                >
-                  <div className="p-4 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-cream font-bold text-base leading-snug break-words flex-1 min-w-0">
-                        {ev.title}
-                      </h3>
-                      <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-deep/90 text-gold border border-gold/40">
-                        {ev.category}
-                      </span>
-                    </div>
-
-                    <p className="text-gold text-xs font-bold">
-                      {formatWhen(ev.starts_at)}
-                    </p>
-
-                    <div className="flex items-center gap-1.5 text-cream-muted text-xs">
-                      <MapPin size={12} className="flex-shrink-0" />
-                      <span className="truncate">{ev.location}</span>
-                    </div>
-
-                    {ev.description && (
-                      <p className="text-cream-muted text-xs leading-relaxed">{ev.description}</p>
-                    )}
-
-                    <div className="flex items-center justify-between gap-3 pt-1">
-                      <span className="text-cream text-xs font-bold">
-                        {ev.price == null ? 'Free entry' : `R${Number(ev.price).toFixed(2)}`}
-                      </span>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-cream-muted text-[11px] truncate">
-                          by {ev.host?.full_name ?? 'a student'}
-                        </span>
-                        {currentUser?.id === ev.host_id && (
-                          <button
-                            onClick={() => handleCancel(ev)}
-                            className="text-ember text-[11px] font-bold hover:opacity-80"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="text-center py-16">
+              <CalendarDays size={34} className="text-cream-muted mx-auto mb-3 opacity-50" />
+              <p className="text-cream font-bold text-sm mb-1">No events match this filter</p>
+              <p className="text-cream-muted text-xs mb-5">Be the first to put something on the board.</p>
+              <button
+                type="button"
+                onClick={() => navigate('/post-event')}
+                className="bg-ember hover:bg-ember-dark text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors"
+              >
+                Post an event
+              </button>
             </div>
+          ) : (
+            <>
+              <HorizontalSection
+                title="Happening soon"
+                events={upcomingSoon}
+                currentUserId={currentUser?.id}
+                onCancel={handleCancel}
+              />
+
+              <HorizontalSection
+                title="Next week"
+                events={nextWeek}
+                currentUserId={currentUser?.id}
+                onCancel={handleCancel}
+              />
+
+              <HorizontalSection
+                title="More on campus"
+                events={laterCampus}
+                currentUserId={currentUser?.id}
+                onCancel={handleCancel}
+              />
+
+              <HorizontalSection
+                title="Outside campus"
+                events={outsideCampus}
+                currentUserId={currentUser?.id}
+                onCancel={handleCancel}
+              />
+
+              <HorizontalSection
+                title="Past events"
+                events={past}
+                currentUserId={currentUser?.id}
+                onCancel={handleCancel}
+              />
+            </>
           )}
         </div>
+        <LegalFooter />
       </div>
-      <LegalFooter />
       <BottomNav />
     </>
   )
