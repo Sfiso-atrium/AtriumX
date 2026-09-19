@@ -17,9 +17,9 @@
   --atriumx-cream-rgb: 15 23 42;
   --atriumx-cream-muted-rgb: 100 116 139;
 
-  /* Gold remains a brand accent; blue drives the interface. */
-  --atriumx-gold-rgb: 212 160 23;
-  --atriumx-gold-muted-rgb: 184 134 11;
+  /* Legacy gold aliases now resolve to the same blue family; React has one accent system. */
+  --atriumx-gold-rgb: 37 99 235;
+  --atriumx-gold-muted-rgb: 29 78 216;
 
   /* Existing Focus Mode alternate palette. */
   --atriumx-focus-girly-text: #3A1E2C;
