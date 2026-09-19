@@ -91,10 +91,10 @@ export default function Navbar() {
               className="flex items-center min-w-0"
               aria-label="AtriumX home"
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <img src="/logo.png" alt="AtriumX" className="h-11 w-11 object-contain flex-shrink-0" />
-                <span className="text-2xl font-extrabold tracking-tight text-cream whitespace-nowrap">
-                  Atrium<span className="text-gold">X</span>
+                <span className="text-2xl font-extrabold tracking-tight text-blue-600 whitespace-nowrap">
+                  Atrium<span className="text-blue-600">X</span>
                 </span>
               </div>
             </button>
