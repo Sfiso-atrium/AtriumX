@@ -142,10 +142,9 @@ export default function RetailerLanding() {
             onSelect={handlePackageSelect}
             features={[
               '1 photo per listing',
-              'Up to 3 active listings',
+              'Up to 2 active listings',
               'Unlimited messaging with students',
               'Gold "Sponsored" badge on your listings',
-              'Push notification when a student messages you',
               '14-day active window',
             ]}
           />
@@ -154,11 +153,10 @@ export default function RetailerLanding() {
             onSelect={handlePackageSelect}
             features={[
               'Up to 3 photos per listing',
-              'Up to 6 active listings',
+              'Up to 3 active listings',
               'Unlimited messaging with students',
               'Reply to student reviews',
               '"Campus Partner" badge on your listings',
-              'Search ranking boost',
               '30-day active window',
             ]}
           />
