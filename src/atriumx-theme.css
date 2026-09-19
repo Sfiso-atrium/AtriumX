@@ -7,17 +7,17 @@
   --atriumx-bg-card-rgb: 252 253 255;
   --atriumx-border-rgb: 234 240 248;
 
-  /* AtriumX action colour — restored to the existing gold accent. */
-  --atriumx-teal-primary-rgb: 212 160 23;
-  --atriumx-teal-light-rgb: 233 201 138;
-  --atriumx-sapphire-primary-rgb: 184 134 11;
-  --atriumx-sapphire-light-rgb: 245 214 151;
+  /* AtriumX action colour — blue is the primary interface accent. */
+  --atriumx-teal-primary-rgb: 37 99 235;
+  --atriumx-teal-light-rgb: 59 130 246;
+  --atriumx-sapphire-primary-rgb: 29 78 216;
+  --atriumx-sapphire-light-rgb: 96 165 250;
 
   /* Main and supporting text. */
   --atriumx-cream-rgb: 15 23 42;
   --atriumx-cream-muted-rgb: 100 116 139;
 
-  /* Gold remains the shared AtriumX action/accent family. */
+  /* Gold remains a brand accent; blue drives the interface. */
   --atriumx-gold-rgb: 212 160 23;
   --atriumx-gold-muted-rgb: 184 134 11;
 
@@ -43,8 +43,8 @@
   --cream-muted: rgb(var(--atriumx-cream-muted-rgb));
   --gold: rgb(var(--atriumx-gold-rgb));
   --gold-muted: rgb(var(--atriumx-gold-muted-rgb));
-  --ember: rgb(var(--atriumx-gold-rgb));
-  --ember-dark: rgb(var(--atriumx-gold-muted-rgb));
+  --ember: rgb(var(--atriumx-teal-primary-rgb));
+  --ember-dark: rgb(var(--atriumx-sapphire-primary-rgb));
   --atriumx-accent-contrast: rgb(255 255 255);
 
   /* Existing B&W mode values, retained for compatibility. */
