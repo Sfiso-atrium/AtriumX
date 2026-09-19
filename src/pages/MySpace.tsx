@@ -65,7 +65,7 @@ function TabIntro({ tab }: { tab: Tab }) {
   return (
     <div className="flex items-start gap-2.5 mb-1">
       <div className="w-7 h-7 rounded-full border border-slate-border bg-slate-card flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon size={14} className="text-gold" />
+        <Icon size={14} className="text-blue-600" />
       </div>
       <p className="text-cream-muted text-sm leading-snug pt-0.5">{TAB_INTRO[tab]}</p>
     </div>
@@ -97,7 +97,7 @@ function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
         </p>
         <button
           onClick={onClose}
-          className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors"
+          className="w-full bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-3 rounded-xl transition-colors"
         >
           Let's go
         </button>
@@ -151,7 +151,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)"
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
             Add
           </button>
         </div>
@@ -172,7 +172,7 @@ function DeadlinesSection({ userId }: { userId: string }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-cream font-bold text-sm truncate">{d.title}</p>
-                <p className={`text-xs mt-0.5 ${soon ? 'text-gold' : 'text-cream-muted'}`}>
+                <p className={`text-xs mt-0.5 ${soon ? 'text-blue-600' : 'text-cream-muted'}`}>
                   {due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
                 {d.notes && <p className="text-cream-muted text-xs mt-1">{d.notes}</p>}
@@ -253,7 +253,7 @@ function ScheduleSection({ userId }: { userId: string }) {
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           <input value={room} onChange={e => setRoom(e.target.value)} placeholder="Room (optional)"
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
             Add
           </button>
         </div>
@@ -329,7 +329,7 @@ function BudgetSection({ userId }: { userId: string }) {
               Money in
             </button>
             <button onClick={() => setDirection('out')}
-              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'out' ? 'bg-ember text-white' : 'bg-slate-deep text-cream-muted border border-slate-border'}`}>
+              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'out' ? 'bg-blue-600 text-white' : 'bg-slate-deep text-cream-muted border border-slate-border'}`}>
               Money out
             </button>
           </div>
@@ -337,7 +337,7 @@ function BudgetSection({ userId }: { userId: string }) {
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)"
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
             Add
           </button>
         </div>
@@ -484,7 +484,7 @@ function FocusTimerVisual({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
-          className="text-gold transition-all duration-700"
+          className="text-blue-600 transition-all duration-700"
         />
       </svg>
 
@@ -588,7 +588,7 @@ function PomodoroSection({ userId }: { userId: string }) {
             <div className="flex gap-3">
               <button
                 onClick={handleToggle}
-                className="bg-gold hover:bg-gold-muted text-slate-deep font-bold px-7 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors"
+                className="bg-blue-600 hover:bg-blue-600-muted text-slate-deep font-bold px-7 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors"
               >
                 {running
                   ? <><Pause size={16} /> Pause</>
@@ -692,14 +692,14 @@ function PomodoroSection({ userId }: { userId: string }) {
       </div>
 
       {dayMessage && (
-        <p className={`text-sm text-center ${dayMessage.ahead ? 'text-gold' : 'text-cream-muted'}`}>
+        <p className={`text-sm text-center ${dayMessage.ahead ? 'text-blue-600' : 'text-cream-muted'}`}>
           {dayMessage.text}
         </p>
       )}
 
       <button
         onClick={() => navigate('/focus')}
-        className="group w-full flex items-center justify-between bg-gold hover:bg-gold-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-gold/20"
+        className="group w-full flex items-center justify-between bg-blue-600 hover:bg-blue-600-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-blue-600/20"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
@@ -769,7 +769,7 @@ function WatchlistSection({ userId }: { userId: string }) {
           </select>
           <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max price (optional)"
             className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
             Watch
           </button>
         </div>
@@ -855,7 +855,7 @@ function PrepModal({ course, onClose, onSubmitted }: { course: StudyCourse; onCl
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5"
+          className="w-full bg-blue-600 hover:bg-blue-600-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5"
         >
           {loading ? 'Saving...' : 'Save & get ready'}
         </button>
@@ -1034,7 +1034,7 @@ function TimetableSection({ userId }: { userId: string }) {
                 <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Minutes to study"
                   className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
                 <div className="flex gap-2">
-                  <button onClick={() => handleAddCourse(dayIdx)} className="flex-1 bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
+                  <button onClick={() => handleAddCourse(dayIdx)} className="flex-1 bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">
                     Add
                   </button>
                   <button onClick={() => { setOpenDayForm(null); setCourseName(''); setMinutes('') }} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-sm transition-colors">
@@ -1068,7 +1068,7 @@ function NotebookSection() {
       <TabIntro tab="Notebook" />
       <button
         onClick={() => navigate('/notebook')}
-        className="group w-full flex items-center justify-between bg-gold hover:bg-gold-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-gold/20"
+        className="group w-full flex items-center justify-between bg-blue-600 hover:bg-blue-600-muted text-slate-deep px-5 py-4 rounded-2xl transition-all shadow-lg shadow-blue-600/20"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
@@ -1116,43 +1116,41 @@ function TodaySnapshot({ userId }: { userId: string }) {
 
   return (
     <div className="px-4 mt-4 flex flex-col gap-4">
-      <div className="relative overflow-hidden bg-slate-card border border-slate-border rounded-2xl p-5 flex items-center justify-between">
-        <div>
-          <p className="text-cream font-bold text-lg leading-tight">Good evening, {firstName} 👋</p>
-          <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
-        </div>
+      <div className="px-4 sm:px-6 lg:px-8 pt-5">
+        <h2 className="text-xl sm:text-2xl font-bold text-cream leading-tight">Good evening, {firstName} 👋</h2>
+        <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
       </div>
       <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' as any }}>
-        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <CalendarClock size={16} className="text-gold" />
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <CalendarClock size={16} className="text-blue-600" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Upcoming Deadlines</p>
             <p className="text-cream text-[13px] font-bold mt-1 truncate">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
           </div>
         </div>
-        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Timer size={16} className="text-gold" />
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Timer size={16} className="text-emerald-600" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Today's Focus</p>
             <p className="text-cream text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
           </div>
         </div>
-        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Wallet size={16} className="text-gold" />
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+            <Wallet size={16} className="text-violet-600" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Budget Balance</p>
             <p className="text-cream text-[13px] font-bold mt-1 truncate">R{balance.toFixed(0)}</p>
           </div>
         </div>
-        <div className="min-w-[160px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-deep border border-slate-border flex items-center justify-center flex-shrink-0">
-            <Eye size={16} className="text-gold" />
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+            <Eye size={16} className="text-rose-600" />
           </div>
           <div className="min-w-0">
             <p className="text-cream-muted text-[11px] font-medium leading-none">Watchlist</p>
@@ -1166,11 +1164,11 @@ function TodaySnapshot({ userId }: { userId: string }) {
 
 function RecentActivityEmpty() {
   return (
-    <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+    <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
       <p className="text-cream font-bold text-sm mb-4">Recent Activity</p>
-      <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-border rounded-xl bg-slate-deep">
-        <div className="w-12 h-12 rounded-full bg-teal-faint border border-slate-border flex items-center justify-center mb-3">
-          <Clock size={18} className="text-gold" />
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-xl bg-slate-50">
+        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+          <Clock size={18} className="text-blue-600" />
         </div>
         <p className="text-cream font-semibold text-sm">No activity yet</p>
         <p className="text-cream-muted text-xs mt-1 max-w-[200px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
@@ -1237,7 +1235,7 @@ function DeadlinesPopup({ userId, onClose }: { userId: string; onClose: () => vo
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam / assignment title" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           <input type="datetime-local" value={dueAt} onChange={e => setDueAt(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
         </div>
       )}
       {loading ? <p className="text-cream-muted text-sm">Loading...</p> : items.length === 0 ? (
@@ -1255,7 +1253,7 @@ function DeadlinesPopup({ userId, onClose }: { userId: string; onClose: () => vo
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-cream font-bold text-sm truncate">{d.title}</p>
-                    <p className={`text-xs mt-0.5 ${soon ? 'text-gold' : 'text-cream-muted'}`}>{due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    <p className={`text-xs mt-0.5 ${soon ? 'text-blue-600' : 'text-cream-muted'}`}>{due.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
                     {d.notes && <p className="text-cream-muted text-xs mt-1">{d.notes}</p>}
                   </div>
                   <DeleteBtn onClick={() => handleDelete(d.id)} />
@@ -1300,7 +1298,7 @@ function SchedulePopup({ userId, onClose }: { userId: string; onClose: () => voi
           <input type="time" value={time} onChange={e => setTime(e.target.value)} className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream focus:outline-none focus:border-teal-light" />
           <input value={module} onChange={e => setModule(e.target.value)} placeholder="Module / subject" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           <input value={room} onChange={e => setRoom(e.target.value)} placeholder="Room (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
         </div>
       )}
       {items.length === 0 ? (
@@ -1373,7 +1371,7 @@ function TimetablePopup({ userId, onClose }: { userId: string; onClose: () => vo
                 <div className="flex gap-2 mb-3">
                   <input value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Course" className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
                   <input type="number" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="Min" className="w-16 bg-slate-card border border-slate-border rounded-xl px-2 py-2 text-xs text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-                  <button onClick={() => handleAddCourse(dayIdx)} className="bg-ember text-white font-bold text-xs px-3 rounded-xl">Add</button>
+                  <button onClick={() => handleAddCourse(dayIdx)} className="bg-blue-600 text-white font-bold text-xs px-3 rounded-xl">Add</button>
                 </div>
               )}
               {dayCourses.length === 0 ? <p className="text-cream-muted text-[11px]">No courses planned yet</p> : (
@@ -1387,7 +1385,7 @@ function TimetablePopup({ userId, onClose }: { userId: string; onClose: () => vo
                           <p className="text-cream-muted text-[11px]">{c.minutes} min {prep ? (prep.clarified ? '• clarified' : '• needs prep') : ''}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {prep && !prep.clarified && <button onClick={() => setPrepTarget(c)} className="text-gold text-[11px] font-bold">Prep</button>}
+                          {prep && !prep.clarified && <button onClick={() => setPrepTarget(c)} className="text-blue-600 text-[11px] font-bold">Prep</button>}
                           <DeleteBtn onClick={() => handleDeleteCourse(c.id)} />
                         </div>
                       </div>
@@ -1435,11 +1433,11 @@ function BudgetPopup({ userId, onClose }: { userId: string; onClose: () => void 
           <p className="text-cream font-bold text-sm">Log money</p>
           <div className="flex gap-2">
             <button onClick={() => setDirection('in')} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'in' ? 'bg-teal-primary text-white' : 'bg-slate-card text-cream-muted border border-slate-border'}`}>Money in</button>
-            <button onClick={() => setDirection('out')} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'out' ? 'bg-ember text-white' : 'bg-slate-card text-cream-muted border border-slate-border'}`}>Money out</button>
+            <button onClick={() => setDirection('out')} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${direction === 'out' ? 'bg-blue-600 text-white' : 'bg-slate-card text-cream-muted border border-slate-border'}`}>Money out</button>
           </div>
           <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount (R)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
           <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Add</button>
         </div>
         <div className="flex flex-col gap-2">
           {items.map(e => (
@@ -1480,7 +1478,7 @@ function PomodoroPopup({ userId, onClose }: { userId: string; onClose: () => voi
             <p className="text-cream-muted text-xs mt-2">Studied yesterday</p>
           </div>
         </div>
-        <button onClick={() => { onClose(); navigate('/focus') }} className="w-full bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <button onClick={() => { onClose(); navigate('/focus') }} className="w-full bg-blue-600 hover:bg-blue-600-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
           <Timer size={18} /> Enter Focus Mode
         </button>
       </div>
@@ -1516,7 +1514,7 @@ function WatchlistPopup({ userId, onClose }: { userId: string; onClose: () => vo
             {STUDENT_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
           <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max price (optional)" className="bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
-          <button onClick={handleAdd} className="bg-ember hover:bg-ember-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Watch</button>
+          <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-600-dark text-white font-bold py-2 rounded-xl text-sm transition-colors">Watch</button>
         </div>
       )}
       {items.length === 0 ? (
@@ -1553,7 +1551,7 @@ function NotebookPopup({ onClose }: { onClose: () => void }) {
           <p className="text-cream-muted text-xs mb-3">Private notes, locked with a passcode only you know. Not even AtriumX can read them.</p>
           <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)} placeholder="Enter passcode" className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
         </div>
-        <button onClick={() => { onClose(); navigate('/notebook') }} className="w-full bg-gold hover:bg-gold-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <button onClick={() => { onClose(); navigate('/notebook') }} className="w-full bg-blue-600 hover:bg-blue-600-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
           <NotebookText size={18} /> Open Notebook
         </button>
       </div>
@@ -1611,11 +1609,11 @@ export default function MySpace() {
         <h1 className="text-2xl sm:text-3xl font-bold text-cream">My Space</h1>
         <button
           onClick={() => navigate('/groups')}
-          className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-gold hover:bg-slate-card/60 transition-colors"
+          className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-blue-600 hover:bg-slate-card/60 transition-colors"
           aria-label="Open study groups"
           title="Study groups"
         >
-          <Users size={23} strokeWidth={2.2} className="text-gold" />
+          <Users size={23} strokeWidth={2.2} className="text-blue-600" />
           {unreadGroups > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
               {unreadGroups > 9 ? '9+' : unreadGroups}
@@ -1630,23 +1628,25 @@ export default function MySpace() {
         <div className="flex flex-col lg:flex-row gap-5 items-start">
           <div className="flex-1 w-full min-w-0">
             <div className="flex items-center justify-between mb-3"><p className="text-cream font-bold text-sm">Quick Access</p></div>
-            <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
+            <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' as any }}>
               {([
-                { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[] },
-                { title: 'Money', tabs: ['Budget'] as Tab[] },
-                { title: 'Focus', tabs: ['Pomodoro'] as Tab[] },
-                { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[] },
+                { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[], iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
+                { title: 'Money', tabs: ['Budget'] as Tab[], iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
+                { title: 'Focus', tabs: ['Pomodoro'] as Tab[], iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
+                { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[], iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
               ]).map(group => (
-                <div key={group.title} className="min-w-[150px] flex-1 bg-slate-card border border-slate-border rounded-2xl p-3 flex flex-col gap-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
-                  <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] px-1">{group.title}</p>
+                <div key={group.title} className="w-[220px] shrink-0 snap-start bg-white border border-slate-border rounded-2xl p-3 flex flex-col gap-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.14em] px-1 whitespace-nowrap">{group.title}</p>
                   <div className="flex flex-col gap-2">
                     {group.tabs.map(t => {
                       const meta = TAB_META[t]
                       const Icon = meta.icon
                       return (
-                        <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-colors border bg-slate-deep border-slate-border text-cream-muted hover:border-teal-light hover:text-cream">
-                          <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-card border border-slate-border"><Icon size={14} className="text-gold" /></span>
-                          <span className="truncate">{t}</span>
+                        <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-all border bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50/40 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${group.iconBg}`}>
+                            <Icon size={15} className={group.iconText} />
+                          </span>
+                          <span className="whitespace-nowrap">{t}</span>
                         </button>
                       )
                     })}
