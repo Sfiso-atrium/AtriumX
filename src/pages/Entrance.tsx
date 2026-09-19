@@ -71,118 +71,159 @@ export default function Entrance() {
           </button>
         </div>
       </nav>
-      <main className="max-w-6xl mx-auto px-6 pt-10 pb-16">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 lg:pt-12 pb-14 lg:pb-16">
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-5 sm:mb-6">
           <InstallAppButton />
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-14">
-          <div>
-            <div className="h-[3px] w-16 rounded-full bg-cream/70 mb-7" />
+        <section className="grid lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] gap-6 lg:gap-10 items-stretch mb-12 lg:mb-16">
+          <div className="flex flex-col justify-center bg-slate-card border border-slate-border rounded-3xl p-6 sm:p-8 lg:p-10 shadow-lg">
+            <div className="h-[3px] w-16 rounded-full bg-cream/70 mb-6" />
 
-            <p className="text-cream-muted text-xs font-bold uppercase tracking-wider mb-3">
+            <p className="text-cream-muted text-xs font-bold uppercase tracking-[0.18em] mb-3">
               Campus Community &amp; My Space
             </p>
 
-            <h1 className="font-serif font-normal text-4xl sm:text-5xl text-cream leading-[1.15] mb-6 max-w-xl">
+            <h1 className="font-serif font-normal text-4xl sm:text-5xl lg:text-[3.7rem] text-cream leading-[1.05] mb-5 max-w-2xl">
               Your campus life, organised in one place.
             </h1>
 
-            <ul className="space-y-2.5 mb-8 max-w-xl">
-              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
-                <span><span className="text-cream font-bold">Know what's happening on your campus</span> — events, deals and activity, all in one feed.</span>
-              </li>
-              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
-                <span><span className="text-cream font-bold">Find out what your peers need</span> — and sell it to them on the marketplace.</span>
-              </li>
-              <li className="flex items-start gap-2.5 text-cream-muted text-base leading-relaxed">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-cream/70 flex-shrink-0" />
-                <span><span className="text-cream font-bold">Manage your studying</span> — deadlines, timetable and focus sessions in My Space.</span>
-              </li>
-            </ul>
+            <p className="text-cream-muted text-base sm:text-lg leading-relaxed max-w-xl mb-7">
+              Stay connected to the things already inside AtriumX — campus activity, the marketplace,
+              messaging and your personal My Space tools — without having to jump between different places.
+            </p>
+
+            <div className="space-y-3 mb-8 max-w-xl">
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-border bg-slate-deep/30 px-4 py-3.5">
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-cream/70 flex-shrink-0" />
+                <div>
+                  <p className="text-cream font-bold text-sm">See what is happening</p>
+                  <p className="text-cream-muted text-sm leading-relaxed">Browse existing listings and campus events from the same AtriumX space.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-border bg-slate-deep/30 px-4 py-3.5">
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-teal-primary flex-shrink-0" />
+                <div>
+                  <p className="text-cream font-bold text-sm">Keep conversations together</p>
+                  <p className="text-cream-muted text-sm leading-relaxed">Use the existing AtriumX messaging flow to stay in touch with other students.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-border bg-slate-deep/30 px-4 py-3.5">
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-sapphire-light flex-shrink-0" />
+                <div>
+                  <p className="text-cream font-bold text-sm">Make My Space yours</p>
+                  <p className="text-cream-muted text-sm leading-relaxed">Keep your existing deadlines, timetable, budget, focus sessions, watchlist and notebook organised.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+              <button
+                onClick={() => { window.location.href = '/Welcome.html' }}
+                className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity"
+              >
+                Explore AtriumX
+              </button>
+              <button
+                onClick={handleMySpace}
+                className="w-full border border-slate-border hover:border-teal-light text-cream hover:text-teal-light font-bold py-3 rounded-xl transition-colors"
+              >
+                {currentUser ? 'Open My Space' : 'Sign In to My Space'}
+              </button>
+            </div>
           </div>
 
-          <div className="hidden lg:block">
+          <div className="relative min-h-[360px] sm:min-h-[440px] lg:min-h-0">
             <img
               src="/images/entrance/campus-library.png"
               alt="Campus library shelves"
-              className="w-full h-[440px] object-cover rounded-2xl border border-slate-border shadow-lg"
+              className="w-full h-full min-h-[360px] sm:min-h-[440px] lg:min-h-[620px] object-cover rounded-3xl border border-slate-border shadow-lg"
             />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-4 mb-14">
-          <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-gold rounded-2xl p-6 transition-colors">
-            <div className="flex items-center gap-2.5 mb-4">
-              <GraduationCap size={22} className="text-gold" />
-              <h2 className="text-cream font-bold text-base">I'm a Student</h2>
+            <div className="absolute left-4 right-4 bottom-4 sm:left-6 sm:right-6 sm:bottom-6 rounded-2xl border border-white/10 bg-slate-deep/85 backdrop-blur-sm px-4 py-3.5 sm:px-5 sm:py-4">
+              <p className="text-cream text-sm sm:text-base font-bold">One campus. One account. One space.</p>
+              <p className="text-cream-muted text-xs sm:text-sm mt-1">Start where you need to, then keep everything else together in AtriumX.</p>
             </div>
-            <button
-              onClick={() => { window.location.href = '/Welcome.html' }}
-              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
-            >
-              Explore AtriumX
-            </button>
-            <p className="text-cream-muted text-xs leading-relaxed">Explore existing AtriumX spaces, listings and campus activity.</p>
           </div>
+        </section>
 
-          <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-teal-primary rounded-2xl p-6 transition-colors">
-            <div className="flex items-center gap-2.5 mb-4">
-              <Store size={22} className="text-teal-primary" />
-              <h2 className="text-cream font-bold text-base">I'm a Business</h2>
+        <section className="mb-12 lg:mb-14">
+          <div className="flex items-end justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-cream text-xl sm:text-2xl font-bold">Choose your starting point</h2>
+              <p className="text-cream-muted text-sm mt-1.5">These are the existing AtriumX spaces available to you.</p>
             </div>
-            <button
-              onClick={() => navigate('/retailer')}
-              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
-            >
-              Explore Business
-            </button>
-            <p className="text-cream-muted text-xs leading-relaxed">Access the existing business tools and spaces available to partners.</p>
           </div>
 
-          <div className="flex-1 min-w-[230px] bg-slate-card border border-slate-border hover:border-sapphire-light rounded-2xl p-6 transition-colors">
-            <div className="flex items-center gap-2.5 mb-4">
-              <Backpack size={22} className="text-sapphire-light" />
-              <h2 className="text-cream font-bold text-base">My Space</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-slate-card border border-slate-border hover:border-gold rounded-2xl p-5 sm:p-6 transition-colors">
+              <div className="flex items-center gap-2.5 mb-4">
+                <GraduationCap size={22} className="text-gold" />
+                <h3 className="text-cream font-bold text-base">Student</h3>
+              </div>
+              <p className="text-cream-muted text-sm leading-relaxed mb-5">Explore the existing student experience, campus activity and marketplace.</p>
+              <button
+                onClick={() => { window.location.href = '/Welcome.html' }}
+                className="w-full border border-slate-border hover:border-gold text-cream hover:text-gold font-bold py-2.5 rounded-xl transition-colors"
+              >
+                Explore Student
+              </button>
             </div>
-            <button
-              onClick={handleMySpace}
-              className="w-full bg-cream hover:opacity-85 text-white font-bold py-3 rounded-xl transition-opacity mb-3"
-            >
-              {currentUser ? 'Open My Space' : 'Sign In to Open My Space'}
-            </button>
-            <p className="text-cream-muted text-xs leading-relaxed">
-              Your personal student dashboard — log assignment deadlines, add your class timetable,
-              track your monthly budget, and run focus sessions, all tied to your AtriumX account.
-            </p>
-          </div>
-        </div>
 
-        <h2 className="text-teal-light text-xs font-bold uppercase tracking-wider mb-4">What You Can Do</h2>
-        <div className="flex flex-wrap gap-3 mb-10">
-          <div className="flex-1 min-w-[190px] bg-slate-card border border-slate-border rounded-2xl p-4">
-            <MessageCircle size={16} className="text-teal-light mb-2" />
-            <p className="text-cream font-bold text-sm mb-1">Messages</p>
-            <p className="text-cream-muted text-xs leading-relaxed">Use AtriumX messaging to keep your conversations in one place.</p>
-          </div>
-          <div className="flex-1 min-w-[190px] bg-slate-card border border-slate-border rounded-2xl p-4">
-            <MapPin size={16} className="text-gold mb-2" />
-            <p className="text-cream font-bold text-sm mb-1">Browse the Marketplace</p>
-            <p className="text-cream-muted text-xs leading-relaxed">Browse existing listings and connect with other students.</p>
-          </div>
-          <div className="flex-1 min-w-[190px] bg-slate-card border border-slate-border rounded-2xl p-4">
-            <CalendarCheck size={16} className="text-sapphire-light mb-2" />
-            <p className="text-cream font-bold text-sm mb-1">My Space</p>
-            <p className="text-cream-muted text-xs leading-relaxed">
-              Keep your existing deadlines, timetable, budget, focus sessions, watchlist and notebook organised in My Space.
-            </p>
-          </div>
-        </div>
+            <div className="bg-slate-card border border-slate-border hover:border-teal-primary rounded-2xl p-5 sm:p-6 transition-colors">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Store size={22} className="text-teal-primary" />
+                <h3 className="text-cream font-bold text-base">Business</h3>
+              </div>
+              <p className="text-cream-muted text-sm leading-relaxed mb-5">Access the existing business tools and partner spaces already available in AtriumX.</p>
+              <button
+                onClick={() => navigate('/retailer')}
+                className="w-full border border-slate-border hover:border-teal-primary text-cream hover:text-teal-light font-bold py-2.5 rounded-xl transition-colors"
+              >
+                Explore Business
+              </button>
+            </div>
 
-        <div className="bg-teal-faint border border-teal-primary rounded-2xl px-5 py-4 mb-4">
+            <div className="bg-slate-card border border-slate-border hover:border-sapphire-light rounded-2xl p-5 sm:p-6 transition-colors">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Backpack size={22} className="text-sapphire-light" />
+                <h3 className="text-cream font-bold text-base">My Space</h3>
+              </div>
+              <p className="text-cream-muted text-sm leading-relaxed mb-5">Your existing personal dashboard for deadlines, timetable, budget, focus sessions, watchlist and notebook.</p>
+              <button
+                onClick={handleMySpace}
+                className="w-full border border-slate-border hover:border-sapphire-light text-cream hover:text-sapphire-light font-bold py-2.5 rounded-xl transition-colors"
+              >
+                {currentUser ? 'Open My Space' : 'Sign In to My Space'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-teal-light text-xs font-bold uppercase tracking-wider mb-4">Already inside AtriumX</h2>
+          <div className="grid md:grid-cols-3 gap-3">
+            <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+              <MessageCircle size={16} className="text-teal-light mb-2" />
+              <p className="text-cream font-bold text-sm mb-1">Messages</p>
+              <p className="text-cream-muted text-xs leading-relaxed">Keep your existing conversations in one place.</p>
+            </div>
+            <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+              <MapPin size={16} className="text-gold mb-2" />
+              <p className="text-cream font-bold text-sm mb-1">Marketplace</p>
+              <p className="text-cream-muted text-xs leading-relaxed">Browse existing listings and connect with other students.</p>
+            </div>
+            <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
+              <CalendarCheck size={16} className="text-sapphire-light mb-2" />
+              <p className="text-cream font-bold text-sm mb-1">My Space</p>
+              <p className="text-cream-muted text-xs leading-relaxed">Keep your existing personal tools organised around your day.</p>
+            </div>
+          </div>
+        </section>
+
+        <div className="bg-teal-faint border border-teal-primary rounded-2xl px-5 py-4 mt-8">
           <p className="text-cream text-sm font-medium leading-relaxed">
             🎓 Start with the part of AtriumX you need most, then keep everything else organised in the same account.
           </p>
