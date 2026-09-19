@@ -3,7 +3,7 @@ type IconProps = {
   className?: string
 }
 
-export default function HomeIcon({ size = 24, className }: IconProps) {
+export default function HomeIcon({ size = 26, className }: IconProps) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" className={className}>
       <path d="M0 0h24v24H0z" fill="none" />
