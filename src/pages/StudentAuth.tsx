@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { GraduationCap, Briefcase } from 'lucide-react'
+import { GraduationCap, Briefcase, ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -116,6 +116,13 @@ if (user) {
     setStep('university')
   }
 
+  const handleBack = () => {
+    setError('')
+    if (step === 'details') setStep('university')
+    else if (step === 'university') setStep('type')
+    else navigate('/')
+  }
+
   const ACCOUNT_TYPE_OPTIONS = [
     {
       key: 'student' as const,
@@ -135,6 +142,15 @@ if (user) {
     <div className={`min-h-screen bg-slate-deep ${mode === 'login' ? 'flex flex-col' : ''}`}>
       <Navbar />
       <div className={`max-w-md mx-auto px-4 pt-8 sm:pt-12 pb-10 ${mode === 'login' ? 'w-full flex-1 flex flex-col' : ''}`}>
+        {mode === 'register' && (
+          <button
+            onClick={handleBack}
+            aria-label="Go back"
+            className="mb-4 -ml-1 p-1 text-cream-muted hover:text-cream transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
         <div className="mb-7">
           <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-2">AtriumX</p>
           <h1 className="font-serif text-3xl text-cream mb-1">
