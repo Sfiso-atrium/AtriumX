@@ -1092,8 +1092,36 @@ function NotebookSection() {
 // straight into a flat tab bar. Pulls light reads from tables the tabs
 // already use — no new data model, just a summarized view of it.
 
+// Greeting follows the visitor's own clock: morning until noon, afternoon until
+// 18:00, evening after that (including the small hours).
+function getGreeting(date: Date = new Date()): string {
+  const hour = date.getHours()
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function StatCard({ icon: Icon, label, value, tile, iconColor }: {
+  icon: typeof CalendarClock
+  label: string
+  value: string
+  tile: string
+  iconColor: string
+}) {
+  return (
+    <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <div className="flex items-center gap-3">
+        <span className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${tile}`}>
+          <Icon size={22} className={iconColor} />
+        </span>
+        <p className="text-cream-muted text-xs sm:text-sm leading-tight">{label}</p>
+      </div>
+      <p className="text-cream text-3xl sm:text-4xl font-extrabold text-center mt-4 sm:mt-5 truncate">{value}</p>
+    </div>
+  )
+}
+
 function TodaySnapshot({ userId }: { userId: string }) {
-  const { currentUser } = useApp()
   const [nextDeadline, setNextDeadline] = useState<Deadline | null>(null)
   const [todayMinutes, setTodayMinutes] = useState(0)
   const [balance, setBalance] = useState(0)
@@ -1111,67 +1139,28 @@ function TodaySnapshot({ userId }: { userId: string }) {
     getWatchlists(userId).then(w => setWatchCount(w.length))
   }, [userId])
 
-  const firstName = currentUser?.full_name?.split(' ')[0] || 'there'
   const daysUntil = nextDeadline ? Math.max(0, Math.ceil((new Date(nextDeadline.due_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : null
 
   return (
-    <div className="px-4 mt-4 flex flex-col gap-4">
-      <div className="px-4 sm:px-6 lg:px-8 pt-5">
-        <h2 className="text-xl sm:text-2xl font-bold text-cream leading-tight">Good evening, {firstName} 👋</h2>
-        <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
-      </div>
-      <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' as any }}>
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <CalendarClock size={16} className="text-blue-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-cream-muted text-[11px] font-medium leading-none">Upcoming Deadlines</p>
-            <p className="text-cream text-[13px] font-bold mt-1 truncate">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
-          </div>
-        </div>
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <Timer size={16} className="text-emerald-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-cream-muted text-[11px] font-medium leading-none">Today's Focus</p>
-            <p className="text-cream text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
-          </div>
-        </div>
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
-            <Wallet size={16} className="text-violet-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-cream-muted text-[11px] font-medium leading-none">Budget Balance</p>
-            <p className="text-cream text-[13px] font-bold mt-1 truncate">R{balance.toFixed(0)}</p>
-          </div>
-        </div>
-        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
-            <Eye size={16} className="text-rose-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-cream-muted text-[11px] font-medium leading-none">Watchlist</p>
-            <p className="text-cream text-[13px] font-bold mt-1 truncate">{watchCount} items</p>
-          </div>
-        </div>
-      </div>
+    <div className="px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+      <StatCard icon={CalendarClock} label="Upcoming Deadlines" value={nextDeadline ? `${daysUntil} days` : '0 days'} tile="bg-blue-50" iconColor="text-blue-600" />
+      <StatCard icon={Timer} label="Today's Focus" value={`${todayMinutes} min`} tile="bg-teal-50" iconColor="text-teal-600" />
+      <StatCard icon={Wallet} label="Budget Balance" value={`R${balance.toFixed(0)}`} tile="bg-green-50" iconColor="text-green-600" />
+      <StatCard icon={Eye} label="Watchlist" value={`${watchCount} items`} tile="bg-rose-50" iconColor="text-rose-600" />
     </div>
   )
 }
 
 function RecentActivityEmpty() {
   return (
-    <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-      <p className="text-cream font-bold text-sm mb-4">Recent Activity</p>
-      <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-xl bg-slate-50">
-        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
-          <Clock size={18} className="text-blue-600" />
+    <div>
+      <h2 className="text-cream font-bold text-xl sm:text-2xl text-center mb-4">Recent Activity</h2>
+      <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_8px_24px_rgba(15,23,42,0.06)] px-6 py-10 sm:py-12 flex flex-col items-center text-center">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+          <Clock size={30} className="text-blue-600" />
         </div>
-        <p className="text-cream font-semibold text-sm">No activity yet</p>
-        <p className="text-cream-muted text-xs mt-1 max-w-[200px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
+        <p className="text-cream font-bold text-lg">No activity yet</p>
+        <p className="text-cream-muted text-sm mt-1.5 max-w-sm leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
       </div>
     </div>
   )
@@ -1599,63 +1588,80 @@ export default function MySpace() {
     )
   }
 
+  const firstName = currentUser.full_name?.split(' ')[0] || 'there'
+
   return (
     <div className="min-h-screen bg-slate-deep pb-24 motion-safe:[&_button]:transition-all motion-safe:[&_button]:duration-200 motion-safe:[&_button]:ease-out motion-safe:[&_button:hover]:-translate-y-0.5 motion-safe:[&_button:active]:scale-[0.97] motion-safe:[&_input]:transition-all motion-safe:[&_input]:duration-200 motion-safe:[&_input:focus]:scale-[1.01] motion-safe:[&_select]:transition-all motion-safe:[&_select]:duration-200 motion-safe:[&_select:focus]:scale-[1.01]">
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <Navbar />
 
-      <div className="px-4 sm:px-6 lg:px-8 pt-5 flex items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-cream">My Space</h1>
-        <button
-          onClick={() => navigate('/groups')}
-          className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-blue-600 hover:bg-slate-card/60 transition-colors"
-          aria-label="Open study groups"
-          title="Study groups"
-        >
-          <Users size={23} strokeWidth={2.2} className="text-blue-600" />
-          {unreadGroups > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-              {unreadGroups > 9 ? '9+' : unreadGroups}
-            </span>
-          )}
-        </button>
-      </div>
-
-      <TodaySnapshot userId={currentUser.id} />
-
-      <div className="px-4 mt-6">
-        <div className="flex flex-col lg:flex-row gap-5 items-start">
-          <div className="flex-1 w-full min-w-0">
-            <div className="flex items-center justify-between mb-3"><p className="text-cream font-bold text-sm">Quick Access</p></div>
-            <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' as any }}>
-              {([
-                { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[], iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
-                { title: 'Money', tabs: ['Budget'] as Tab[], iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
-                { title: 'Focus', tabs: ['Pomodoro'] as Tab[], iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
-                { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[], iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
-              ]).map(group => (
-                <div key={group.title} className="w-[220px] shrink-0 snap-start bg-white border border-slate-border rounded-2xl p-3 flex flex-col gap-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.14em] px-1 whitespace-nowrap">{group.title}</p>
-                  <div className="flex flex-col gap-2">
-                    {group.tabs.map(t => {
-                      const meta = TAB_META[t]
-                      const Icon = meta.icon
-                      return (
-                        <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-all border bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50/40 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${group.iconBg}`}>
-                            <Icon size={15} className={group.iconText} />
-                          </span>
-                          <span className="whitespace-nowrap">{t}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="px-4 sm:px-6 lg:px-8 pt-6 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cream tracking-tight leading-tight">{getGreeting()}, {firstName} 👋</h1>
+            <p className="text-cream-muted text-sm sm:text-base mt-1.5">Here's what's happening in your space.</p>
           </div>
-          <div className="w-full lg:w-[340px] flex-shrink-0"><RecentActivity /></div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => navigate('/groups')}
+              className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-blue-600 hover:bg-slate-card/60 transition-colors"
+              aria-label="Open study groups"
+              title="Study groups"
+            >
+              <Users size={23} strokeWidth={2.2} className="text-blue-600" />
+              {unreadGroups > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {unreadGroups > 9 ? '9+' : unreadGroups}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => navigate(`/profile/${currentUser.id}`)}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-[0_6px_16px_rgba(15,23,42,0.15)]"
+              style={{ backgroundColor: currentUser.avatar_color }}
+              aria-label="Open profile"
+              title="Profile"
+            >
+              {currentUser.avatar_initials}
+            </button>
+          </div>
+        </div>
+
+        <TodaySnapshot userId={currentUser.id} />
+
+        <div className="px-4 sm:px-6 lg:px-8 mt-9">
+          <h2 className="text-cream font-bold text-xl sm:text-2xl mb-4">Quick Access</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-start">
+            {([
+              { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[], tile: 'bg-blue-50 hover:border-blue-300 focus-visible:border-blue-300', chip: 'bg-blue-100', iconText: 'text-blue-600' },
+              { title: 'Money', tabs: ['Budget'] as Tab[], tile: 'bg-green-100 hover:border-green-300 focus-visible:border-green-300', chip: 'bg-green-200/70', iconText: 'text-green-600' },
+              { title: 'Focus', tabs: ['Pomodoro'] as Tab[], tile: 'bg-violet-50 hover:border-violet-300 focus-visible:border-violet-300', chip: 'bg-violet-100', iconText: 'text-violet-600' },
+              { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[], tile: 'bg-pink-100 hover:border-pink-300 focus-visible:border-pink-300', chip: 'bg-pink-200/70', iconText: 'text-rose-600' },
+            ]).map(group => (
+              <div key={group.title} className="bg-white border border-slate-100 rounded-3xl p-4 sm:p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <p className="text-slate-500 text-xs font-semibold uppercase tracking-[0.25em] text-center mb-4">{group.title}</p>
+                <div className="flex flex-col gap-3">
+                  {group.tabs.map(t => {
+                    const meta = TAB_META[t]
+                    const Icon = meta.icon
+                    return (
+                      <button key={t} onClick={() => setTab(t)} className={`flex items-center gap-3 w-full px-3 py-3 rounded-2xl text-base font-medium text-slate-800 text-left border-2 border-transparent transition-all focus:outline-none ${group.tile}`}>
+                        <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${group.chip}`}>
+                          <Icon size={19} className={group.iconText} />
+                        </span>
+                        <span className="whitespace-nowrap">{t}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-6 lg:px-8 mt-9">
+          <RecentActivity />
         </div>
       </div>
 
