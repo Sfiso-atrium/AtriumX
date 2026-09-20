@@ -117,7 +117,7 @@ const navigate = useNavigate()
               <Star
                 key={i}
                 size={13}
-                className={i < Math.round(sellerData.avg_rating) ? 'fill-blue-600 text-blue-600' : 'text-slate-300'}
+                className={i < Math.round(sellerData.avg_rating) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}
               />
             ))}
             <span className="text-slate-500 text-xs ml-1">{sellerData.avg_rating.toFixed(1)}</span>
