@@ -228,16 +228,17 @@ export async function getLatestPayment(userId: string): Promise<PaymentRecord | 
 // university domains (student.uj.ac.za, students.wits.ac.za). That
 // doesn't scale now that signup is open to any South African
 // university -- there's no realistic way to keep an exhaustive list of
-// every institution's exact student-email domain format up to date.
+// every institution's exact student-email domain format up to date, and
+// it locks out students at any university whose domain isn't already on
+// the list.
 //
-// Flipped to a blocklist instead: block the well-known consumer email
-// providers, allow everything else through. This isn't a perfect
-// guarantee every remaining domain is a real institution, but it stops
-// the obvious case (anyone signing up with a personal Gmail/Yahoo/etc
-// account), which is what actually mattered here. Login is a completely
-// separate function (loginWithEmail, below) and is untouched by this --
-// existing accounts, including the gmail.com demo accounts used during
-// development, keep working exactly as before regardless of domain.
+// Blocklist instead: block the well-known consumer email providers,
+// allow everything else through (including university domains, whatever
+// they turn out to be). This isn't a perfect guarantee every remaining
+// domain is a real institution, but it stops the obvious case (anyone
+// signing up with a personal Gmail/Yahoo/etc account), which is what
+// actually matters here. Login is a completely separate function
+// (loginWithEmail, below) and is untouched by this either way.
 const BLOCKED_EMAIL_DOMAINS = [
   'gmail.com',
   'yahoo.com',
