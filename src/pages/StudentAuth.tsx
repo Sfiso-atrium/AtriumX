@@ -85,9 +85,9 @@ if (user) {
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
   return (
-    <div className="min-h-screen bg-slate-deep">
+    <div className={`min-h-screen bg-slate-deep ${mode === 'login' ? 'flex flex-col' : ''}`}>
       <Navbar />
-      <div className="max-w-md mx-auto px-4 pt-8 sm:pt-12 pb-10">
+      <div className={`max-w-md mx-auto px-4 pt-8 sm:pt-12 pb-10 ${mode === 'login' ? 'w-full flex-1 flex flex-col' : ''}`}>
         <div className="mb-7">
           <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-2">AtriumX</p>
           <h1 className="font-serif text-3xl text-cream mb-1">
@@ -98,7 +98,7 @@ if (user) {
           </p>
         </div>
 
-        <div className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+        <div className={mode === 'register' ? "bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6" : ""}>
           <div className="flex flex-col gap-3">
           {mode === 'register' && (
             <input
@@ -203,14 +203,25 @@ if (user) {
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
 
-          <button
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-            className="text-teal-light text-sm text-center underline mt-1"
-          >
-            {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Sign in'}
-          </button>
+          {mode === 'register' && (
+            <button
+              onClick={() => { setMode('login'); setError('') }}
+              className="text-teal-light text-sm text-center underline mt-1"
+            >
+              Already have an account? Sign in
+            </button>
+          )}
           </div>
         </div>
+
+        {mode === 'login' && (
+          <button
+            onClick={() => { setMode('register'); setError('') }}
+            className="mt-auto pt-8 text-teal-light text-sm text-center underline"
+          >
+            Don't have an account? Register
+          </button>
+        )}
       </div>
 
       <LegalFooter />
