@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { GraduationCap, Briefcase } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
-import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
+import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 
 export default function StudentAuth() {
   const navigate = useNavigate()
@@ -21,6 +22,9 @@ const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const [confirmPassword, setConfirmPassword] = useState('')
   const [residence, setResidence] = useState('')
   const [university, setUniversity] = useState('')
+  const [step, setStep] = useState<'type' | 'university' | 'details'>('type')
+  const [accountType, setAccountType] = useState<'student' | 'business'>('student')
+  const [universitySearch, setUniversitySearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmedStudent, setConfirmedStudent] = useState(false)
@@ -84,6 +88,49 @@ if (user) {
   }
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors"
+
+  const headingText =
+    mode === 'login' ? 'Welcome back'
+    : step === 'type' ? 'What type of account are you?'
+    : step === 'university' ? 'Select your university'
+    : 'Join your campus'
+  const subheadingText =
+    mode === 'login' ? 'Sign in to continue to My Space and the rest of AtriumX'
+    : step === 'type' ? 'Choose the option that best describes you.'
+    : step === 'university' ? 'This helps us show you relevant events, listings and opportunities.'
+    : 'Create your free account to get started with AtriumX'
+
+  const universityQuery = universitySearch.trim().toLowerCase()
+  const filteredUniversities = SOUTH_AFRICAN_UNIVERSITIES.filter(u =>
+    !universityQuery ||
+    u.toLowerCase().includes(universityQuery) ||
+    (UNIVERSITY_ALIASES[u] ?? []).some(a => a.toLowerCase().startsWith(universityQuery))
+  )
+
+  const handleTypeContinue = () => {
+    setError('')
+    if (accountType === 'business') {
+      navigate('/retailer')
+      return
+    }
+    setStep('university')
+  }
+
+  const ACCOUNT_TYPE_OPTIONS = [
+    {
+      key: 'student' as const,
+      label: 'Student',
+      Icon: GraduationCap,
+      points: ['Access to all student features', 'Buy & sell, find opportunities', 'Join events and focus sessions'],
+    },
+    {
+      key: 'business' as const,
+      label: 'Business',
+      Icon: Briefcase,
+      points: ['Reach students where they live', 'Post listings on the Business tab', 'Free to start, upgrade for more reach'],
+    },
+  ]
+
   return (
     <div className={`min-h-screen bg-slate-deep ${mode === 'login' ? 'flex flex-col' : ''}`}>
       <Navbar />
@@ -91,14 +138,111 @@ if (user) {
         <div className="mb-7">
           <p className="text-teal-light text-xs font-bold uppercase tracking-wider mb-2">AtriumX</p>
           <h1 className="font-serif text-3xl text-cream mb-1">
-          {mode === 'login' ? 'Welcome back' : 'Join your campus'}
+          {headingText}
         </h1>
         <p className="text-cream-muted text-sm">
-            {mode === 'login' ? 'Sign in to continue to My Space and the rest of AtriumX' : 'Create your free account to get started with AtriumX'}
+            {subheadingText}
           </p>
         </div>
 
         <div className={mode === 'register' ? "bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6" : ""}>
+          {mode === 'register' && step === 'type' && (
+            <div className="flex flex-col gap-3">
+              {ACCOUNT_TYPE_OPTIONS.map(opt => {
+                const selected = accountType === opt.key
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setAccountType(opt.key)}
+                    className={`w-full text-left flex items-start gap-3 p-4 rounded-xl border transition-colors ${
+                      selected ? 'border-teal-light bg-teal-faint' : 'border-slate-border bg-slate-card hover:border-teal-light'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-teal-faint flex items-center justify-center flex-shrink-0">
+                      <opt.Icon size={20} className="text-teal-light" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-cream font-bold text-sm mb-1">{opt.label}</p>
+                      <ul className="list-disc pl-4 text-cream-muted text-xs leading-relaxed">
+                        {opt.points.map(p => <li key={p}>{p}</li>)}
+                      </ul>
+                    </div>
+                    <span className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light' : 'border-slate-border'}`}>
+                      {selected && <span className="w-2 h-2 rounded-full bg-teal-light" />}
+                    </span>
+                  </button>
+                )
+              })}
+
+              <button
+                onClick={handleTypeContinue}
+                className="w-full bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl transition-colors mt-2"
+              >
+                Continue
+              </button>
+
+              <button
+                onClick={() => { setMode('login'); setError('') }}
+                className="text-teal-light text-sm text-center underline mt-1"
+              >
+                Already have an account? Sign in
+              </button>
+            </div>
+          )}
+
+          {mode === 'register' && step === 'university' && (
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                placeholder="Search for your university..."
+                value={universitySearch}
+                onChange={e => setUniversitySearch(e.target.value)}
+                className={inputClass}
+              />
+
+              <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                {filteredUniversities.map(u => {
+                  const selected = university === u
+                  return (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setUniversity(u)}
+                      className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
+                        selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream hover:border-teal-light'
+                      }`}
+                    >
+                      <span className="flex-1 min-w-0">{u}</span>
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light' : 'border-slate-border'}`}>
+                        {selected && <span className="w-2 h-2 rounded-full bg-teal-light" />}
+                      </span>
+                    </button>
+                  )
+                })}
+                {filteredUniversities.length === 0 && (
+                  <p className="text-cream-muted text-sm text-center py-4">No universities match your search.</p>
+                )}
+              </div>
+
+              <button
+                onClick={() => { setError(''); setStep('details') }}
+                disabled={!university}
+                className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-2"
+              >
+                Continue
+              </button>
+
+              <button
+                onClick={() => { setStep('type'); setError('') }}
+                className="text-cream-muted text-sm text-center"
+              >
+                Back
+              </button>
+            </div>
+          )}
+
+          {(mode === 'login' || step === 'details') && (
           <div className="flex flex-col gap-3">
           {mode === 'register' && (
             <input
@@ -132,16 +276,6 @@ if (user) {
                 onChange={e => setConfirmPassword(e.target.value)}
                 className={inputClass}
               />
-              <select
-                value={university}
-                onChange={e => setUniversity(e.target.value)}
-                className={inputClass}
-              >
-                <option value="" disabled>Select your university</option>
-                {SOUTH_AFRICAN_UNIVERSITIES.map(u => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
               <input
                 type="text"
                 placeholder="Your residence (e.g. Dalrymple House)"
@@ -205,6 +339,15 @@ if (user) {
 
           {mode === 'register' && (
             <button
+              onClick={() => { setStep('university'); setError('') }}
+              className="text-cream-muted text-sm text-center"
+            >
+              Back
+            </button>
+          )}
+
+          {mode === 'register' && (
+            <button
               onClick={() => { setMode('login'); setError('') }}
               className="text-teal-light text-sm text-center underline mt-1"
             >
@@ -212,11 +355,12 @@ if (user) {
             </button>
           )}
           </div>
+          )}
         </div>
 
         {mode === 'login' && (
           <button
-            onClick={() => { setMode('register'); setError('') }}
+            onClick={() => { setMode('register'); setStep('type'); setError('') }}
             className="mt-auto pt-8 text-teal-light text-sm text-center underline"
           >
             Don't have an account? Register
