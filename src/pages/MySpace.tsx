@@ -1115,47 +1115,47 @@ function TodaySnapshot({ userId }: { userId: string }) {
   const daysUntil = nextDeadline ? Math.max(0, Math.ceil((new Date(nextDeadline.due_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : null
 
   return (
-    <div className="flex flex-col gap-0">
-      <div className="mb-6">
-        <h2 className="text-[22px] sm:text-[26px] font-bold text-cream leading-tight tracking-tight">Good evening, {firstName} 👋</h2>
-        <p className="text-cream-muted text-[13px] mt-1">Here's what's happening in your space.</p>
+    <div className="px-4 mt-4 flex flex-col gap-4">
+      <div className="px-4 sm:px-6 lg:px-8 pt-5">
+        <h2 className="text-xl sm:text-2xl font-bold text-cream leading-tight">Good evening, {firstName} 👋</h2>
+        <p className="text-cream-muted text-sm mt-1">Here's what's happening in your space.</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-              <CalendarClock size={15} className="text-[#2563EB]" />
-            </div>
-            <p className="text-cream-muted text-[11px] font-medium leading-tight">Upcoming Deadlines</p>
+      <div className="flex flex-row gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <CalendarClock size={16} className="text-blue-600" />
           </div>
-          <p className="text-cream text-[15px] font-bold pl-0.5">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
+          <div className="min-w-0">
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Upcoming Deadlines</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{nextDeadline ? `${daysUntil} days` : '0 days'}</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center flex-shrink-0">
-              <Timer size={15} className="text-[#059669]" />
-            </div>
-            <p className="text-cream-muted text-[11px] font-medium leading-tight">Today's Focus</p>
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Timer size={16} className="text-emerald-600" />
           </div>
-          <p className="text-cream text-[15px] font-bold pl-0.5">{todayMinutes} min</p>
+          <div className="min-w-0">
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Today's Focus</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{todayMinutes} min</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[#F5F3FF] border border-[#DDD6FE] flex items-center justify-center flex-shrink-0">
-              <Wallet size={15} className="text-[#7C3AED]" />
-            </div>
-            <p className="text-cream-muted text-[11px] font-medium leading-tight">Budget Balance</p>
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+            <Wallet size={16} className="text-violet-600" />
           </div>
-          <p className="text-cream text-[15px] font-bold pl-0.5">R{balance}</p>
+          <div className="min-w-0">
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Budget Balance</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">R{balance.toFixed(0)}</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[#FDF2F8] border border-[#FBCFE8] flex items-center justify-center flex-shrink-0">
-              <Eye size={15} className="text-[#DB2777]" />
-            </div>
-            <p className="text-cream-muted text-[11px] font-medium leading-tight">Watchlist</p>
+        <div className="min-w-[160px] flex-1 bg-white border border-slate-border rounded-2xl p-3 flex items-center gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+            <Eye size={16} className="text-rose-600" />
           </div>
-          <p className="text-cream text-[15px] font-bold pl-0.5">{watchCount} items</p>
+          <div className="min-w-0">
+            <p className="text-cream-muted text-[11px] font-medium leading-none">Watchlist</p>
+            <p className="text-cream text-[13px] font-bold mt-1 truncate">{watchCount} items</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1164,14 +1164,14 @@ function TodaySnapshot({ userId }: { userId: string }) {
 
 function RecentActivityEmpty() {
   return (
-    <div className="bg-white border border-slate-border rounded-2xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-      <p className="text-cream font-bold text-[14px] mb-4">Recent Activity</p>
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-xl bg-[#F8FAFF] border border-slate-border/50">
-        <div className="w-10 h-10 rounded-full bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center mb-3">
-          <Clock size={18} className="text-[#2563EB]" />
+    <div className="bg-white border border-slate-border rounded-2xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+      <p className="text-cream font-bold text-sm mb-4">Recent Activity</p>
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-xl bg-slate-50">
+        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+          <Clock size={18} className="text-blue-600" />
         </div>
-        <p className="text-cream font-semibold text-[14px]">No activity yet</p>
-        <p className="text-cream-muted text-[12px] mt-1 max-w-[260px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
+        <p className="text-cream font-semibold text-sm">No activity yet</p>
+        <p className="text-cream-muted text-xs mt-1 max-w-[200px] leading-relaxed">Your recent messages, listing updates and watchlist alerts will appear here.</p>
       </div>
     </div>
   )
@@ -1600,47 +1600,63 @@ export default function MySpace() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFF] pb-28">
+    <div className="min-h-screen bg-slate-deep pb-24 motion-safe:[&_button]:transition-all motion-safe:[&_button]:duration-200 motion-safe:[&_button]:ease-out motion-safe:[&_button:hover]:-translate-y-0.5 motion-safe:[&_button:active]:scale-[0.97] motion-safe:[&_input]:transition-all motion-safe:[&_input]:duration-200 motion-safe:[&_input:focus]:scale-[1.01] motion-safe:[&_select]:transition-all motion-safe:[&_select]:duration-200 motion-safe:[&_select:focus]:scale-[1.01]">
       {showIntro && <MySpaceIntroModal onClose={() => setShowIntro(false)} />}
 
       <Navbar />
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <TodaySnapshot userId={currentUser.id} />
+      <div className="px-4 sm:px-6 lg:px-8 pt-5 flex items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-cream">My Space</h1>
+        <button
+          onClick={() => navigate('/groups')}
+          className="relative flex items-center justify-center w-10 h-10 rounded-xl text-cream hover:text-blue-600 hover:bg-slate-card/60 transition-colors"
+          aria-label="Open study groups"
+          title="Study groups"
+        >
+          <Users size={23} strokeWidth={2.2} className="text-blue-600" />
+          {unreadGroups > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+              {unreadGroups > 9 ? '9+' : unreadGroups}
+            </span>
+          )}
+        </button>
+      </div>
 
-        <div className="mt-8 mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-cream font-bold text-[13px] tracking-wide">Quick Access</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {([
-              { title: 'PLAN', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[], iconBg: 'bg-[#EFF6FF]', iconBorder: 'border-[#DBEAFE]', iconText: 'text-[#2563EB]' },
-              { title: 'MONEY', tabs: ['Budget'] as Tab[], iconBg: 'bg-[#ECFDF5]', iconBorder: 'border-[#A7F3D0]', iconText: 'text-[#059669]' },
-              { title: 'FOCUS', tabs: ['Pomodoro'] as Tab[], iconBg: 'bg-[#F5F3FF]', iconBorder: 'border-[#DDD6FE]', iconText: 'text-[#7C3AED]' },
-              { title: 'PERSONAL', tabs: ['Watchlist', 'Notebook'] as Tab[], iconBg: 'bg-[#FDF2F8]', iconBorder: 'border-[#FBCFE8]', iconText: 'text-[#DB2777]' },
-            ]).map(group => (
-              <div key={group.title} className="bg-white border border-slate-border rounded-2xl p-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-                <p className="text-cream-muted text-[10px] font-bold uppercase tracking-[0.14em] px-1 mb-2">{group.title}</p>
-                <div className="flex flex-col gap-2">
-                  {group.tabs.map(t => {
-                    const meta = TAB_META[t]
-                    const Icon = meta.icon
-                    return (
-                      <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-all border bg-white border-slate-border text-cream hover:border-[#BFDBFE] hover:bg-[#EFF6FF]/60 focus:outline-none focus:ring-2 focus:ring-[#DBEAFE]">
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border ${group.iconBg} ${group.iconBorder}`}>
-                          <Icon size={14} className={group.iconText} />
-                        </span>
-                        <span>{t}</span>
-                      </button>
-                    )
-                  })}
+      <TodaySnapshot userId={currentUser.id} />
+
+      <div className="px-4 mt-6">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          <div className="flex-1 w-full min-w-0">
+            <div className="flex items-center justify-between mb-3"><p className="text-cream font-bold text-sm">Quick Access</p></div>
+            <div className="flex flex-row gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+              {([
+                { title: 'Plan', tabs: ['Deadlines', 'Timetable', 'Schedule'] as Tab[], iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
+                { title: 'Money', tabs: ['Budget'] as Tab[], iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
+                { title: 'Focus', tabs: ['Pomodoro'] as Tab[], iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
+                { title: 'Personal', tabs: ['Watchlist', 'Notebook'] as Tab[], iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
+              ]).map(group => (
+                <div key={group.title} className="w-[220px] shrink-0 snap-start bg-white border border-slate-border rounded-2xl p-3 flex flex-col gap-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.14em] px-1 whitespace-nowrap">{group.title}</p>
+                  <div className="flex flex-col gap-2">
+                    {group.tabs.map(t => {
+                      const meta = TAB_META[t]
+                      const Icon = meta.icon
+                      return (
+                        <button key={t} onClick={() => setTab(t)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-left transition-all border bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50/40 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${group.iconBg}`}>
+                            <Icon size={15} className={group.iconText} />
+                          </span>
+                          <span className="whitespace-nowrap">{t}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          <div className="w-full lg:w-[340px] flex-shrink-0"><RecentActivity /></div>
         </div>
-
-        <RecentActivity />
       </div>
 
       {tab && (
