@@ -81,37 +81,47 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-slate-deep border-b-0">
-        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
+      <nav className="sticky top-0 z-40 bg-slate-deep border-b border-slate-border">
+        <div className="w-full px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          {/* LEFT CORNER - hamburger stays in corner even on desktop */}
+          <div className="flex items-center gap-2.5 min-w-0">
             {!hideSidemenu && (
               <button
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open navigation menu"
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-cream-muted hover:text-cream hover:bg-slate-card transition-colors flex-shrink-0"
+                className="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-border bg-white text-cream-muted hover:text-cream hover:bg-slate-card transition-colors flex-shrink-0 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5" />
               </button>
             )}
 
+            {/* LOGO - fixed spacing: logo = 'a', same distance as other letters */}
             <button
               onClick={() => navigate(currentUser ? '/space' : '/')}
-              className="flex items-center min-w-0"
+              className="flex items-center min-w-0 group"
               aria-label="AtriumX home"
             >
-              <div className="flex items-center gap-[3px]">
-                <img src="/logo.png" alt="AtriumX" className="h-11 w-11 object-contain flex-shrink-0" />
+              <div className="flex items-center gap-[4px]">
+                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0" />
                 <span
-                  className="text-2xl font-extrabold text-teal-primary whitespace-nowrap"
-                  style={{ letterSpacing: '3px' }}
+                  className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
+                  style={{ letterSpacing: '-0.01em' }}
                 >
-                  trium<span>X</span>
+                  <span className="inline-flex" style={{ gap: '0.5px' }}>
+                    <span>t</span>
+                    <span>r</span>
+                    <span>i</span>
+                    <span>u</span>
+                    <span>m</span>
+                    <span className="ml-[0.5px]">X</span>
+                  </span>
                 </span>
               </div>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* RIGHT CORNER - notifications + profile locked to right */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             {currentUser ? (
               <>
                 <button
@@ -125,7 +135,7 @@ export default function Navbar() {
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 ring-1 ring-slate-border hover:ring-teal-light transition-all"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 ring-1 ring-slate-border hover:ring-teal-light transition-all shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
                   style={{ backgroundColor: currentUser.avatar_color }}
                   aria-label="Open profile"
                   title="Profile"
@@ -162,15 +172,16 @@ export default function Navbar() {
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => go(currentUser ? '/space' : '/')}
-            className="flex items-center"
+            className="flex items-center gap-[4px]"
             aria-label="AtriumX home"
           >
-            <img src="/logo.png" alt="AtriumX" className="h-10 w-auto" />
+            <img src="/logo.png" alt="AtriumX" className="h-8 w-8 object-contain" />
+            <span className="text-[22px] font-extrabold text-teal-primary tracking-tight">triumX</span>
           </button>
           <button
             onClick={closeMenu}
             aria-label="Close navigation menu"
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
+            className="w-9 h-9 rounded-xl border border-slate-border bg-slate-deep flex items-center justify-center text-cream-muted hover:text-cream transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -178,169 +189,74 @@ export default function Navbar() {
 
         {currentUser ? (
           <>
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">
-              Main
-            </p>
-
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">My Space</p>
             <nav className="space-y-1">
-              <button
-                onClick={() => go('/space')}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
-              >
-                <UserRound className="w-5 h-5 text-teal-light" />
-                My Space
+              <button onClick={() => go('/space')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/space' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                <NotebookPen className="w-4 h-4" /> My Space
               </button>
-
-              <button
-                onClick={() => setDiscoverOpen((open) => !open)}
-                className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
-              >
-                <span className="flex items-center gap-3">
-                  <Compass className="w-5 h-5 text-teal-light" />
-                  Discover
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${discoverOpen ? 'rotate-180' : ''}`} />
+              <button onClick={() => go('/feed')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/feed' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                <Compass className="w-4 h-4" /> Discover
               </button>
-
-              {discoverOpen && (
-                <div className="ml-8 mt-1 mb-1 space-y-1 border-l border-slate-border pl-3">
-                  <button
-                    onClick={() => go('/feed')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
-                  >
-                    Marketplace
-                  </button>
-                  <button
-                    onClick={() => go('/events')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
-                  >
-                    Events
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={() => go('/chat')}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
-              >
-                <MessageCircle className="w-5 h-5 text-teal-light" />
-                Messages
-              </button>
-
-              <button
-                onClick={() => go(`/profile/${currentUser.id}`)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
-              >
-                <UserRound className="w-5 h-5 text-teal-light" />
-                Profile
+              <button onClick={() => go('/chat')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname.startsWith('/chat') ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                <MessageCircle className="w-4 h-4" /> Messages
               </button>
             </nav>
 
-            <div className="my-5 border-t border-slate-border" />
-
-            <button
-              onClick={() => setMoreOpen((open) => !open)}
-              className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-bold text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-            >
-              <span>More</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {moreOpen && (
-              <div className="mt-1 space-y-1 pl-1">
-                <button
-                  onClick={() => go(`/profile/${currentUser.id}`)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-                >
-                  My Listings
-                </button>
-
-                <button
-                  onClick={() => go('/events')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-                >
-                  Events
-                </button>
-
-                <button
-                  onClick={() => go('/notebook')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-                >
-                  <NotebookPen className="w-4 h-4" />
-                  Notebook
-                </button>
-
-                {partner && (
-                  <button
-                    onClick={() => go('/partner')}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-                  >
-                    <Handshake className="w-4 h-4" />
-                    Partner Dashboard
-                  </button>
-                )}
-
-                {currentUser.is_admin && (
-                  <button
-                    onClick={() => go('/admin')}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    Admin Panel
-                  </button>
-                )}
-              </div>
-            )}
-
-            {pushSupported() && (
+            <div className="mt-4">
               <button
-                onClick={handleTogglePush}
-                disabled={pushLoading || pushBlocked}
-                className={`mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors disabled:opacity-60 ${
-                  pushOn ? 'text-gold hover:bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
-                }`}
+                onClick={() => setMoreOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                {pushOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-                {pushBlocked
-                  ? 'Notifications: Blocked'
-                  : pushLoading
-                    ? 'Updating notifications…'
-                    : pushOn
-                      ? 'Notifications: On'
-                      : 'Notifications: Off'}
+                <span>More</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
-            )}
+              {moreOpen && (
+                <div className="mt-1 space-y-1">
+                  <button onClick={() => go(`/profile/${currentUser.id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+                    <UserRound className="w-4 h-4" /> Profile
+                  </button>
+                  <button onClick={() => go('/notebook')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+                    <NotebookPen className="w-4 h-4" /> Notebook
+                  </button>
+                  {partner && (
+                    <button onClick={() => go('/partner')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+                      <Handshake className="w-4 h-4" /> Partner Dashboard
+                    </button>
+                  )}
+                  {currentUser.is_admin && (
+                    <button onClick={() => go('/admin')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+                      <ShieldCheck className="w-4 h-4" /> Admin Panel
+                    </button>
+                  )}
+                </div>
+              )}
+              {pushSupported() && (
+                <button
+                  onClick={handleTogglePush}
+                  disabled={pushLoading || pushBlocked}
+                  className={`mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors disabled:opacity-60 ${pushOn ? 'text-gold hover:bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
+                >
+                  {pushOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                  {pushBlocked ? 'Notifications: Blocked' : pushLoading ? 'Updating notifications…' : pushOn ? 'Notifications: On' : 'Notifications: Off'}
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <>
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">
-              Explore
-            </p>
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">Explore</p>
             <nav className="space-y-1">
               <button
                 onClick={() => setDiscoverOpen((open) => !open)}
                 className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-bold text-cream hover:bg-slate-deep transition-colors"
               >
-                <span className="flex items-center gap-3">
-                  <Compass className="w-5 h-5 text-teal-light" />
-                  Discover
-                </span>
+                <span className="flex items-center gap-3"><Compass className="w-5 h-5 text-teal-light" /> Discover</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${discoverOpen ? 'rotate-180' : ''}`} />
               </button>
               {discoverOpen && (
                 <div className="ml-8 mt-1 space-y-1 border-l border-slate-border pl-3">
-                  <button
-                    onClick={() => go('/feed')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
-                  >
-                    Marketplace
-                  </button>
-                  <button
-                    onClick={() => go('/events')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}
-                  >
-                    Events
-                  </button>
+                  <button onClick={() => go('/feed')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>Marketplace</button>
+                  <button onClick={() => go('/events')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>Events</button>
                 </div>
               )}
             </nav>
@@ -348,22 +264,12 @@ export default function Navbar() {
         )}
 
         <div className="mt-auto space-y-1">
-          <button
-            onClick={toggleBwMode}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${
-              bwMode ? 'text-gold bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'
-            }`}
-          >
-            <Contrast className="w-4 h-4" />
-            {bwMode ? 'Black & White: On' : 'Black & White: Off'}
+          <button onClick={toggleBwMode} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${bwMode ? 'text-gold bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+            <Contrast className="w-4 h-4" /> {bwMode ? 'Black & White: On' : 'Black & White: Off'}
           </button>
-
           <div className="border-t border-slate-border pt-2">
-            <button
-              onClick={() => setHelpOpen((open) => !open)}
-              className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-medium text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors"
-            >
-              <span>Help &amp; Legal</span>
+            <button onClick={() => setHelpOpen((open) => !open)} className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-medium text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+              <span>Help & Legal</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${helpOpen ? 'rotate-180' : ''}`} />
             </button>
             {helpOpen && (
