@@ -48,8 +48,8 @@ export default function RatingModal({ sellerId, sellerName, buyerId, listingId, 
               <X size={18} />
             </button>
           </div>
-          <div className="w-12 h-12 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto mb-4">
-            <Star size={22} className="text-gold fill-gold" />
+          <div className="w-12 h-12 rounded-full bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4">
+            <Star size={22} className="text-amber-400 fill-amber-400" />
           </div>
           <h2 className="font-serif text-xl text-cream mb-2">Rate Your Experience?</h2>
           <p className="text-cream-muted text-sm mb-6">
@@ -100,7 +100,7 @@ export default function RatingModal({ sellerId, sellerName, buyerId, listingId, 
             >
               <Star
                 size={36}
-                className={n <= display ? 'text-gold fill-gold' : 'text-slate-border'}
+                className={n <= display ? 'text-amber-400 fill-amber-400' : 'text-slate-border'}
               />
             </button>
           ))}
