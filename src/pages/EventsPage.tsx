@@ -127,7 +127,7 @@ function HorizontalSection({ title, icon, events, currentUserId, onCancel }: {
       <div className="flex items-center justify-between gap-3 mb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           {icon}
-          <h2 className="text-cream font-bold text-sm truncate">{title}</h2>
+          <h2 className="text-cream font-bold text-base truncate">{title}</h2>
         </div>
         <span className="text-cream-muted text-[11px] flex-shrink-0">Swipe to explore</span>
       </div>
