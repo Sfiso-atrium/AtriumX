@@ -42,12 +42,24 @@ export default function Entrance() {
             <div className="absolute -bottom-24 left-[15%] w-[560px] h-[380px] bg-[#F1F5F9] rounded-full blur-[70px] opacity-80" />
           </div>
 
-          <nav className="relative z-10 flex items-center justify-between gap-2 px-6 sm:px-10 lg:px-10 xl:px-14 pt-6 sm:pt-7 shrink-0 max-w-[720px] mx-auto w-full lg:mx-0">
+          <nav className="relative z-10 flex items-center justify-between gap-2 px-6 sm:px-10 lg:px-10 xl:px-14 pt-6 sm:pt-7 shrink-0 w-full">
             <div className="flex items-center min-w-0">
-              <img src="/logo.png" alt="AtriumX" className="h-7 sm:h-8 w-auto -mr-1 flex-shrink-0" />
-              <span className="font-serif text-[17px] sm:text-[19px] tracking-tight">
-                <span className="text-cream">trium</span><span className="text-ember">X</span>
-              </span>
+              <div className="flex items-center gap-[4px]">
+                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0" />
+                <span
+                  className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
+                  style={{ letterSpacing: '-0.01em' }}
+                >
+                  <span className="inline-flex" style={{ gap: '0.5px' }}>
+                    <span>t</span>
+                    <span>r</span>
+                    <span>i</span>
+                    <span>u</span>
+                    <span>m</span>
+                    <span className="ml-[0.5px]">X</span>
+                  </span>
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button
