@@ -1,9 +1,14 @@
 type IconProps = {
   size?: number
   className?: string
+  // Solid glyph, used when the icon sits on the blue active tile
+  filled?: boolean
 }
 
-export default function HomeIcon({ size = 26, className }: IconProps) {
+// Matches the blue of the active nav tile so the door reads as a cut-out
+const TILE_BLUE = '#2563EB'
+
+export default function HomeIcon({ size = 26, className, filled = false }: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -19,11 +24,15 @@ export default function HomeIcon({ size = 26, className }: IconProps) {
       aria-hidden="true"
     >
       {/* Rounded, hollow house shape */}
-      <path d="M3.5 10.75 12 3.5l8.5 7.25V20a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-9.25Z" />
+      <path d="M3.5 10.75 12 3.5l8.5 7.25V20a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-9.25Z" fill={filled ? 'currentColor' : 'none'} />
 
       {/* Hollow door with a visible bottom edge */}
-      <path d="M9 21v-5.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75V21" />
-      <path d="M9 21h6" />
+      <path
+        d="M9 21v-5.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75V21"
+        fill={filled ? TILE_BLUE : 'none'}
+        stroke={filled ? TILE_BLUE : 'currentColor'}
+      />
+      <path d="M9 21h6" stroke={filled ? TILE_BLUE : 'currentColor'} />
     </svg>
   )
 }
