@@ -10,6 +10,7 @@ import EventsPage from './pages/EventsPage'
 import EventDetails from './pages/EventDetails'
 import PostEvent from './pages/PostEvent'
 import PostListing from './pages/PostListing'
+import PostWanted from './pages/PostWanted'
 import ListingDetail from './pages/ListingDetail'
 import Profile from './pages/Profile'
 import AdminPanel from './pages/AdminPanel'
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/event/:id" element={<EventDetails />} />
           <Route path="/post-event" element={<PostEvent />} />
 <Route path="/post" element={<PostListing />} />
+          <Route path="/post-wanted" element={<PostWanted />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
