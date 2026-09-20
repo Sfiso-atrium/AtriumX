@@ -306,7 +306,7 @@ const expiry = timeLeft(listing.expires_at)
 
               {seller && seller.total_ratings > 0 && (
                 <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
-                  <Star size={13} className="fill-gold" />
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
                   {seller.avg_rating} ({seller.total_ratings})
                 </span>
               )}
@@ -525,7 +525,7 @@ const expiry = timeLeft(listing.expires_at)
                             <Star
                               key={n}
                               size={12}
-                              className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'}
+                              className={n <= r.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-border'}
                             />
                           ))}
                         </div>
@@ -572,7 +572,7 @@ const expiry = timeLeft(listing.expires_at)
                   <div className="flex items-center gap-1 mb-2">
                     {[1, 2, 3, 4, 5].map(n => (
                       <button key={n} onClick={() => setReviewStars(n)}>
-                        <Star size={20} className={n <= reviewStars ? 'text-gold fill-gold' : 'text-slate-border'} />
+                        <Star size={20} className={n <= reviewStars ? 'text-amber-400 fill-amber-400' : 'text-slate-border'} />
                       </button>
                     ))}
                   </div>
@@ -604,7 +604,7 @@ const expiry = timeLeft(listing.expires_at)
                         </span>
                         <div className="flex items-center gap-0.5 flex-shrink-0">
                           {[1, 2, 3, 4, 5].map(n => (
-                            <Star key={n} size={12} className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'} />
+                            <Star key={n} size={12} className={n <= r.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-border'} />
                           ))}
                         </div>
                       </div>
@@ -664,8 +664,8 @@ const expiry = timeLeft(listing.expires_at)
       {soldFlowStep === 'ask' && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
           <div className="bg-slate-deep border border-slate-border rounded-2xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto mb-4">
-              <Star size={22} className="text-gold fill-gold" />
+            <div className="w-12 h-12 rounded-full bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4">
+              <Star size={22} className="text-amber-400 fill-amber-400" />
             </div>
             <h2 className="font-serif text-xl text-cream mb-2">Request a Rating?</h2>
             <p className="text-cream-muted text-sm mb-6">
