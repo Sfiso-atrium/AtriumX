@@ -37,12 +37,7 @@ type NavTab = {
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const {
-    currentUser,
-    setAuthPromptOpen,
-    setRedirectAfterLogin,
-    unreadMessageCount,
-  } = useApp()
+  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
   const [chooserOpen, setChooserOpen] = useState(false)
 
   const isActive = (path: string) => {
@@ -65,95 +60,31 @@ export default function BottomNav() {
   const tabs: NavTab[] = currentUser
     ? currentUser.account_type === 'business'
       ? [
-          {
-            label: 'Discover',
-            icon: DiscoverIcon,
-            path: '/feed',
-            onClick: () => navigate('/feed'),
-          },
-          {
-            label: 'Post',
-            icon: PlusCircle,
-            path: '/plan-select',
-            onClick: () => setChooserOpen(true),
-            action: true,
-          },
-          {
-            label: 'Messages',
-            icon: ChatIcon,
-            path: '/chat',
-            onClick: () => navigate('/chat'),
-            badge: unreadMessageCount > 0 ? unreadMessageCount : null,
-          },
-          {
-            label: 'Profile',
-            icon: UserRound,
-            path: `/profile/${currentUser.id}`,
-            onClick: () => navigate(`/profile/${currentUser.id}`),
-          },
+          { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
+          { label: 'Post', icon: PlusCircle, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
+          { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+          { label: 'Profile', icon: UserRound, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
         ]
       : [
-          {
-            label: 'My Space',
-            icon: HomeIcon,
-            path: '/space',
-            onClick: () => navigate('/space'),
-          },
-          {
-            label: 'Discover',
-            icon: DiscoverIcon,
-            path: '/feed',
-            onClick: () => navigate('/feed'),
-          },
-          {
-            label: 'Post',
-            icon: PlusCircle,
-            path: '/plan-select',
-            onClick: () => setChooserOpen(true),
-            action: true,
-          },
-          {
-            label: 'Messages',
-            icon: ChatIcon,
-            path: '/chat',
-            onClick: () => navigate('/chat'),
-            badge: unreadMessageCount > 0 ? unreadMessageCount : null,
-          },
-          {
-            label: 'Profile',
-            icon: UserRound,
-            path: `/profile/${currentUser.id}`,
-            onClick: () => navigate(`/profile/${currentUser.id}`),
-          },
+          { label: 'My Space', icon: HomeIcon, path: '/space', onClick: () => navigate('/space') },
+          { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
+          { label: 'Post', icon: PlusCircle, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
+          { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+          { label: 'Profile', icon: UserRound, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
         ]
     : [
-        {
-          label: 'Discover',
-          icon: DiscoverIcon,
-          path: '/feed',
-          onClick: () => navigate('/feed'),
-        },
-        {
-          label: 'Post',
-          icon: PlusCircle,
-          path: '/plan-select',
-          onClick: () => handleProtected('/plan-select'),
-          action: true,
-        },
-        {
-          label: 'Events',
-          icon: Compass,
-          path: '/events',
-          onClick: () => navigate('/events'),
-        },
+        { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
+        { label: 'Post', icon: PlusCircle, path: '/plan-select', onClick: () => handleProtected('/plan-select'), action: true },
+        { label: 'Events', icon: Compass, path: '/events', onClick: () => navigate('/events') },
       ]
 
   return (
     <>
       {chooserOpen && <PostTypeModal onClose={() => setChooserOpen(false)} />}
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-deep/95 backdrop-blur border-t border-transparent">
-        <div className="max-w-lg mx-auto flex items-center justify-around h-[68px] px-1">
+      {/* Centered floating pill - only at center of bottom */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div className="pointer-events-auto bg-white border border-slate-border rounded-full shadow-[0_12px_32px_rgba(15,23,42,0.12),0_4px_12px_rgba(15,23,42,0.08)] px-2.5 py-2 flex items-center gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const active = !tab.action && isActive(tab.path)
@@ -164,36 +95,33 @@ export default function BottomNav() {
                 onClick={tab.onClick}
                 aria-label={tab.label}
                 title={tab.label}
-                className="group flex items-center justify-center flex-1 h-full relative text-center focus:outline-none"
+                className="relative flex items-center justify-center focus:outline-none"
               >
                 <div
                   className={
                     tab.action
-                      ? 'relative w-11 h-11 -mt-5 rounded-full bg-gold text-slate-deep flex items-center justify-center shadow-lg ring-4 ring-slate-deep transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-105 group-active:translate-y-0 group-active:scale-90'
-                      : `relative w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-110 group-active:scale-90 ${
-                          active ? 'bg-gold/10' : ''
+                      ? 'relative w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.35)] hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 transition-all duration-200'
+                      : `relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                          active
+                            ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.30)] scale-105'
+                            : 'text-cream-muted hover:text-cream hover:bg-slate-card'
                         }`
                   }
                 >
                   <Icon
-                    size={tab.action ? 24 : tab.label === 'My Space' ? 27 : 22}
-                    className={
-                      tab.action
-                        ? 'text-slate-deep transition-transform duration-200 ease-out group-hover:rotate-3'
-                        : active
-                          ? 'text-gold transition-all duration-200 ease-out group-hover:rotate-3'
-                          : 'text-cream-muted transition-all duration-200 ease-out group-hover:text-cream group-hover:rotate-[-3deg]'
-                    }
+                    size={tab.action ? 24 : tab.label === 'My Space' ? 22 : 20}
+                    className={`${tab.action ? 'text-white' : active ? 'text-white' : 'text-cream-muted'} transition-colors`}
                   />
-                  {active && !tab.action && (
-                    <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-gold transition-transform duration-200 group-hover:scale-125" aria-hidden="true" />
-                  )}
-                  {tab.badge && (
-                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">
+                  {tab.badge ? (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
                       {tab.badge > 9 ? '9+' : tab.badge}
                     </span>
-                  )}
+                  ) : null}
                 </div>
+                {/* Small dot under active for extra emphasis like screenshot */}
+                {active && !tab.action && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#2563EB]" aria-hidden="true" />
+                )}
               </button>
             )
           })}
