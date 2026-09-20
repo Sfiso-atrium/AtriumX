@@ -2497,6 +2497,50 @@ export async function cancelEvent(eventId: string): Promise<void> {
 
 // ── LOOKING FOR (public watchlists) ────────────────────────────────────────
 
+export interface WantedPost {
+  id: string
+  seeker_id: string
+  title: string
+  category: string
+  description: string | null
+  max_price: number | null
+  price_flexible: boolean
+  residence: string | null
+  urgency: 'no_rush' | 'this_week' | 'urgent'
+  status: 'active' | 'fulfilled' | 'expired'
+  created_at: string
+  seeker?: Profile
+}
+
+export async function createWantedPost(payload: {
+  seekerId: string
+  title: string
+  category: string
+  description?: string
+  maxPrice?: number | null
+  priceFlexible: boolean
+  residence?: string
+  urgency: 'no_rush' | 'this_week' | 'urgent'
+}): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('wanted_posts')
+    .insert({
+      seeker_id: payload.seekerId,
+      title: payload.title,
+      category: payload.category,
+      description: payload.description?.trim() || null,
+      max_price: payload.maxPrice ?? null,
+      price_flexible: payload.priceFlexible,
+      residence: payload.residence?.trim() || null,
+      urgency: payload.urgency,
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) return { id: null, error: error?.message || 'Could not post what you\'re looking for.' }
+  return { id: data.id, error: null }
+}
+
 export interface LookingForEntry {
   id: string
   user_id: string
