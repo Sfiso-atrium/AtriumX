@@ -169,77 +169,73 @@ if (conversation.is_closed_by_admin) {
   }
 
 return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-[#EEF3FB]">
       {/* Header */}
-      <div className={`flex items-center px-4 py-3 border-b border-slate-border border-t-4 bg-slate-deep flex-shrink-0 gap-2 ${
-        isSeller ? 'border-t-teal-primary' : 'border-t-ember'
-      }`}>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="relative flex-shrink-0">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
-              style={{ backgroundColor: otherParty.avatar_color }}
-            >
-              {otherParty.avatar_initials}
-            </div>
-            <span
-              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-slate-deep ${
-                isSeller ? 'bg-teal-primary' : 'bg-ember'
-              }`}
-              title={isSeller ? 'Your listing' : "You're interested"}
-            >
-              {isSeller
-                ? <Tag size={9} className="text-white" />
-                : <ShoppingBag size={9} className="text-white" />}
-            </span>
+      <div className="flex items-center gap-3 px-4 py-3 mx-3 mt-3 bg-white rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.06)] flex-shrink-0">
+        <div className="relative flex-shrink-0">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+            style={{ backgroundColor: otherParty.avatar_color }}
+          >
+            {otherParty.avatar_initials}
           </div>
-          <p className="text-cream font-bold text-sm whitespace-nowrap">
-            {otherParty.full_name}{' '}
-            <span className="text-cream-muted font-normal">
-              ({isSeller ? 'Buying' : 'Selling'})
+          <span
+            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white ${
+              isSeller ? 'bg-teal-primary' : 'bg-ember'
+            }`}
+            title={isSeller ? 'Your listing' : "You're interested"}
+          >
+            {isSeller
+              ? <Tag size={9} className="text-white" />
+              : <ShoppingBag size={9} className="text-white" />}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-cream font-bold text-sm leading-tight truncate">{otherParty.full_name}</p>
+          <div className="flex items-center gap-2 mt-1 min-w-0">
+            <span className="flex-shrink-0 text-[11px] font-semibold leading-none px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
+              {isSeller ? 'Buying' : 'Selling'}
             </span>
-          </p>
+            {titleExpanded ? (
+              <div
+                onClick={() => setTitleExpanded(false)}
+                className="min-w-0 max-w-[150px] overflow-x-auto whitespace-nowrap text-cream-muted text-xs cursor-pointer"
+              >
+                {conversation.listing?.title}
+              </div>
+            ) : (
+              <button
+                onClick={() => setTitleExpanded(true)}
+                title={conversation.listing?.title}
+                className="min-w-0 text-cream-muted text-xs truncate max-w-[150px]"
+              >
+                {conversation.listing?.title}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 min-w-0 flex justify-center px-1">
-          {titleExpanded ? (
-            <div
-              onClick={() => setTitleExpanded(false)}
-              className="max-w-[150px] overflow-x-auto whitespace-nowrap text-cream-muted text-xs cursor-pointer"
-            >
-              {conversation.listing?.title}
-            </div>
-          ) : (
-            <button
-              onClick={() => setTitleExpanded(true)}
-              title={conversation.listing?.title}
-              className="text-cream-muted text-xs truncate max-w-[150px]"
-            >
-              {conversation.listing?.title}
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 bg-blue-50 rounded-full px-1.5 py-1">
           {isSeller && !conversation.is_resolved && (
             <button
               onClick={handleResolve}
               disabled={resolving}
-              className="flex items-center gap-1.5 text-xs font-bold text-teal-light border border-teal-primary hover:bg-teal-faint px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:bg-white px-2.5 py-1.5 rounded-full transition-colors disabled:opacity-40"
             >
               <CheckCircle size={13} />
               Resolve
             </button>
           )}
           {conversation.is_resolved && (
-            <span className="text-xs text-teal-light border border-teal-primary px-2 py-1 rounded-xl">
+            <span className="text-xs font-semibold text-blue-600 px-2 py-1">
               Resolved
             </span>
           )}
           <button
             onClick={() => setShowReportModal(true)}
             title="Report this conversation"
-            className="text-cream-muted hover:text-red-400 p-1.5 rounded-lg transition-colors"
+            className="text-cream-muted hover:text-red-400 p-1.5 rounded-full transition-colors"
           >
             <Flag size={15} />
           </button>
@@ -247,7 +243,7 @@ return (
       </div>
 
       {/* Messages */}
-  <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+  <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2">
         {messages.length === 0 && (
           <p className="text-cream-muted text-xs text-center mt-8">No messages yet. Say hello!</p>
         )}
@@ -260,7 +256,7 @@ return (
                 className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                   isOwn
                     ? 'bg-ember text-white rounded-br-sm'
-                    : 'bg-slate-card border border-slate-border text-cream rounded-bl-sm'
+                    : 'bg-white text-cream rounded-bl-sm shadow-[0_1px_4px_rgba(15,23,42,0.08)]'
                 }`}
               >
                 {masked}
@@ -281,7 +277,7 @@ return (
 
       {/* Input */}
       {!conversation.is_resolved && sellerLocked && (
-        <div className="px-4 py-3 border-t border-slate-border flex items-center justify-between gap-3 flex-shrink-0 bg-slate-card">
+        <div className="px-4 py-3 mx-3 mb-3 bg-white rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.06)] flex items-center justify-between gap-3 flex-shrink-0">
           <p className="text-cream-muted text-xs">
             A student has messaged you. Upgrade to respond.
           </p>
@@ -294,7 +290,7 @@ return (
         </div>
       )}
       {!conversation.is_resolved && !sellerLocked && (
-        <div className="px-4 py-3 border-t border-slate-border flex gap-2 flex-shrink-0">
+        <div className="px-3 pt-2 pb-3 flex items-end gap-2 flex-shrink-0">
           <textarea
             ref={textareaRef}
             value={text}
@@ -303,19 +299,19 @@ return (
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 bg-slate-card border border-slate-border rounded-xl px-3 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
+            className="flex-1 bg-white border border-slate-100 shadow-[0_1px_4px_rgba(15,23,42,0.06)] rounded-2xl px-4 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
           />
           <button
             onClick={handleSend}
             disabled={sending || !text.trim()}
-            className="w-10 h-10 flex items-center justify-center bg-ember hover:bg-ember-dark disabled:opacity-40 rounded-xl text-white flex-shrink-0 transition-colors"
+            className="w-10 h-10 flex items-center justify-center bg-ember hover:bg-ember-dark disabled:opacity-40 rounded-2xl text-white flex-shrink-0 transition-colors"
           >
             <SendIcon size={16} />
           </button>
         </div>
       )}
       {conversation.is_resolved && (
-        <p className="text-center text-cream-muted text-xs px-4 py-3 border-t border-slate-border">
+        <p className="text-center text-cream-muted text-xs px-4 py-3">
           This conversation is resolved.
         </p>
       )}
