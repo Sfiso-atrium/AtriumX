@@ -123,7 +123,7 @@ useEffect(() => {
     <>
       <div className={hideBottomNav ? 'h-[100dvh] bg-slate-deep flex flex-col overflow-hidden' : 'h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden'}>
         {/* Top bar */}
-        <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3 flex-shrink-0">
+        <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3 flex-shrink-0 md:hidden">
           {active && isMobile ? (
             <button onClick={() => setActive(null)} className="text-cream-muted hover:text-cream">
               <ArrowLeft size={20} />
@@ -137,9 +137,16 @@ useEffect(() => {
             {active && isMobile ? 'Chat' : 'Messages'}
           </span>
         </div>
-<div className="flex flex-1 min-h-0 overflow-hidden">
+<div className="flex flex-1 min-h-0 overflow-hidden md:p-4 md:gap-4">
           {/* Conversation list — hidden on mobile when a convo is open */}
-          <div className={`w-full md:w-80 border-r border-slate-border flex-shrink-0 overflow-y-auto pb-16 ${active && isMobile ? 'hidden' : 'block'} md:block`}>
+          <div className={`w-full md:w-80 flex-shrink-0 min-h-0 flex-col md:rounded-3xl md:bg-white md:border md:border-slate-100 md:shadow-[0_8px_24px_rgba(15,23,42,0.06)] overflow-hidden ${active && isMobile ? 'hidden' : 'flex'} md:flex`}>
+            <div className="hidden md:flex items-center gap-3 px-5 pt-5 pb-3 flex-shrink-0">
+              <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream" aria-label="Go back">
+                <ArrowLeft size={20} />
+              </button>
+              <h1 className="text-cream font-bold text-xl">Messages</h1>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto pb-16 px-2 py-2 flex flex-col gap-1">
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full py-16 px-4 text-center">
                 <p className="text-cream-muted text-sm">No conversations yet.</p>
@@ -163,10 +170,8 @@ return (
                   <button
                     key={conv.id}
                     onClick={() => setActive(conv)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 border-b border-b-slate-border border-l-4 text-left transition-colors ${
-                      iAmSeller ? 'border-l-teal-primary' : 'border-l-ember'
-                    } ${
-                      isActive ? 'bg-teal-faint' : 'hover:bg-slate-card'
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-colors ${
+                      isActive ? 'bg-blue-50 ring-1 ring-blue-200 shadow-[0_2px_8px_rgba(37,99,235,0.12)]' : 'hover:bg-slate-50'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
@@ -210,11 +215,14 @@ return (
                 )
               })
             )}
-            <LegalFooter />
+            <div className="mt-2 border-t border-slate-100">
+              <LegalFooter />
+            </div>
+            </div>
           </div>
 
           {/* Chat window */}
-         <div className={`flex-1 overflow-hidden min-h-0 ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col`}>
+         <div className={`flex-1 overflow-hidden min-h-0 ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col md:rounded-3xl md:border md:border-slate-100 md:shadow-[0_8px_24px_rgba(15,23,42,0.06)]`}>
             {active ? (
               <ChatWindow
                 conversation={active}
