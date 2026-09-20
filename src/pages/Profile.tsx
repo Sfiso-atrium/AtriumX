@@ -75,7 +75,7 @@ Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings
                   onClick={() => setShowReviews(true)}
                   className="flex items-center gap-1 text-gold text-sm mt-1 hover:underline"
                 >
-                  <Star size={13} className="fill-gold" />
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
                   {profile.avg_rating} · {profile.total_ratings} rating{profile.total_ratings !== 1 ? 's' : ''}
                 </button>
               )}
@@ -226,7 +226,7 @@ style={{ backgroundColor: r.buyer?.avatar_color || '#0D9488' }}
                             <Star
                               key={n}
                               size={12}
-                              className={n <= r.stars ? 'text-gold fill-gold' : 'text-slate-border'}
+                              className={n <= r.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-border'}
                             />
                           ))}
                         </div>
