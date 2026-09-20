@@ -261,7 +261,7 @@ const filteredBusiness = useMemo(() => {
           {featuredListings.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-sm">Featured listings</h2>
+                <h2 className="text-cream font-bold text-base">Featured listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -274,7 +274,7 @@ const filteredBusiness = useMemo(() => {
 
           <section className="pb-5">
             <div className="px-4 pb-2 flex items-center justify-between">
-              <h2 className="text-cream font-bold text-sm">People are looking for</h2>
+              <h2 className="text-cream font-bold text-base">People are looking for</h2>
               <HandHelping size={15} className="text-blue-600" />
             </div>
             {lookingForLoading ? (
@@ -316,7 +316,7 @@ const filteredBusiness = useMemo(() => {
             )
           ) : (
             <section className="pb-24">
-              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-sm">More listings</h2></div>
+              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-base">More listings</h2></div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
                 {otherListings.map(listing => (
                   <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
