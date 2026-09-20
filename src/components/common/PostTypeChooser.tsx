@@ -8,7 +8,7 @@
 // wrong can swap without backing out and starting again — which was the
 // explicit ask. Same component, so the two entry points can't drift apart.
 
-import { Tag, CalendarDays, X } from 'lucide-react'
+import { Tag, CalendarDays, HandHelping, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 
@@ -71,6 +71,21 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
               <p className="text-cream-muted text-xs mt-1 leading-5">Something happening on campus</p>
             </div>
           </button>
+
+          {currentUser?.account_type !== 'business' && (
+            <button
+              onClick={() => go('/post-wanted')}
+              className="group flex flex-col items-start gap-4 p-4 rounded-2xl border border-slate-border hover:border-blue-600 transition-colors text-left min-h-[126px]"
+            >
+              <span className="w-9 h-9 rounded-xl border border-slate-border flex items-center justify-center">
+                <HandHelping size={19} className="text-blue-600 flex-shrink-0" />
+              </span>
+              <div>
+                <p className="text-cream font-bold text-sm">Something you want</p>
+                <p className="text-cream-muted text-xs mt-1 leading-5">Ask around for something you're looking for</p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -80,7 +95,7 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
 // Compact inline version for the top of a post flow. `current` is which
 // flow you're already in, so it renders as the unselected option being
 // the one you can switch to.
-export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' }) {
+export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' | 'wanted' }) {
   const navigate = useNavigate()
   const { currentUser } = useApp()
 
@@ -109,6 +124,14 @@ export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' }) 
       >
         <CalendarDays size={13} /> Event
       </button>
+      {currentUser?.account_type !== 'business' && (
+        <button
+          onClick={() => current !== 'wanted' && navigate('/post-wanted')}
+          className={tab(current === 'wanted')}
+        >
+          <HandHelping size={13} /> Wanted
+        </button>
+      )}
     </div>
   )
 }
