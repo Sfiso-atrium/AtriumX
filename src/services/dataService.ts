@@ -55,7 +55,8 @@ has_pending_edit: boolean
 
 export interface Conversation {
   id: string
-  listing_id: string
+  listing_id: string | null
+  wanted_post_id: string | null
   buyer_id: string
   seller_id: string
   is_resolved: boolean
@@ -63,6 +64,7 @@ export interface Conversation {
   closed_at: string | null
   created_at: string
   listing?: Listing
+  wanted_post?: WantedPost
   other_party?: Profile
   last_message?: Message
   unread_count?: number
@@ -746,13 +748,19 @@ export async function reportListing(
 
 export async function reportConversation(
   conversationId: string,
-  listingId: string,
+  subject: { listingId?: string | null; wantedPostId?: string | null },
   reporterId: string,
   reason: string
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('reports')
-    .insert({ conversation_id: conversationId, listing_id: listingId, reporter_id: reporterId, reason })
+    .insert({
+      conversation_id: conversationId,
+      listing_id: subject.listingId || null,
+      wanted_post_id: subject.wantedPostId || null,
+      reporter_id: reporterId,
+      reason,
+    })
   return { error: error ? error.message : null }
 }
 
@@ -873,6 +881,36 @@ export async function startConversation(
   return { convId: data.id, error: null }
 }
 
+// Mirrors startConversation, but anchored to a wanted post instead of a
+// listing. seller_id here is the seeker who posted the want (the "owner"
+// of the subject, same role listing.seller_id plays); buyer_id is
+// whoever's reaching out to say they can help. There's no contact-count
+// RPC call here -- that's a listing-only stat, nothing reads it for
+// wanted posts.
+export async function startWantedConversation(
+  wantedPostId: string,
+  responderId: string,
+  seekerId: string
+): Promise<{ convId: string | null; error: string | null }> {
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('wanted_post_id', wantedPostId)
+    .eq('buyer_id', responderId)
+    .single()
+
+  if (existing) return { convId: existing.id, error: null }
+
+  const { data, error } = await supabase
+    .from('conversations')
+    .insert({ wanted_post_id: wantedPostId, buyer_id: responderId, seller_id: seekerId })
+    .select('id')
+    .single()
+
+  if (error || !data) return { convId: null, error: error?.message || 'Failed to start conversation.' }
+  return { convId: data.id, error: null }
+}
+
 export async function getConversationsForUser(
   userId: string
 ): Promise<Conversation[]> {
@@ -881,6 +919,7 @@ export async function getConversationsForUser(
     .select(`
       *,
       listing:listings(id, title, image_urls, price),
+      wanted_post:wanted_posts(id, title, category, max_price, price_flexible, urgency),
 buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
       seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
