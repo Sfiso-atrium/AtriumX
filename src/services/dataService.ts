@@ -77,6 +77,12 @@ export interface Message {
   content: string
   read: boolean
   sent_at: string
+  // One-time-view chat photo (migration 049). image_path is set while the
+  // photo is still in Storage; once the recipient has seen it the server
+  // deletes the file and swaps image_path for image_deleted_at.
+  image_path?: string | null
+  image_seen_at?: string | null
+  image_deleted_at?: string | null
 }
 
 export interface Notification {
@@ -996,6 +1002,57 @@ export async function sendMessage(
     .from('messages')
     .insert({ conversation_id: convId, sender_id: senderId, content })
   return { error: error ? error.message : null }
+}
+
+// ── ONE-TIME-VIEW CHAT PHOTOS (migration 049) ──────────────────────────────
+// Text stored as `content` on a photo sent without a caption, so message
+// previews and push notifications still have something sensible to show.
+export const CHAT_IMAGE_PLACEHOLDER = '📷 Photo'
+
+// Sends the photo to the send-chat-image Edge Function, which checks it
+// with Sightengine and only then stores it and creates the message - the
+// same gate study-group photos go through. Nothing is uploaded from here
+// directly; the chat-images bucket has no client upload policy.
+export async function sendChatImage(
+  conversationId: string, file: File, caption: string
+): Promise<{ error: string | null }> {
+  if (!file.type.startsWith('image/')) {
+    return { error: 'Only images can be shared in chat.' }
+  }
+  const compressed = await compressImageForUpload(file)
+  const imageBase64 = await fileToBase64(compressed)
+
+  const { error } = await supabase.functions.invoke('send-chat-image', {
+    body: { conversationId, imageBase64, fileName: compressed.name, caption },
+  })
+
+  if (error) {
+    let message = 'Could not send photo.'
+    try {
+      const body = await (error as any).context?.json()
+      if (body?.error) message = body.error
+    } catch {
+      // keep default message
+    }
+    return { error: message }
+  }
+  return { error: null }
+}
+
+// Deliberately NOT routed through imageCache: a one-time-view photo must
+// not be kept on the device, it lives in memory for as long as the chat is
+// open and no longer.
+export async function getChatImageBlob(path: string): Promise<Blob | null> {
+  const { data, error } = await supabase.storage.from('chat-images').download(path)
+  if (error || !data) return null
+  return data
+}
+
+// Tells the server the recipient now has this photo on screen. The server
+// deletes the file from Storage in response; it ignores this call from
+// anyone but the person the photo was sent to.
+export async function markChatImageSeen(messageId: string): Promise<void> {
+  await supabase.rpc('mark_chat_image_seen', { p_message_id: messageId })
 }
 
 export async function deleteConversation(
