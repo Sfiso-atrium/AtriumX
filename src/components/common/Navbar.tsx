@@ -165,11 +165,11 @@ export default function Navbar() {
 
       <aside
         aria-label="Primary navigation"
-        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 px-5 py-5 flex flex-col transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 flex flex-col transition-transform duration-300 ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between px-5 pt-5 pb-5 flex-shrink-0">
           <button
             onClick={() => go(currentUser ? '/space' : '/')}
             className="flex items-center gap-[4px]"
@@ -186,6 +186,8 @@ export default function Navbar() {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col min-h-0">
 
         {currentUser ? (
           <>
@@ -283,6 +285,7 @@ export default function Navbar() {
             )}
           </div>
         </div>
+      </div>
       </aside>
     </>
   )
