@@ -90,7 +90,7 @@ export default function PaymentResult() {
           icon: <CheckCircle2 size={44} className="text-teal-light" />,
           title: `You're on ${planKey ? PLAN_TIERS[planKey].label : 'your new plan'}`,
           text: 'Your plan is active and your listings have moved across to it.',
-          action: { label: 'Post a listing', to: '/post' },
+          action: { label: 'Post a listing', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/post' },
         }
       case 'slow':
         return {
@@ -104,14 +104,14 @@ export default function PaymentResult() {
           icon: <XCircle size={44} className="text-cream-muted" />,
           title: 'Payment cancelled',
           text: "Nothing was charged. Your plan hasn't changed — you can pick one again whenever you're ready.",
-          action: { label: 'Back to plans', to: '/plans' },
+          action: { label: 'Back to plans', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select' },
         }
       case 'failed':
         return {
           icon: <XCircle size={44} className="text-ember" />,
           title: "That payment didn't go through",
           text: "Nothing was charged to you. If you think this is wrong, don't pay again — get in touch and we'll check it against our records first.",
-          action: { label: 'Back to plans', to: '/plans' },
+          action: { label: 'Back to plans', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select' },
         }
     }
   }
