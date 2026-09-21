@@ -101,8 +101,8 @@ export default function Navbar() {
               className="flex items-center min-w-0 group"
               aria-label="AtriumX home"
             >
-              <div className="flex items-center gap-[4px]">
-                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0" />
+              <div className="flex items-baseline gap-[1px] h-[18.2px] sm:h-[20.47px]">
+                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0 -mt-[13.81px] sm:-mt-[15.53px] -mr-[8.09px] sm:-mr-[9.1px] translate-y-[7.35px] sm:translate-y-[8.27px]" />
                 <span
                   className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
                   style={{ letterSpacing: '-0.01em' }}
@@ -165,11 +165,11 @@ export default function Navbar() {
 
       <aside
         aria-label="Primary navigation"
-        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 flex flex-col transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 px-5 py-5 flex flex-col transition-transform duration-300 ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-5 pt-5 pb-5 flex-shrink-0">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => go(currentUser ? '/space' : '/')}
             className="flex items-center gap-[4px]"
@@ -186,8 +186,6 @@ export default function Navbar() {
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col min-h-0">
 
         {currentUser ? (
           <>
@@ -285,7 +283,6 @@ export default function Navbar() {
             )}
           </div>
         </div>
-      </div>
       </aside>
     </>
   )
