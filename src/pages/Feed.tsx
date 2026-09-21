@@ -45,6 +45,9 @@ const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
     return saved === 'business' ? 'business' : 'marketplace'
   })
   useEffect(() => { localStorage.setItem('feed_last_tab', feedTab) }, [feedTab])
+  useEffect(() => {
+    if (currentUser?.account_type === 'business') setFeedTab('marketplace')
+  }, [currentUser?.account_type])
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
@@ -148,8 +151,15 @@ const [fetchError, setFetchError] = useState(false)
     })
   }
 
+  const marketplaceListings = useMemo(() =>
+    currentUser?.account_type === 'business'
+      ? [...listings, ...businessListings]
+      : listings,
+    [currentUser, listings, businessListings]
+  )
+
   const filtered = useMemo(() => {
-    const matches = listings.filter(listing => {
+    const matches = marketplaceListings.filter(listing => {
       const matchCat = activeCategory === 'all' || listing.category === activeCategory
       const q = localSearch.trim().toLowerCase()
       const matchSearch = !q ||
@@ -163,7 +173,7 @@ const [fetchError, setFetchError] = useState(false)
       return matchCat && matchSearch && matchResidence && matchPrice && matchNegotiable
     })
     return sortByPlanPriority(matches)
- }, [listings, activeCategory, localSearch, residenceFilter, minPrice, maxPrice, negotiableOnly])
+  }, [marketplaceListings, activeCategory, localSearch, residenceFilter, minPrice, maxPrice, negotiableOnly])
 
 const filteredBusiness = useMemo(() => {
     const matches = businessListings.filter(listing => {
@@ -266,7 +276,7 @@ const filteredBusiness = useMemo(() => {
                 onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
                 className="bg-transparent text-cream focus:outline-none cursor-pointer"
               >
-                <option value="marketplace">Students</option>
+                <option value="marketplace">{currentUser?.account_type === 'business' ? 'All listings' : 'Students'}</option>
                 <option value="business">Businesses</option>
               </select>
             </label>
