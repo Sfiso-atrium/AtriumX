@@ -44,8 +44,8 @@ export default function Entrance() {
 
           <nav className="relative z-10 flex items-center justify-between gap-2 px-6 sm:px-10 lg:px-10 xl:px-14 pt-6 sm:pt-7 shrink-0 w-full">
             <div className="flex items-center min-w-0">
-              <div className="flex items-center gap-[4px]">
-                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0" />
+              <div className="flex items-baseline gap-[1px] h-[18.2px] sm:h-[20.47px]">
+                <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0 -mt-[13.81px] sm:-mt-[15.53px] -mr-[8.09px] sm:-mr-[9.1px] translate-y-[7.35px] sm:translate-y-[8.27px]" />
                 <span
                   className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
                   style={{ letterSpacing: '-0.01em' }}
