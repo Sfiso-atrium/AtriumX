@@ -489,7 +489,11 @@ export async function getListings(filters: {
   category?: string
   search?: string
   currentUser?: Profile | null
+  university?: string | null
 } = {}): Promise<Listing[]> {
+  if (filters.currentUser?.account_type === 'student' && !filters.currentUser.university) return []
+  if (filters.currentUser?.account_type === 'business' && !filters.university) return []
+
   let query = supabase
     .from('listings')
 .select('*, seller:profiles_public!inner(*)')
@@ -497,12 +501,13 @@ export async function getListings(filters: {
     .eq('seller.account_type', 'student')
     .order('created_at', { ascending: false })
 
-  // University is now the hard scope on the feed — a student only ever
-  // sees listings from other students at their own university.
-  // Residence stays exactly as it worked before this: an optional filter
-  // applied client-side on top of whatever this query already returned.
-  if (filters.currentUser?.university) {
+  // The marketplace is always scoped to one university at a time.
+  // Students are fixed to their own university; businesses use the
+  // university selected from their university-access menu.
+  if (filters.currentUser?.account_type === 'student' && filters.currentUser.university) {
     query = query.eq('seller.university', filters.currentUser.university)
+  } else if (filters.currentUser?.account_type === 'business' && filters.university) {
+    query = query.eq('seller.university', filters.university)
   }
 
   if (filters.category && filters.category !== 'all') {
@@ -527,7 +532,10 @@ const { data, error } = await query
 // Business tab on the feed — same listings table, filtered the other way.
 // Campus Partner is pinned above Featured, which is pinned above Noticeboard,
 // matching the "pinned to top" promise on the pricing page.
-export async function getBusinessListings(currentUser?: Profile | null): Promise<Listing[]> {
+export async function getBusinessListings(currentUser?: Profile | null, university?: string | null): Promise<Listing[]> {
+  if (currentUser?.account_type === 'student' && !currentUser.university) return []
+  if (currentUser?.account_type === 'business' && !university) return []
+
   let query = supabase
     .from('listings')
     .select('*, seller:profiles_public!inner(*)')
@@ -535,10 +543,11 @@ export async function getBusinessListings(currentUser?: Profile | null): Promise
     .eq('seller.account_type', 'business')
     .order('created_at', { ascending: false })
 
-  // Business listings are university-scoped for students. Businesses
-  // themselves can continue to browse the full Business board.
+  // The marketplace is always scoped to one university at a time.
   if (currentUser?.account_type === 'student' && currentUser.university) {
     query = query.contains('universities', [currentUser.university])
+  } else if (currentUser?.account_type === 'business' && university) {
+    query = query.contains('universities', [university])
   }
 
   const { data, error } = await query
