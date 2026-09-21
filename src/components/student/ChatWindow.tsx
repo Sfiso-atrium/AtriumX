@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Tag, ShoppingBag, Flag } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
-  Message, Conversation, Profile,
+  Message, Conversation, Profile, WantedPost,
   getConversationMessages, sendMessage,
   markConversationResolved, getUnreadMessageCount,
   markMessagesRead, sendRatingInvite,
@@ -17,7 +17,8 @@ interface Props {
   conversation: Conversation & {
     buyer: Profile
     seller: Profile
-    listing: { id: string; title: string; image_urls: string[]; price: number }
+    listing?: { id: string; title: string; image_urls: string[]; price: number }
+    wanted_post?: Pick<WantedPost, 'id' | 'title' | 'category' | 'max_price' | 'price_flexible' | 'urgency'>
   }
   onResolved: () => void
 }
@@ -49,6 +50,7 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
+  const isWantedPost = !!conversation.wanted_post_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
   const maxMsgs = sellerPlan ? PLAN_TIERS[sellerPlan]?.maxMsgs ?? 999 : 999
@@ -141,7 +143,13 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
     // (see ListingDetail's Mark as Sold flow) — a seller may resolve a
     // conversation that didn't end in a sale. Either way, inviting a rating
     // here is always an explicit opt-in choice, never automatic.
-    setShowResolvePrompt(true)
+    //
+    // A wanted-post conversation has no listing at all -- ratings are a
+    // listing-transaction concept, so there's nothing to invite a rating
+    // about here. Structurally, sendRatingInvite would have nothing valid
+    // to attach the rating to anyway (conversation.listing?.id would be
+    // undefined), but this keeps it from even being offered as an option.
+    if (!isWantedPost) setShowResolvePrompt(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -183,11 +191,15 @@ return (
             className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white ${
               isSeller ? 'bg-teal-primary' : 'bg-ember'
             }`}
-            title={isSeller ? 'Your listing' : "You're interested"}
+            title={isWantedPost
+              ? (isSeller ? 'Your wanted post' : 'You can help')
+              : (isSeller ? 'Your listing' : "You're interested")}
           >
-            {isSeller
-              ? <Tag size={9} className="text-white" />
-              : <ShoppingBag size={9} className="text-white" />}
+            {isWantedPost
+              ? <HandHelping size={9} className="text-white" />
+              : isSeller
+                ? <Tag size={9} className="text-white" />
+                : <ShoppingBag size={9} className="text-white" />}
           </span>
         </div>
 
@@ -195,22 +207,22 @@ return (
           <p className="text-cream font-bold text-sm leading-tight truncate">{otherParty.full_name}</p>
           <div className="flex items-center gap-2 mt-1 min-w-0">
             <span className="flex-shrink-0 text-[11px] font-semibold leading-none px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
-              {isSeller ? 'Buying' : 'Selling'}
+              {isWantedPost ? (isSeller ? 'Can help' : 'Looking for this') : (isSeller ? 'Buying' : 'Selling')}
             </span>
             {titleExpanded ? (
               <div
                 onClick={() => setTitleExpanded(false)}
                 className="min-w-0 max-w-[150px] overflow-x-auto whitespace-nowrap text-cream-muted text-xs cursor-pointer"
               >
-                {conversation.listing?.title}
+                {conversation.listing?.title || conversation.wanted_post?.title}
               </div>
             ) : (
               <button
                 onClick={() => setTitleExpanded(true)}
-                title={conversation.listing?.title}
+                title={conversation.listing?.title || conversation.wanted_post?.title}
                 className="min-w-0 text-cream-muted text-xs truncate max-w-[150px]"
               >
-                {conversation.listing?.title}
+                {conversation.listing?.title || conversation.wanted_post?.title}
               </button>
             )}
           </div>
@@ -271,6 +283,7 @@ return (
         <ChatReportModal
           conversationId={conversation.id}
           listingId={conversation.listing_id}
+          wantedPostId={conversation.wanted_post_id}
           onClose={() => setShowReportModal(false)}
         />
       )}
