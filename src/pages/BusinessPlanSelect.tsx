@@ -10,11 +10,13 @@ type BusinessPlanKey = 'noticeboard' | 'featured' | 'campus_partner'
 
 const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
   noticeboard: [
+    '1 university reach',
     'Text only — no photos',
     '1 active listing',
     '7-day visibility',
   ],
   featured: [
+    'Reach up to 2 universities',
     '1 photo per listing',
     'Up to 2 active listings',
     'Reply to student messages',
@@ -22,6 +24,7 @@ const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
     '14-day visibility',
   ],
   campus_partner: [
+    'Reach up to 3 universities',
     'Up to 3 photos per listing',
     'Up to 3 active listings',
     'Reply to student messages',
@@ -49,8 +52,10 @@ export default function BusinessPlanSelect() {
 
   const plans = BUSINESS_PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [BusinessPlanKey, typeof PLAN_TIERS[BusinessPlanKey]])
   const currentPlan = currentUser?.plan as PlanKey | undefined
-  const planIsActive = !!currentPlan && currentPlan !== 'noticeboard' &&
-    !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+  const planIsActive = !!currentPlan && (
+    currentPlan === 'noticeboard' ||
+    (!!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date())
+  )
 
   useEffect(() => {
     if (isLoadingAuth || !currentUser) return
@@ -81,6 +86,7 @@ export default function BusinessPlanSelect() {
   }, [currentUser, isLoadingAuth, navigate, forcePlans])
 
   const handleSelectPlan = async (key: PlanKey) => {
+    if (planIsActive && currentPlan === key) return
     if (planIsActive && currentPlan) {
       const currentRank = BUSINESS_PLAN_ORDER.indexOf(currentPlan)
       const targetRank = BUSINESS_PLAN_ORDER.indexOf(key)
@@ -118,6 +124,8 @@ export default function BusinessPlanSelect() {
       <p className="text-cream-muted text-sm">Loading...</p>
     </div>
   )
+
+  if (!currentUser || currentUser.account_type !== 'business') return null
 
   if (view === 'maxed') return (
     <>
@@ -184,12 +192,12 @@ export default function BusinessPlanSelect() {
                 <button
                   key={key}
                   onClick={() => handleSelectPlan(key)}
-                  disabled={paying}
+                  disabled={paying || (isCurrent && planIsActive)}
                   className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                     isLowerThanCurrent ? 'opacity-40 cursor-not-allowed' : ''
                   } ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-sapphire-light'
-                  }`}
+                  } ${isCurrent && planIsActive ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
