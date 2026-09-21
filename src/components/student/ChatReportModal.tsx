@@ -5,11 +5,12 @@ import { useApp } from '../../context/AppContext'
 
 interface Props {
   conversationId: string
-  listingId: string
+  listingId: string | null
+  wantedPostId: string | null
   onClose: () => void
 }
 
-export default function ChatReportModal({ conversationId, listingId, onClose }: Props) {
+export default function ChatReportModal({ conversationId, listingId, wantedPostId, onClose }: Props) {
   const { currentUser, showToast } = useApp()
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,7 +22,7 @@ export default function ChatReportModal({ conversationId, listingId, onClose }: 
       return
     }
     setLoading(true)
-    const { error } = await reportConversation(conversationId, listingId, currentUser.id, reason.trim())
+    const { error } = await reportConversation(conversationId, { listingId, wantedPostId }, currentUser.id, reason.trim())
     setLoading(false)
     if (error) {
       showToast('Failed to submit report.', 'error')
