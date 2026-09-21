@@ -171,10 +171,6 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
   const toggleUniversity = (university: string) => {
     setError('')
     if (selectedUniversities.includes(university)) {
-      if (selectedUniversities.length === 1) {
-        setError('Select at least one university.')
-        return
-      }
       setSelectedUniversities(prev => prev.filter(u => u !== university))
       return
     }
@@ -238,7 +234,7 @@ const sharedFields = {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
 <h1 className="font-serif text-2xl text-cream mb-1">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
           <p className="text-cream-muted text-sm mb-6">
             Posting on the {tierConfig.label} plan — {maxPhotos === 0 ? 'text only, no photos' : `up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''}`}.
