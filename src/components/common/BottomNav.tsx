@@ -113,7 +113,7 @@ export default function BottomNav() {
                 onClick={tab.onClick}
                 aria-label={tab.label}
                 title={tab.label}
-                className="relative flex flex-1 md:flex-none items-center justify-center focus:outline-none"
+                className="group relative flex flex-1 md:flex-none items-center justify-center focus:outline-none"
               >
                 <div
                   className={
@@ -129,7 +129,7 @@ export default function BottomNav() {
                   <Icon
                     size={tab.action ? 26 : tab.label === 'My Space' ? 24 : 22}
                     filled={active}
-                    className={`${tab.action ? 'text-white' : active ? 'text-white' : 'text-cream-muted'} transition-colors`}
+                    className={`${tab.action ? 'text-white' : active ? 'text-white' : 'text-cream-muted'} transform-gpu transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group-hover:-translate-y-[2px] group-hover:scale-110 ${tab.action ? 'group-hover:rotate-90' : 'group-hover:rotate-[-6deg]'} group-active:scale-90 group-active:translate-y-[1px]`}
                   />
                   {tab.badge ? (
                     <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
