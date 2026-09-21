@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag, Paperclip, X } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
@@ -8,10 +8,12 @@ import {
   getConversationMessages, sendMessage,
   markConversationResolved, getUnreadMessageCount,
   markMessagesRead, sendRatingInvite,
+  sendChatImage, CHAT_IMAGE_PLACEHOLDER,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ChatReportModal from './ChatReportModal'
+import ChatImage from './ChatImage'
 
 interface Props {
   conversation: Conversation & {
@@ -47,6 +49,11 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const [showResolvePrompt, setShowResolvePrompt] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [titleExpanded, setTitleExpanded] = useState(false)
+  // Photo picked but not sent yet, plus the full-screen viewer.
+  const [pendingImage, setPendingImage] = useState<File | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
@@ -101,13 +108,48 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversation.id}` },
+        payload => {
+          const updated = payload.new as Message
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m))
+        }
+      )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [conversation.id])
 
+  // Object URL for the pending photo's thumbnail — released when it's
+  // cleared, replaced, or the chat closes.
+  useEffect(() => {
+    return () => { if (pendingPreview) URL.revokeObjectURL(pendingPreview) }
+  }, [pendingPreview])
+
+  const clearPendingImage = () => {
+    setPendingImage(null)
+    setPendingPreview(null)
+  }
+
+  const handlePickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      showToast('Please choose an image file.', 'error')
+      return
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('That image is too large.', 'error')
+      return
+    }
+    setPendingImage(file)
+    setPendingPreview(URL.createObjectURL(file))
+  }
+
   const handleSend = async () => {
-    if (!text.trim() || !currentUser) return
+    if ((!text.trim() && !pendingImage) || !currentUser) return
     if (sellerLocked) {
       showToast('Upgrade to Campus Partner or Featured to respond to messages.', 'info')
       return
@@ -125,6 +167,17 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
       return
     }
     setSending(true)
+    if (pendingImage) {
+      // A photo counts as one message towards the plan limit, and any
+      // caption went through the same contact-info check above.
+      const { error: imageError } = await sendChatImage(conversation.id, pendingImage, text.trim())
+      setSending(false)
+      if (imageError) { showToast(imageError, 'error'); return }
+      clearPendingImage()
+      setText('')
+      setOwnMsgCount(c => c + 1)
+      return
+    }
     const { error } = await sendMessage(conversation.id, currentUser.id, text.trim())
     setSending(false)
     if (error) { showToast(error, 'error'); return }
@@ -262,16 +315,28 @@ return (
         {messages.map(msg => {
           const isOwn = msg.sender_id === currentUser?.id
           const masked = msg.content.replace(/\d{7,}/g, '[number hidden]')
+          const hasImage = !!msg.image_path || !!msg.image_deleted_at
+          const isLast = msg.id === messages[messages.length - 1]?.id
           return (
             <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                className={`max-w-[75%] ${hasImage ? 'p-1.5' : 'px-3 py-2'} rounded-2xl text-sm leading-relaxed ${
                   isOwn
                     ? 'bg-ember text-white rounded-br-sm'
                     : 'bg-white text-cream rounded-bl-sm shadow-[0_1px_4px_rgba(15,23,42,0.08)]'
                 }`}
               >
-                {masked}
+                {hasImage && (
+                  <ChatImage
+                    message={msg}
+                    isOwn={isOwn}
+                    onOpen={setLightboxUrl}
+                    onLoaded={isLast ? () => bottomRef.current?.scrollIntoView({ behavior: 'auto' }) : undefined}
+                  />
+                )}
+                {(!hasImage || msg.content !== CHAT_IMAGE_PLACEHOLDER) && (
+                  <div className={hasImage ? 'px-1.5 pt-1.5 pb-0.5' : ''}>{masked}</div>
+                )}
               </div>
             </div>
           )
@@ -303,24 +368,55 @@ return (
         </div>
       )}
       {!conversation.is_resolved && !sellerLocked && (
-        <div className="px-3 pt-2 pb-3 flex items-end gap-2 flex-shrink-0">
+        <div className="px-3 pt-2 pb-3 flex flex-col gap-2 flex-shrink-0">
+          {pendingPreview && (
+            <div className="relative self-start">
+              <img src={pendingPreview} alt="Photo to send" className="h-20 w-20 rounded-xl object-cover border border-slate-100 shadow-sm" />
+              <button
+                onClick={clearPendingImage}
+                title="Remove photo"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-900 text-white flex items-center justify-center transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePickImage} className="hidden" />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sending}
+            title="Send a photo"
+            className="w-10 h-10 flex items-center justify-center text-cream-muted hover:text-blue-600 disabled:opacity-40 rounded-2xl flex-shrink-0 transition-colors"
+          >
+            <Paperclip size={20} />
+          </button>
           <textarea
             ref={textareaRef}
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
-            placeholder="Type a message..."
+            placeholder={pendingImage ? 'Add a caption (optional)...' : 'Type a message...'}
             rows={1}
             className="flex-1 bg-white border border-slate-100 shadow-[0_1px_4px_rgba(15,23,42,0.06)] rounded-2xl px-4 py-2 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-none transition-colors max-h-[120px] overflow-y-auto"
           />
           <button
             onClick={handleSend}
-            disabled={sending || !text.trim()}
+            disabled={sending || (!text.trim() && !pendingImage)}
             className="w-10 h-10 flex items-center justify-center bg-ember hover:bg-ember-dark disabled:opacity-40 rounded-2xl text-white flex-shrink-0 transition-colors"
           >
             <SendIcon size={16} />
           </button>
+          </div>
+        </div>
+      )}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4 cursor-zoom-out"
+        >
+          <img src={lightboxUrl} alt="Photo shared in chat" className="max-w-full max-h-full rounded-xl" />
         </div>
       )}
       {conversation.is_resolved && (
