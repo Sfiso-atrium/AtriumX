@@ -122,7 +122,7 @@ useEffect(() => {
 
   return (
     <>
-      <div className={hideBottomNav ? 'h-[100dvh] bg-slate-deep flex flex-col overflow-hidden' : 'h-[100dvh] pb-16 bg-slate-deep flex flex-col overflow-hidden'}>
+      <div className={hideBottomNav ? 'h-[100dvh] bg-slate-deep flex flex-col overflow-hidden' : 'h-[100dvh] pb-16 md:pb-24 bg-slate-deep flex flex-col overflow-hidden'}>
         {/* Top bar */}
         <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4 gap-3 flex-shrink-0 md:hidden">
           {active && isMobile ? (
