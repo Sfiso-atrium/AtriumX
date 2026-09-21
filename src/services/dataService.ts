@@ -50,6 +50,7 @@ has_pending_edit: boolean
   seller?: Profile
   business_address?: string | null
   business_website?: string | null
+  universities: string[]
 }
 
 
@@ -144,9 +145,9 @@ export const PLAN_TIERS = {
   // here — these values are what the tier grants once upgrades are wired
   // up, and are also what the reply/chat gates (migration 014) check
   // against right now.
-noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null },
-  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 2, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored' },
-  campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner' },
+noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null, maxUniversities: 1 },
+  featured:       { label: 'Featured',       price: 'R350', priceNum: 350, days: 14, maxListings: 2, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored', maxUniversities: 2 },
+  campus_partner: { label: 'Campus Partner', price: 'R800', priceNum: 800, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner', maxUniversities: 3 },
 } as const
 
 export type PlanKey = keyof typeof PLAN_TIERS
@@ -526,13 +527,21 @@ const { data, error } = await query
 // Business tab on the feed — same listings table, filtered the other way.
 // Campus Partner is pinned above Featured, which is pinned above Noticeboard,
 // matching the "pinned to top" promise on the pricing page.
-export async function getBusinessListings(): Promise<Listing[]> {
-  const { data, error } = await supabase
+export async function getBusinessListings(currentUser?: Profile | null): Promise<Listing[]> {
+  let query = supabase
     .from('listings')
-.select('*, seller:profiles_public!inner(*)')
+    .select('*, seller:profiles_public!inner(*)')
     .eq('status', 'active')
     .eq('seller.account_type', 'business')
     .order('created_at', { ascending: false })
+
+  // Business listings are university-scoped for students. Businesses
+  // themselves can continue to browse the full Business board.
+  if (currentUser?.account_type === 'student' && currentUser.university) {
+    query = query.contains('universities', [currentUser.university])
+  }
+
+  const { data, error } = await query
   if (error || !data) return []
 
   const sellerIds = [...new Set(data.map((l: any) => l.seller_id))]
@@ -592,11 +601,33 @@ export async function createListing(payload: {
   isNegotiable: boolean
   planTier: PlanKey
   variants: { name: string; price: number }[]
+  universities?: string[]
 }): Promise<{ id: string | null; error: string | null }> {
   const tierConfig = PLAN_TIERS[payload.planTier]
   const expiresAt = new Date(
     Date.now() + tierConfig.days * 86400000
   ).toISOString()
+
+  const isBusinessTier = (BUSINESS_PLAN_ORDER as string[]).includes(payload.planTier)
+
+  if (isBusinessTier) {
+    const { data, error } = await supabase.rpc('create_business_listing', {
+      p_seller_id: payload.sellerId,
+      p_title: payload.title,
+      p_description: payload.description,
+      p_price: payload.price,
+      p_category: payload.category,
+      p_custom_category: payload.customCategory || null,
+      p_image_urls: payload.imageUrls,
+      p_video_url: payload.videoUrl || null,
+      p_residence: payload.residence,
+      p_listing_type: payload.listingType,
+      p_is_negotiable: payload.isNegotiable,
+      p_variants: payload.variants,
+      p_universities: payload.universities || [],
+    })
+    return { id: data || null, error: error ? error.message : null }
+  }
 
   const { data, error } = await supabase
     .from('listings')
@@ -616,11 +647,12 @@ export async function createListing(payload: {
       variants: payload.variants,
       status: 'pending',
       expires_at: expiresAt,
+      universities: [],
     })
     .select('id')
     .single()
 
-if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
+  if (error || !data) return { id: null, error: error?.message || 'Failed to create listing.' }
 
   // Roll the account's plan forward to match what was just used, refreshing
   // its expiry. Guarded by rank so this can never downgrade the account —
@@ -631,13 +663,10 @@ if (error || !data) return { id: null, error: error?.message || 'Failed to creat
     .eq('id', payload.sellerId)
     .single()
 
-  const isBusinessTier = (BUSINESS_PLAN_ORDER as string[]).includes(payload.planTier)
   const rankOrder = isBusinessTier ? BUSINESS_PLAN_ORDER : PLAN_ORDER
-
   const currentRank = profile ? rankOrder.indexOf(profile.plan as PlanKey) : -1
   const currentStillActive = profile?.plan_expires_at && new Date(profile.plan_expires_at) > new Date()
   const newRank = rankOrder.indexOf(payload.planTier)
-
 // Paid tiers are NOT granted here any more. Before payments existed this
   // block handed out whatever tier the client asked for, which meant anyone
   // could post on Unmissable without paying a cent. A paid plan is now only
@@ -680,8 +709,28 @@ export async function updateListing(
     listingType: 'single' | 'ongoing'
     isNegotiable: boolean
     variants: { name: string; price: number }[]
+    universities?: string[]
   }
 ): Promise<{ error: string | null }> {
+  if (payload.universities) {
+    const { error } = await supabase.rpc('update_business_listing', {
+      p_listing_id: listingId,
+      p_title: payload.title,
+      p_description: payload.description,
+      p_price: payload.price,
+      p_category: payload.category,
+      p_custom_category: payload.customCategory || null,
+      p_image_urls: payload.imageUrls,
+      p_video_url: payload.videoUrl || null,
+      p_residence: payload.residence,
+      p_listing_type: payload.listingType,
+      p_is_negotiable: payload.isNegotiable,
+      p_variants: payload.variants,
+      p_universities: payload.universities,
+    })
+    return { error: error ? error.message : null }
+  }
+
   const { error } = await supabase
     .from('listings')
     .update({
@@ -1327,6 +1376,7 @@ export interface BusinessProfile {
   contact_number: string
   physical_address: string | null
   website: string | null
+  universities: string[]
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
 }
@@ -1344,6 +1394,7 @@ export async function registerBusinessWithEmail(
   contactNumber: string,
   physicalAddress: string | undefined,
   website: string | undefined,
+  university: string,
   refCode?: string
 ): Promise<{ user: Profile | null; error: string | null }> {
   const initials = businessName
@@ -1390,6 +1441,8 @@ const { error: bizError } = await supabase.from('business_profiles').insert({
     contact_number: contactNumber,
     physical_address: physicalAddress?.trim() || null,
     website: website?.trim() || null,
+    universities: [university],
+    status: 'approved',
   })
   if (bizError) return { user: null, error: bizError.message }
 
@@ -1403,7 +1456,7 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
     .eq('id', id)
     .single()
   if (error || !data) return null
-  return data as BusinessProfile
+  return { ...data, universities: data.universities ?? [] } as BusinessProfile
 }
 
 export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
