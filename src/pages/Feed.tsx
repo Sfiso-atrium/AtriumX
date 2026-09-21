@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, X, HandHelping } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getResidences, getLookingFor, LookingForEntry, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getResidences, getWantedPosts, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import WantedPostCard from '../components/common/WantedPostCard'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -69,8 +70,8 @@ const [bizSearch, setBizSearch] = useState('')
   const [bizMaxPrice, setBizMaxPrice] = useState('')
   const [bizNegotiableOnly, setBizNegotiableOnly] = useState(false)
 
-  const [lookingFor, setLookingFor] = useState<LookingForEntry[]>([])
-  const [lookingForLoading, setLookingForLoading] = useState(true)
+  const [wantedPosts, setWantedPosts] = useState<WantedPost[]>([])
+  const [wantedPostsLoading, setWantedPostsLoading] = useState(true)
 
 const [fetchError, setFetchError] = useState(false)
 useEffect(() => {
@@ -84,9 +85,9 @@ useEffect(() => {
         setFetchError(true)
       })
     getResidences().then(setResidenceOptions)
-    getLookingFor()
-      .then(data => { setLookingFor(data); setLookingForLoading(false) })
-      .catch(() => setLookingForLoading(false))
+    getWantedPosts()
+      .then(data => { setWantedPosts(data); setWantedPostsLoading(false) })
+      .catch(() => setWantedPostsLoading(false))
     getBusinessListings()
       .then(data => {
         setBusinessListings(data)
@@ -272,39 +273,23 @@ const filteredBusiness = useMemo(() => {
             </section>
           )}
 
-          <section className="pb-5">
-            <div className="px-4 pb-2 flex items-center justify-between">
-              <h2 className="text-cream font-bold text-base">People are looking for</h2>
-              <HandHelping size={15} className="text-blue-600" />
-            </div>
-            {lookingForLoading ? (
-              <div className="px-4"><p className="text-cream-muted text-sm">Loading...</p></div>
-            ) : lookingFor.length === 0 ? (
-              <div className="px-4">
-                <div className="bg-slate-card rounded-2xl px-4 py-5 text-center">
-                  <p className="text-cream font-bold text-sm mb-1">Nothing on the wanted board yet</p>
-                  <p className="text-cream-muted text-xs">Add something to your watchlist in My Space and it can appear here.</p>
-                </div>
+          {wantedPostsLoading ? (
+            <div className="px-4 pb-5"><p className="text-cream-muted text-sm">Loading...</p></div>
+          ) : wantedPosts.length > 0 && (
+            <section className="pb-5">
+              <div className="px-4 pb-2 flex items-center justify-between">
+                <h2 className="text-cream font-bold text-base">People are looking for</h2>
+                <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
-            ) : (
-              <div className="px-4 flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
-                {lookingFor.map(w => (
-                  <div key={w.id} className="min-w-[250px] max-w-[290px] flex-shrink-0 snap-start bg-slate-card rounded-2xl p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-cream font-bold text-sm break-words">{w.keyword || w.category || 'Anything good'}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {w.category && <span className="text-[10px] font-bold text-cream-muted">{w.category}</span>}
-                          {w.max_price != null && <span className="text-[11px] text-cream-muted">up to R{Number(w.max_price).toFixed(2)}</span>}
-                        </div>
-                      </div>
-                      <span className="text-cream-muted text-[11px] flex-shrink-0">{w.seeker?.full_name ?? 'A student'}</span>
-                    </div>
+              <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+                {wantedPosts.map(post => (
+                  <div key={post.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start">
+                    <WantedPostCard post={post} isOwnPost={post.seeker_id === currentUser?.id} />
                   </div>
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {otherListings.length === 0 ? (
             featuredListings.length === 0 && (
