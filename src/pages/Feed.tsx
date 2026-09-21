@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getResidences, getWantedPosts, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getResidences, getWantedPosts, WantedPost, startWantedConversation, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
 import WantedPostCard from '../components/common/WantedPostCard'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
@@ -37,7 +37,7 @@ stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="ro
 }
 
 export default function Feed() {
-const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
+const { activeCategory, setActiveCategory, showToast, currentUser, setRedirectAfterLogin, setAuthPromptOpen } = useApp()
   const navigate = useNavigate()
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
     const saved = localStorage.getItem('feed_last_tab')
@@ -153,8 +153,19 @@ const filteredBusiness = useMemo(() => {
 
   const handleCopyApplicationLink = () => {
     navigator.clipboard.writeText(APPLICATION_LINK)
-      .then(() => showToast('Application link copied â€” send it their way.', 'success'))
+      .then(() => showToast('Application link copied — send it their way.', 'success'))
       .catch(() => showToast('Could not copy the link. Try again.', 'error'))
+  }
+
+  const handleWantedChat = async (post: WantedPost) => {
+    if (!currentUser) {
+      setRedirectAfterLogin('/feed')
+      setAuthPromptOpen(true)
+      return
+    }
+    const { convId, error } = await startWantedConversation(post.id, currentUser.id, post.seeker_id)
+    if (error) { showToast(error, 'error'); return }
+    if (convId) navigate(`/chat/${convId}`)
   }
   return (
     <>
@@ -284,31 +295,37 @@ const filteredBusiness = useMemo(() => {
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
                 {wantedPosts.map(post => (
                   <div key={post.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start">
-                    <WantedPostCard post={post} isOwnPost={post.seeker_id === currentUser?.id} />
+                    <WantedPostCard post={post} isOwnPost={post.seeker_id === currentUser?.id} onChat={handleWantedChat} />
                   </div>
                 ))}
               </div>
             </section>
           )}
 
-          {otherListings.length === 0 ? (
-            featuredListings.length === 0 && (
+          <div className="pb-24">
+            {featuredListings.length === 0 && wantedPosts.length === 0 && otherListings.length === 0 ? (
               <EmptyState
-                message={fetchError ? 'Could not load listings. Check your connection and try again.' : dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
-                actionLabel={dbLoading || fetchError ? undefined : 'Post a Listing'}
+                message={
+                  fetchError ? 'Could not load listings. Check your connection and try again.'
+                  : (dbLoading || wantedPostsLoading) ? 'Loading...'
+                  : 'Nothing here yet. Be the first to post.'
+                }
+                actionLabel={(dbLoading || wantedPostsLoading || fetchError) ? undefined : 'Add a Listing'}
                 onAction={() => navigate('/plan-select')}
               />
-            )
-          ) : (
-            <section className="pb-24">
-              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-base">More listings</h2></div>
-              <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-                {otherListings.map(listing => (
-                  <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
-                ))}
-              </div>
-            </section>
-          )}
+            ) : (
+              otherListings.length > 0 && (
+                <section>
+                  <div className="px-4 pb-2"><h2 className="text-cream font-bold text-base">More listings</h2></div>
+                  <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+                    {otherListings.map(listing => (
+                      <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
+                    ))}
+                  </div>
+                </section>
+              )
+            )}
+          </div>
           </>
           )}
 
