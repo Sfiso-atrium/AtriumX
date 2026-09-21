@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Search, X, HandHelping } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getResidences, getLookingFor, LookingForEntry, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getLookingFor, LookingForEntry, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -38,6 +38,8 @@ stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="ro
 export default function Feed() {
 const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
   const navigate = useNavigate()
+  const location = useLocation()
+  const requestedUniversity = new URLSearchParams(location.search).get('university')
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
     const saved = localStorage.getItem('feed_last_tab')
     return saved === 'business' ? 'business' : 'marketplace'
@@ -48,6 +50,8 @@ const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
   const [dbLoading, setDbLoading] = useState(true)
   const [businessListings, setBusinessListings] = useState<Listing[]>([])
   const [businessLoading, setBusinessLoading] = useState(true)
+  const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
+  const [businessUniversitiesLoading, setBusinessUniversitiesLoading] = useState(false)
 
   // Filters are hidden by default so the feed doesn't look cluttered â€” the
   // "Filters" link below the search bar reveals this row on demand.
@@ -73,8 +77,45 @@ const [bizSearch, setBizSearch] = useState('')
   const [lookingForLoading, setLookingForLoading] = useState(true)
 
 const [fetchError, setFetchError] = useState(false)
-useEffect(() => {
-    getListings({ currentUser })
+
+  useEffect(() => {
+    if (currentUser?.account_type !== 'business') {
+      setBusinessUniversities([])
+      setBusinessUniversitiesLoading(false)
+      return
+    }
+
+    let mounted = true
+    setBusinessUniversitiesLoading(true)
+    getBusinessProfile(currentUser.id)
+      .then(profile => {
+        if (!mounted) return
+        setBusinessUniversities(profile?.universities ?? [])
+        setBusinessUniversitiesLoading(false)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setBusinessUniversities([])
+        setBusinessUniversitiesLoading(false)
+      })
+
+    return () => { mounted = false }
+  }, [currentUser])
+
+  const marketplaceUniversity = currentUser?.account_type === 'business'
+    ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
+        ? requestedUniversity
+        : businessUniversities[0] ?? null)
+    : currentUser?.university ?? null
+
+  useEffect(() => {
+    if (currentUser?.account_type === 'business' && businessUniversitiesLoading) return
+
+    setDbLoading(true)
+    setBusinessLoading(true)
+    setFetchError(false)
+
+    getListings({ currentUser, university: marketplaceUniversity })
       .then(data => {
         setListings(data)
         setDbLoading(false)
@@ -83,17 +124,18 @@ useEffect(() => {
         setDbLoading(false)
         setFetchError(true)
       })
+
     getResidences().then(setResidenceOptions)
     getLookingFor()
       .then(data => { setLookingFor(data); setLookingForLoading(false) })
       .catch(() => setLookingForLoading(false))
-    getBusinessListings(currentUser)
+    getBusinessListings(currentUser, marketplaceUniversity)
       .then(data => {
         setBusinessListings(data)
         setBusinessLoading(false)
       })
       .catch(() => setBusinessLoading(false))
-  }, [currentUser])
+  }, [currentUser, marketplaceUniversity, businessUniversitiesLoading])
 
   const sortByPlanPriority = (items: Listing[], business = false) => {
     const order = business ? BUSINESS_PLAN_ORDER : PLAN_ORDER
