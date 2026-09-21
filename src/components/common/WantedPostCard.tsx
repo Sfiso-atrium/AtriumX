@@ -1,4 +1,4 @@
-import { HandHelping, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { WantedPost } from '../../services/dataService'
 
 interface WantedPostCardProps {
@@ -17,27 +17,23 @@ export default function WantedPostCard({ post, isOwnPost = false, onChat }: Want
   const urgency = URGENCY_STYLES[post.urgency]
 
   return (
-    <div className="group relative bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)]">
-      <div className="relative aspect-[4/3] bg-blue-50 overflow-hidden flex items-center justify-center">
-        <HandHelping size={34} strokeWidth={1.5} className="text-blue-300 transition-transform duration-500 ease-out group-hover:scale-110 group-hover:text-blue-400" />
-
-        <div className="absolute top-3 left-3 bg-white/95 text-blue-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm border border-white">
-          Wanted
+    <div className="group relative bg-white border border-[#e5ebf3] rounded-2xl overflow-hidden min-h-[220px] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[#d7e1ee] hover:shadow-[0_12px_32px_rgba(15,23,42,0.10)]">
+      <div className="p-4 flex flex-col gap-2 h-full">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full">
+            Wanted
+          </div>
+          {!isOwnPost && (
+            <button
+              type="button"
+              aria-label={`Chat about ${post.title}`}
+              onClick={e => { e.stopPropagation(); onChat?.(post) }}
+              className="w-9 h-9 rounded-full bg-white border border-[#e5ebf3] flex items-center justify-center shadow-sm transition-all hover:scale-105 text-slate-500 hover:text-blue-600"
+            >
+              <MessageCircle size={18} />
+            </button>
+          )}
         </div>
-
-        {!isOwnPost && (
-          <button
-            type="button"
-            aria-label={`Chat about ${post.title}`}
-            onClick={e => { e.stopPropagation(); onChat?.(post) }}
-            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 text-slate-500 hover:text-blue-600"
-          >
-            <MessageCircle size={18} />
-          </button>
-        )}
-      </div>
-
-      <div className="p-4 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-slate-900 font-bold text-base leading-snug break-words flex-1 min-w-0">
             {post.title}
