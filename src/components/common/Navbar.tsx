@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Compass,
   Contrast,
+  GraduationCap,
   Handshake,
   Menu,
   MessageCircle,
@@ -18,6 +19,7 @@ import {
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 import { pushSupported, subscribeToPush, unsubscribeFromPush } from '../../services/push'
+import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -30,12 +32,24 @@ export default function Navbar() {
   const [pushOn, setPushOn] = useState(false)
   const [pushBlocked, setPushBlocked] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
+  const [universityMenuOpen, setUniversityMenuOpen] = useState(false)
 
   // Sign in/up, business account creation, and the retailer landing page are
   // entry points without their own account context yet, so the sidemenu
   // (which is all about a signed-in user's spaces) has nothing useful to
   // offer there.
   const hideSidemenu = ['/student', '/retailer', '/retailer/signup'].includes(location.pathname)
+
+  useEffect(() => {
+    if (!currentUser || currentUser.account_type !== 'business') {
+      setBusinessProfile(null)
+      setUniversityMenuOpen(false)
+      return
+    }
+
+    getBusinessProfile(currentUser.id).then(setBusinessProfile)
+  }, [currentUser])
 
   useEffect(() => {
     if (!menuOpen || !currentUser || !pushSupported()) return
@@ -97,7 +111,7 @@ export default function Navbar() {
 
             {/* LOGO - fixed spacing: logo = 'a', same distance as other letters */}
             <button
-              onClick={() => navigate(currentUser ? '/space' : '/')}
+              onClick={() => navigate(currentUser ? (currentUser.account_type === 'business' ? '/feed' : '/space') : '/')}
               className="flex items-center min-w-0 group"
               aria-label="AtriumX home"
             >
@@ -124,8 +138,52 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             {currentUser ? (
               <>
+                {currentUser.account_type === 'business' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setUniversityMenuOpen(open => !open)}
+                      className="w-9 h-9 rounded-full flex items-center justify-center bg-teal-faint text-teal-light border border-slate-border hover:border-teal-light transition-colors"
+                      aria-label="Open business university access"
+                      title="University access"
+                    >
+                      <GraduationCap className="w-5 h-5" />
+                    </button>
+                    {universityMenuOpen && (
+                      <div className="absolute right-0 top-11 w-72 bg-slate-card border border-slate-border rounded-2xl shadow-xl p-4 z-50">
+                        <p className="text-cream font-bold text-sm mb-1">University access</p>
+                        <p className="text-cream-muted text-xs mb-3">Your listings can reach these universities.</p>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-cream text-xs font-semibold">
+                            {(businessProfile?.universities?.length ?? 0)} / {(currentUser.plan === 'campus_partner' ? 3 : currentUser.plan === 'featured' ? 2 : 1)} universities
+                          </span>
+                          {currentUser.plan !== 'campus_partner' && (businessProfile?.universities?.length ?? 0) >= (currentUser.plan === 'featured' ? 2 : 1) && (
+                            <span className="text-cream-muted text-[10px]">Plan limit reached</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {(businessProfile?.universities ?? []).map(university => (
+                            <div key={university} className="px-3 py-2 rounded-xl bg-slate-deep border border-slate-border text-cream text-sm">
+                              {university}
+                            </div>
+                          ))}
+                          {(businessProfile?.universities?.length ?? 0) === 0 && (
+                            <p className="text-cream-muted text-xs">No university has been selected yet.</p>
+                          )}
+                        </div>
+                        {currentUser.plan !== 'campus_partner' && (
+                          <button
+                            onClick={() => { setUniversityMenuOpen(false); navigate('/business/plan-select', { state: { forcePlans: true } }) }}
+                            className="mt-3 w-full bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+                          >
+                            Upgrade to reach more universities
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
-                  onClick={() => navigate('/plan-select')}
+                  onClick={() => navigate(currentUser.account_type === 'business' ? '/business/plan-select' : '/plan-select')}
                   className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
                   aria-label="Create a post"
                   title="Create a post"
@@ -171,7 +229,7 @@ export default function Navbar() {
       >
         <div className="flex items-center justify-between mb-5">
           <button
-            onClick={() => go(currentUser ? '/space' : '/')}
+            onClick={() => go(currentUser ? (currentUser.account_type === 'business' ? '/feed' : '/space') : '/')}
             className="flex items-center gap-[4px]"
             aria-label="AtriumX home"
           >
@@ -189,11 +247,13 @@ export default function Navbar() {
 
         {currentUser ? (
           <>
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">My Space</p>
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{currentUser.account_type === 'business' ? 'Business' : 'My Space'}</p>
             <nav className="space-y-1">
-              <button onClick={() => go('/space')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/space' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
-                <NotebookPen className="w-4 h-4" /> My Space
-              </button>
+              {currentUser.account_type !== 'business' && (
+                <button onClick={() => go('/space')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/space' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                  <NotebookPen className="w-4 h-4" /> My Space
+                </button>
+              )}
               <button onClick={() => go('/feed')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/feed' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                 <Compass className="w-4 h-4" /> Discover
               </button>
