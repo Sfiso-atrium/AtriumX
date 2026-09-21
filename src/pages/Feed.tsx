@@ -315,7 +315,7 @@ const filteredBusiness = useMemo(() => {
           {featuredListings.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-base">Featured listings</h2>
+                <h2 className="text-cream font-bold text-lg">Featured listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -326,24 +326,15 @@ const filteredBusiness = useMemo(() => {
             </section>
           )}
 
-          <section className="pb-5">
-            <div className="px-4 pb-2 flex items-center justify-between">
-              <h2 className="text-cream font-bold text-base">People are looking for</h2>
-              <HandHelping size={15} className="text-blue-600" />
-            </div>
-            {lookingForLoading ? (
-              <div className="px-4"><p className="text-cream-muted text-sm">Loading...</p></div>
-            ) : lookingFor.length === 0 ? (
-              <div className="px-4">
-                <div className="bg-slate-card rounded-2xl px-4 py-5 text-center">
-                  <p className="text-cream font-bold text-sm mb-1">Nothing on the wanted board yet</p>
-                  <p className="text-cream-muted text-xs">Add something to your watchlist in My Space and it can appear here.</p>
-                </div>
+          {!lookingForLoading && lookingFor.length > 0 && (
+            <section className="pb-5">
+              <div className="px-4 pb-2 flex items-center justify-between">
+                <h2 className="text-cream font-bold text-lg">People are looking for</h2>
+                <HandHelping size={17} className="text-blue-600" />
               </div>
-            ) : (
               <div className="px-4 flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
                 {lookingFor.map(w => (
-                  <div key={w.id} className="min-w-[250px] max-w-[290px] flex-shrink-0 snap-start bg-slate-card rounded-2xl p-4">
+                  <div key={w.id} className="min-w-[250px] max-w-[290px] min-h-[180px] flex-shrink-0 snap-start bg-slate-card rounded-2xl p-4 flex flex-col justify-between">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-cream font-bold text-sm break-words">{w.keyword || w.category || 'Anything good'}</p>
@@ -357,13 +348,13 @@ const filteredBusiness = useMemo(() => {
                   </div>
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {verifiedListings.length > 0 && (
             <section className={spottedListings.length === 0 && otherListings.length === 0 ? 'pb-24' : 'pb-5'}>
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-base">Verified listings</h2>
+                <h2 className="text-cream font-bold text-lg">Verified listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -377,7 +368,7 @@ const filteredBusiness = useMemo(() => {
           {spottedListings.length > 0 && (
             <section className={otherListings.length === 0 ? 'pb-24' : 'pb-5'}>
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-base">Spotted listings</h2>
+                <h2 className="text-cream font-bold text-lg">Spotted listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -398,7 +389,7 @@ const filteredBusiness = useMemo(() => {
             )
           ) : (
             <section className="pb-24">
-              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-base">More listings</h2></div>
+              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-lg">More listings</h2></div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
                 {otherListings.map(listing => (
                   <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
