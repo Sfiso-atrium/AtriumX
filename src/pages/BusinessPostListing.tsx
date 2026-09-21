@@ -9,6 +9,7 @@ import {
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import ImageCropModal from '../components/common/ImageCropModal'
+import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 
 export default function BusinessPostListing() {
   const navigate = useNavigate()
@@ -19,6 +20,8 @@ const { currentUser, isLoadingAuth, showToast } = useApp()
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
   const [atLimit, setAtLimit] = useState(false)
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
+  const [universitySearch, setUniversitySearch] = useState('')
 
 const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -46,37 +49,27 @@ useEffect(() => {
     if (currentUser.account_type !== 'business') { navigate('/plan-select'); return }
     if (!plan) { navigate('/business/plan-select'); return }
 
-    getBusinessProfile(currentUser.id).then(biz => {
+    Promise.all([getBusinessProfile(currentUser.id), getUserListings(currentUser.id)]).then(([biz, listings]) => {
       setBusiness(biz)
+      if (editListing) {
+        setSelectedUniversities(editListing.universities?.length ? editListing.universities : (biz?.universities ?? []))
+      } else if (biz?.universities?.length) {
+        setSelectedUniversities([biz.universities[0]])
+      }
       setCheckingBusiness(false)
-    })
 
-// Editing doesn't add a new listing, so it shouldn't be blocked by
-    // (or count toward) the active-listing limit — same reasoning as
-    // the student PostListing flow.
-    if (!editListing) {
-      getUserListings(currentUser.id).then(listings => {
+      // Editing doesn't add a new listing, so it shouldn't be blocked by
+      // (or count toward) the active-listing limit — same reasoning as
+      // the student PostListing flow.
+      if (!editListing) {
         const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
         const max = PLAN_TIERS[plan].maxListings
         if (active >= max) setAtLimit(true)
-      })
-    }
+      }
+    })
   }, [currentUser, isLoadingAuth, navigate, plan, editListing])
 
   if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
-
-  if (business?.status !== 'approved') return (
-    <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
-      <p className="text-cream font-bold text-xl mb-2">
-        {business?.status === 'rejected' ? 'Application Not Approved' : 'Awaiting Approval'}
-      </p>
-      <p className="text-cream-muted text-sm max-w-sm">
-        {business?.status === 'rejected'
-          ? 'Your business application was not approved. Contact us if you think this is a mistake.'
-          : 'Our team is reviewing your business account. You can post a listing once approved — usually within 48 hours.'}
-      </p>
-    </div>
-  )
 
 if (submitted) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
@@ -89,7 +82,7 @@ if (submitted) return (
       <p className="text-cream-muted text-sm max-w-sm mb-6">
         {editListing
           ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
-          : 'Your listing is under review. Once approved, it will appear on the Business tab of the feed.'}
+          : 'Your listing has been submitted and will appear on the Business tab once it is approved.'}
       </p>
       <button
         onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
@@ -164,6 +157,44 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const removeImage = (idx: number) => setImageUrls(prev => prev.filter((_, i) => i !== idx))
 
+  const maxUniversities = 'maxUniversities' in PLAN_TIERS[plan] ? PLAN_TIERS[plan].maxUniversities : 1
+  const accountUniversities = business?.universities ?? []
+  const canAddUniversity = accountUniversities.length < maxUniversities
+  const universityQuery = universitySearch.trim().toLowerCase()
+  const universityPool = canAddUniversity ? SOUTH_AFRICAN_UNIVERSITIES : accountUniversities
+  const universityOptions = universityPool.filter(u =>
+    !universityQuery ||
+    u.toLowerCase().includes(universityQuery) ||
+    (UNIVERSITY_ALIASES[u] ?? []).some(a => a.toLowerCase().startsWith(universityQuery))
+  )
+
+  const toggleUniversity = (university: string) => {
+    setError('')
+    if (selectedUniversities.includes(university)) {
+      if (selectedUniversities.length === 1) {
+        setError('Select at least one university.')
+        return
+      }
+      setSelectedUniversities(prev => prev.filter(u => u !== university))
+      return
+    }
+
+    if (selectedUniversities.length >= maxUniversities) {
+      setError(`Your ${PLAN_TIERS[plan].label} plan allows up to ${maxUniversities} universities per listing.`)
+      return
+    }
+
+    const isNewAccountUniversity = !accountUniversities.includes(university)
+    const newAccountUniversitiesSelected = selectedUniversities.filter(u => !accountUniversities.includes(u)).length + (isNewAccountUniversity ? 1 : 0)
+    const remainingAccountSlots = maxUniversities - accountUniversities.length
+    if (isNewAccountUniversity && newAccountUniversitiesSelected > remainingAccountSlots) {
+      setError(`Your ${PLAN_TIERS[plan].label} plan allows ${maxUniversities} university access${maxUniversities === 1 ? '' : 'es'}. Upgrade to reach another university.`)
+      return
+    }
+
+    setSelectedUniversities(prev => [...prev, university])
+  }
+
   const handleSubmit = async () => {
     setError('')
     if (!title.trim()) return setError('Give your listing a name.')
@@ -180,6 +211,7 @@ const sharedFields = {
       listingType: 'ongoing' as const,
       isNegotiable,
       variants: [],
+      universities: selectedUniversities,
     }
 
     if (editListing) {
@@ -321,11 +353,57 @@ const sharedFields = {
               </div>
             </div>
 
+            {/* UNIVERSITIES */}
+            <div>
+              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                Universities <span className="text-red-400">*</span>
+              </label>
+              <p className="text-cream-muted text-xs mb-3">
+                {accountUniversities.length < maxUniversities
+                  ? `Choose up to ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. New university access can only be added while your plan has room.`
+                  : `This account already has access to its ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Future listings can only use these universities.`}
+              </p>
+              <input
+                type="text"
+                placeholder="Search for a university..."
+                value={universitySearch}
+                onChange={e => setUniversitySearch(e.target.value)}
+                className={inputClass}
+              />
+              <div className="mt-2 flex flex-col gap-2 max-h-56 overflow-y-auto">
+                {universityOptions.map(university => {
+                  const selected = selectedUniversities.includes(university)
+                  const isAccountUniversity = accountUniversities.includes(university)
+                  return (
+                    <button
+                      key={university}
+                      type="button"
+                      onClick={() => toggleUniversity(university)}
+                      className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
+                        selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream hover:border-teal-light'
+                      }`}
+                    >
+                      <span className="flex-1 min-w-0">{university}</span>
+                      {isAccountUniversity && (
+                        <span className="text-[10px] text-cream-muted">Account</span>
+                      )}
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
+                        {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
+                      </span>
+                    </button>
+                  )
+                })}
+                {universityOptions.length === 0 && (
+                  <p className="text-cream-muted text-sm text-center py-4">No universities match your search.</p>
+                )}
+              </div>
+            </div>
+
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
 <button
               onClick={handleSubmit}
-              disabled={loading || uploading || !title || description.length < 20}
+              disabled={loading || uploading || !title || description.length < 20 || selectedUniversities.length === 0}
               className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
             >
               {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
