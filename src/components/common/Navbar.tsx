@@ -162,9 +162,17 @@ export default function Navbar() {
                         </div>
                         <div className="flex flex-col gap-2">
                           {(businessProfile?.universities ?? []).map(university => (
-                            <div key={university} className="px-3 py-2 rounded-xl bg-slate-deep border border-slate-border text-cream text-sm">
+                            <button
+                              key={university}
+                              type="button"
+                              onClick={() => {
+                                setUniversityMenuOpen(false)
+                                navigate(`/feed?university=${encodeURIComponent(university)}`)
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-xl bg-slate-deep border border-slate-border text-cream text-sm hover:border-teal-light hover:bg-teal-faint transition-colors"
+                            >
                               {university}
-                            </div>
+                            </button>
                           ))}
                           {(businessProfile?.universities?.length ?? 0) === 0 && (
                             <p className="text-cream-muted text-xs">No university has been selected yet.</p>
