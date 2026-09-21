@@ -87,7 +87,7 @@ useEffect(() => {
     getLookingFor()
       .then(data => { setLookingFor(data); setLookingForLoading(false) })
       .catch(() => setLookingForLoading(false))
-    getBusinessListings()
+    getBusinessListings(currentUser)
       .then(data => {
         setBusinessListings(data)
         setBusinessLoading(false)
