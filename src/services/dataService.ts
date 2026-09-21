@@ -2541,6 +2541,20 @@ export async function createWantedPost(payload: {
   return { id: data.id, error: null }
 }
 
+// RLS (wanted_posts_select_scoped, migration 048) already does the
+// university scoping and status filtering server-side -- same shape as
+// getListings -- so this is a plain select, newest first.
+export async function getWantedPosts(): Promise<WantedPost[]> {
+  const { data, error } = await supabase
+    .from('wanted_posts')
+    .select('*, seeker:profiles_public!inner(*)')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+  return data as WantedPost[]
+}
+
 export interface LookingForEntry {
   id: string
   user_id: string
