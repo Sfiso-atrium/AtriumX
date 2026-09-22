@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag, Paperclip, X } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag, Paperclip, X, Trash2 } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
@@ -8,12 +8,13 @@ import {
   getConversationMessages, sendMessage,
   markConversationResolved, getUnreadMessageCount,
   markMessagesRead, sendRatingInvite,
-  sendChatImage, CHAT_IMAGE_PLACEHOLDER,
+  sendChatImage, CHAT_IMAGE_PLACEHOLDER, clearChatForMe,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
 import { PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ChatReportModal from './ChatReportModal'
 import ChatImage from './ChatImage'
+import ConfirmModal from '../common/ConfirmModal'
 
 interface Props {
   conversation: Conversation & {
@@ -23,6 +24,10 @@ interface Props {
     wanted_post?: Pick<WantedPost, 'id' | 'title' | 'category' | 'max_price' | 'price_flexible' | 'urgency'>
   }
   onResolved: () => void
+  // Removes this conversation from the caller's own list once they've
+  // confirmed the delete. The chat itself, and the other person's copy,
+  // are unaffected.
+  onDeleted: () => void
 }
 
 // Catches emails outright, and phone numbers after stripping the separators
@@ -38,7 +43,7 @@ function containsContactInfo(text: string): boolean {
   return false
 }
 
-export default function ChatWindow({ conversation, onResolved }: Props) {
+export default function ChatWindow({ conversation, onResolved, onDeleted }: Props) {
   const navigate = useNavigate()
   const { currentUser, showToast, setUnreadMessageCount } = useApp()
   const [messages, setMessages] = useState<Message[]>([])
@@ -54,6 +59,8 @@ export default function ChatWindow({ conversation, onResolved }: Props) {
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
@@ -229,7 +236,17 @@ if (conversation.is_closed_by_admin) {
     )
   }
 
-return (
+const handleDeleteChat = async () => {
+    setDeleting(true)
+    const { error } = await clearChatForMe(conversation.id)
+    setDeleting(false)
+    if (error) { showToast(error, 'error'); return }
+    setShowDeleteConfirm(false)
+    showToast('Chat deleted from your side.', 'success')
+    onDeleted()
+  }
+
+  return (
     <div className="flex flex-col h-full bg-[#EEF3FB]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 mx-3 mt-3 bg-white rounded-2xl shadow-[0_2px_10px_rgba(15,23,42,0.06)] flex-shrink-0">
@@ -304,6 +321,13 @@ return (
           >
             <Flag size={15} />
           </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            title="Delete this chat for me"
+            className="text-cream-muted hover:text-red-400 p-1.5 rounded-full transition-colors"
+          >
+            <Trash2 size={15} />
+          </button>
         </div>
       </div>
 
@@ -344,7 +368,19 @@ return (
         <div ref={bottomRef} />
       </div>
 
-{showReportModal && (
+{showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete this chat?"
+          message="Are you sure? This will delete the chat from your side only — the other person will keep their copy. This cannot be undone."
+          confirmLabel={deleting ? 'Deleting…' : 'Delete chat'}
+          confirmDisabled={deleting}
+          destructive
+          onConfirm={handleDeleteChat}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {showReportModal && (
         <ChatReportModal
           conversationId={conversation.id}
           listingId={conversation.listing_id}
