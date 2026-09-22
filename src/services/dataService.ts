@@ -42,6 +42,7 @@ export interface Listing {
   report_count: number
   contact_count: number
   view_count: number
+  like_count: number
   variants: { name: string; price: number }[]
   expires_at: string
   created_at: string
@@ -943,6 +944,20 @@ export async function startConversation(
   } catch (_) {}
 
   return { convId: data.id, error: null }
+}
+
+// Persisted listing like counter. Who has liked what stays client-side
+// (localStorage, see ListingCard) — these just keep the shared count in sync.
+export async function incrementListingLikes(listingId: string): Promise<void> {
+  try {
+    await supabase.rpc('increment_listing_likes', { listing_id: listingId })
+  } catch (_) {}
+}
+
+export async function decrementListingLikes(listingId: string): Promise<void> {
+  try {
+    await supabase.rpc('decrement_listing_likes', { listing_id: listingId })
+  } catch (_) {}
 }
 
 // Mirrors startConversation, but anchored to a wanted post instead of a
@@ -2584,6 +2599,7 @@ export interface CampusEvent {
   university: string | null
   status: 'active' | 'cancelled'
   created_at: string
+  like_count: number
   host?: Profile
 }
 
@@ -2663,6 +2679,21 @@ export async function createEvent(payload: {
 
 export async function cancelEvent(eventId: string): Promise<void> {
   await supabase.from('events').update({ status: 'cancelled' }).eq('id', eventId)
+}
+
+// Persisted event like counter, mirroring incrementListingLikes/
+// decrementListingLikes above. Who has liked what stays client-side
+// (localStorage, see EventCard) — these just keep the shared count in sync.
+export async function incrementEventLikes(eventId: string): Promise<void> {
+  try {
+    await supabase.rpc('increment_event_likes', { event_id: eventId })
+  } catch (_) {}
+}
+
+export async function decrementEventLikes(eventId: string): Promise<void> {
+  try {
+    await supabase.rpc('decrement_event_likes', { event_id: eventId })
+  } catch (_) {}
 }
 
 // ── LOOKING FOR (public watchlists) ────────────────────────────────────────
