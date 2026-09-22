@@ -47,22 +47,23 @@
   --ember-dark: rgb(var(--atriumx-sapphire-primary-rgb));
   --atriumx-accent-contrast: rgb(255 255 255);
 
-  /* Existing B&W mode values, retained for compatibility. */
-  --atriumx-bw-bg-deep-rgb: 255 255 255;
-  --atriumx-bw-bg-card-rgb: 244 244 245;
-  --atriumx-bw-border-rgb: 212 212 216;
-  --atriumx-bw-cream-rgb: 10 10 10;
-  --atriumx-bw-cream-muted-rgb: 82 82 91;
+  /* Dark mode palette — matches the AtriumX dark reference UI. */
+  --atriumx-dark-bg-deep-rgb: 13 22 40;
+  --atriumx-dark-bg-card-rgb: 24 34 54;
+  --atriumx-dark-border-rgb: 48 61 84;
+  --atriumx-dark-cream-rgb: 247 248 251;
+  --atriumx-dark-cream-muted-rgb: 161 172 193;
 }
 
 html {
   color-scheme: light;
 }
 
-html.bw-mode {
-  --atriumx-bg-deep-rgb: var(--atriumx-bw-bg-deep-rgb);
-  --atriumx-bg-card-rgb: var(--atriumx-bw-bg-card-rgb);
-  --atriumx-border-rgb: var(--atriumx-bw-border-rgb);
-  --atriumx-cream-rgb: var(--atriumx-bw-cream-rgb);
-  --atriumx-cream-muted-rgb: var(--atriumx-bw-cream-muted-rgb);
+html.dark-mode {
+  color-scheme: dark;
+  --atriumx-bg-deep-rgb: var(--atriumx-dark-bg-deep-rgb);
+  --atriumx-bg-card-rgb: var(--atriumx-dark-bg-card-rgb);
+  --atriumx-border-rgb: var(--atriumx-dark-border-rgb);
+  --atriumx-cream-rgb: var(--atriumx-dark-cream-rgb);
+  --atriumx-cream-muted-rgb: var(--atriumx-dark-cream-muted-rgb);
 }
