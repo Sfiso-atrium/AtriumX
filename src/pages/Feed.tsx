@@ -129,7 +129,7 @@ const [fetchError, setFetchError] = useState(false)
       })
 
     getResidences().then(setResidenceOptions)
-    getLookingFor()
+    getLookingFor(marketplaceUniversity)
       .then(data => { setLookingFor(data); setLookingForLoading(false) })
       .catch(() => setLookingForLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
