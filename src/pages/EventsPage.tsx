@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext'
 import {
   getAllEvents,
   cancelEvent,
+  getBusinessProfile,
   CampusEvent,
   EVENT_CATEGORIES,
   incrementEventLikes,
@@ -220,14 +221,48 @@ export default function EventsPage() {
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Businesses aren't tied to one university like students are — they can
+  // reach several (see the University access menu). There's no per-
+  // university switcher on this page, so a business sees events for every
+  // university on their access list; a student sees theirs (RLS already
+  // enforces that on its own, so no list is needed for them).
+  const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
+  const [businessUniversitiesLoading, setBusinessUniversitiesLoading] = useState(false)
+
   useEffect(() => {
-    getAllEvents()
+    if (currentUser?.account_type !== 'business') {
+      setBusinessUniversities([])
+      setBusinessUniversitiesLoading(false)
+      return
+    }
+
+    let mounted = true
+    setBusinessUniversitiesLoading(true)
+    getBusinessProfile(currentUser.id)
+      .then(profile => {
+        if (!mounted) return
+        setBusinessUniversities(profile?.universities ?? [])
+        setBusinessUniversitiesLoading(false)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setBusinessUniversities([])
+        setBusinessUniversitiesLoading(false)
+      })
+
+    return () => { mounted = false }
+  }, [currentUser])
+
+  useEffect(() => {
+    if (currentUser?.account_type === 'business' && businessUniversitiesLoading) return
+
+    getAllEvents(currentUser?.account_type === 'business' ? businessUniversities : undefined)
       .then(data => {
         setEvents(data)
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [currentUser])
+  }, [currentUser, businessUniversities, businessUniversitiesLoading])
 
   const visible = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
