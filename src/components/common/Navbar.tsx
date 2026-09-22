@@ -11,6 +11,7 @@ import {
   Menu,
   MessageCircle,
   NotebookPen,
+  PlusCircle,
   ShieldCheck,
   UserRound,
   X,
@@ -23,7 +24,7 @@ import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, partner, bwMode, toggleBwMode } = useApp()
+  const { currentUser, partner, darkMode, toggleDarkMode } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -189,6 +190,14 @@ export default function Navbar() {
                     )}
                   </div>
                 )}
+                <button
+                  onClick={() => navigate(currentUser.account_type === 'business' ? '/business/plan-select' : '/plan-select')}
+                  className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
+                  aria-label="Create a post"
+                  title="Create a post"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
@@ -323,8 +332,8 @@ export default function Navbar() {
         )}
 
         <div className="mt-auto space-y-1">
-          <button onClick={toggleBwMode} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${bwMode ? 'text-gold bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
-            <Contrast className="w-4 h-4" /> {bwMode ? 'Black & White: On' : 'Black & White: Off'}
+          <button onClick={toggleDarkMode} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${darkMode ? 'text-teal-light bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+            <Contrast className="w-4 h-4" /> {darkMode ? 'Dark Mode: On' : 'Dark Mode: Off'}
           </button>
           <div className="border-t border-slate-border pt-2">
             <button onClick={() => setHelpOpen((open) => !open)} className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-medium text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
