@@ -1655,7 +1655,7 @@ export default function MySpace() {
                           <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${group.iconBg}`}>
                             <Icon size={15} className={group.iconText} />
                           </span>
-                          <span className="whitespace-nowrap">{t}</span>
+                          <span className="whitespace-nowrap text-[#111827]">{t}</span>
                         </button>
                       )
                     })}
