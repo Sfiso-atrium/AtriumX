@@ -105,7 +105,7 @@ const navigate = useNavigate()
             aria-pressed={liked}
             onClick={toggleLike}
             className={`w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 ${
-              liked ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
+              liked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'
             }`}
           >
             <Heart size={18} className={liked ? 'fill-current' : ''} />
