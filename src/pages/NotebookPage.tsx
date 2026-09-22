@@ -31,6 +31,7 @@ import {
   hasNotebookSetup, setupNotebookPasscode, unlockNotebook,
   listNotebookEntries, createNotebookEntry, updateNotebookEntry, deleteNotebookEntry,
   downloadNotebookAttachment, resetNotebook,
+  takeNotebookSessionKey,
 } from '../services/notebook'
 import { NotebookDraft, saveDraft, hasDraft, loadDraft, clearDraft } from '../services/notebookDraft'
 import Navbar from '../components/common/Navbar'
@@ -795,6 +796,15 @@ export default function NotebookPage() {
 
   useEffect(() => {
     if (!currentUser) return
+
+    const handedOffKey = takeNotebookSessionKey(currentUser.id)
+    if (handedOffKey) {
+      setSetupExists(true)
+      setNotebookKey(handedOffKey)
+      setChecking(false)
+      return
+    }
+
     hasNotebookSetup(currentUser.id).then(exists => { setSetupExists(exists); setChecking(false) })
   }, [currentUser])
 
@@ -1435,7 +1445,8 @@ export default function NotebookPage() {
           ) : !setupExists ? (
             // ── Not set up yet ──
             <Card>
-              <p className="text-cream font-bold text-sm mb-3">Create a passcode to keep your notebook safe.</p>
+              <p className="text-cream font-bold text-sm mb-2">Create a passcode to keep your notebook safe.</p>
+              <p className="text-cream-muted text-xs mb-3 leading-relaxed">Your passcode is never stored by AtriumX. It is used to unlock the encryption key protecting this notebook. If you lose the passcode, we cannot recover the existing notebook, so you will need to create a new one.</p>
               <div className="flex flex-col gap-2">
                 <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)} placeholder="Choose a passcode"
                   className="bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
@@ -1471,13 +1482,15 @@ export default function NotebookPage() {
                 </button>
               ) : (
                 <div className="mt-3 pt-3 border-t border-slate-border">
-                  <p className="text-red-400 text-xs mb-2 leading-relaxed">
-                    There's no way to recover a lost passcode. The only option is wiping everything in your
-                    notebook and starting fresh with a new one. This cannot be undone.
+                  <p className="text-cream-muted text-xs mb-2 leading-relaxed">
+                    A lost passcode cannot be recovered because AtriumX does not store the passcode or an unencrypted copy of the notebook key. Your existing notebook therefore cannot be unlocked for you.
+                  </p>
+                  <p className="text-red-400 text-xs mb-2 leading-relaxed font-medium">
+                    Creating a new notebook will permanently delete the current notebook and return you to passcode setup. This cannot be undone.
                   </p>
                   <div className="flex gap-2">
                     <button onClick={handleReset} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs transition-colors">
-                      Wipe and start over
+                      Create new notebook
                     </button>
                     <button onClick={() => setConfirmingReset(false)} className="flex-1 border border-slate-border text-cream-muted font-bold py-2 rounded-xl text-xs transition-colors">
                       Cancel
