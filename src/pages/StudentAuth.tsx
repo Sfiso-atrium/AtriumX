@@ -58,7 +58,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || '/space'
+        const dest = redirectAfterLogin || (user.account_type === 'business' ? '/feed' : '/space')
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -80,7 +80,7 @@ if (user) {
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : '/space')
+        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : user.account_type === 'business' ? '/feed' : '/space')
         setRedirectAfterLogin(null)
         navigate(dest)
       }
