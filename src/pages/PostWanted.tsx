@@ -98,7 +98,7 @@ export default function PostWanted() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
           <PostTypeSwitcher current="wanted" />
 
           <div className="mb-6">
