@@ -33,6 +33,7 @@ import {
   downloadNotebookAttachment, resetNotebook,
 } from '../services/notebook'
 import { NotebookDraft, saveDraft, hasDraft, loadDraft, clearDraft } from '../services/notebookDraft'
+import Navbar from '../components/common/Navbar'
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`
@@ -650,7 +651,7 @@ function RichTextEditor({
       onPaste={handlePaste}
       data-placeholder={placeholder}
       style={{ color: textColor, fontFamily, fontSize }}
-      className="w-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2 empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
+      className="w-full min-h-full bg-transparent focus:outline-none leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2 empty:before:content-[attr(data-placeholder)] empty:before:opacity-50"
     />
   )
 }
@@ -872,8 +873,9 @@ export default function NotebookPage() {
 
   // Auto-reflow - after a pause in typing, check each text page against
   // its fixed height and move whatever doesn't fit onto the next page
-  // (creating one if needed), or pull content back from the next page if
-  // this one now has room to spare. Runs against a hidden, detached copy
+  // (creating one if needed). Content that has already been placed on a
+  // later page is left there, so writing on that page is never pulled back
+  // to an earlier page. Runs against a hidden, detached copy
   // of the HTML (measureRef) rather than the live, focused editor, so
   // reflowing never fights the browser over where your cursor is while
   // you're mid-sentence - it only touches React state, and only pages
@@ -900,24 +902,6 @@ export default function NotebookPage() {
       let changed = false
       let i = 0
       while (i < pages.length) {
-        // Pull forward from the next page while there's room to spare.
-        while (
-          heightOf(pages[i].text) < capacity - 4 &&
-          pages[i + 1] && pages[i + 1].text
-        ) {
-          const temp = document.createElement('div')
-          temp.innerHTML = pages[i + 1].text
-          const firstChild = temp.firstChild
-          if (!firstChild) break
-          const piece = firstChild instanceof Element ? firstChild.outerHTML : (firstChild.textContent || '')
-          const combined = pages[i].text + piece
-          if (heightOf(combined) > capacity) break
-          firstChild.remove()
-          pages[i] = { ...pages[i], text: combined }
-          pages[i + 1] = { ...pages[i + 1], text: temp.innerHTML }
-          changed = true
-        }
-
         // Push overflow forward onto the next page.
         if (heightOf(pages[i].text) > capacity) {
           const temp = document.createElement('div')
@@ -936,8 +920,7 @@ export default function NotebookPage() {
           }
         }
 
-        // A trailing page fully drained by a pull-back is pointless to
-        // keep around - drop it, the way Word closes an emptied last page.
+        // A trailing page that remains empty is pointless to keep around.
         if (i === pages.length - 2 && pages[i + 1] && !pages[i + 1].manual && stripHtml(pages[i + 1].text).trim() === '') {
           pages.splice(i + 1, 1)
           changed = true
@@ -951,17 +934,6 @@ export default function NotebookPage() {
         setNewPages(pages)
         setCurrentPageIndex(clampedFocusedPage)
         setEditorNonce(n => n + 1)
-        setTimeout(() => {
-          const el = editableRefs.current[clampedFocusedPage]
-          if (!el) return
-          el.focus()
-          const range = document.createRange()
-          range.selectNodeContents(el)
-          range.collapse(false)
-          const sel = window.getSelection()
-          sel?.removeAllRanges()
-          sel?.addRange(range)
-        }, 0)
       }
     }, 700)
     return () => clearTimeout(timeout)
@@ -1452,19 +1424,7 @@ export default function NotebookPage() {
         />
       )}
 
-      {/* Page-wide top bar — sits above both the locked and unlocked
-          views below, so it's there regardless of state. Logo/name is on
-          the right here rather than the left, per how this was asked
-          for — mirrored from where it sits in the main app's Navbar. */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-border flex-shrink-0">
-        <span className="text-ember font-bold text-sm">Notebook</span>
-        <div className="flex items-center min-w-0 flex-shrink-0">
-          <img src="/logo.png" alt="AtriumX" className="h-6 w-auto -mr-1 flex-shrink-0" />
-          <span className="font-serif text-sm truncate">
-            <span className="text-cream">trium</span><span className="text-ember">X</span>
-          </span>
-        </div>
-      </div>
+      <Navbar />
 
       {(checking || !setupExists || !notebookKey) ? (
         <div className="flex-1 overflow-y-auto">
@@ -2171,13 +2131,6 @@ export default function NotebookPage() {
                     )}
                     </div>
 
-                    {!readOnly && (
-                      <div style={{ color: style.textColor }} className="flex justify-end gap-3 text-[11px] font-bold opacity-50 pt-1.5 flex-shrink-0">
-                        <span>{countWords(stripHtml(page.text))} words</span>
-                        <span>{stripHtml(page.text).length} characters</span>
-                      </div>
-                    )}
-
                     {newPages.length > 1 && (
                       <span
                         style={{ color: style.textColor }}
@@ -2198,6 +2151,13 @@ export default function NotebookPage() {
                     <Plus size={14} /> Add page
                   </button>
                 )}
+
+                <div
+                  style={{ color: style.textColor }}
+                  className="w-full max-w-2xl mx-auto flex justify-end pt-1 pb-5 text-[11px] font-bold opacity-60"
+                >
+                  {countWords(newPages.filter(p => p.type === 'text').map(p => stripHtml(p.text)).join(' '))}({newPages.filter(p => p.type === 'text').map(p => stripHtml(p.text)).join('').length})
+                </div>
             </div>
               </div>
               )}
