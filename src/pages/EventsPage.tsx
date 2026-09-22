@@ -1,11 +1,18 @@
 // src/pages/EventsPage.tsx
 // Events board: image-led cards, horizontal sections, and an event details route.
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, Plus, Image as ImageIcon, Search, X } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Image as ImageIcon, Search, X, Heart } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { getAllEvents, cancelEvent, CampusEvent, EVENT_CATEGORIES } from '../services/dataService'
+import {
+  getAllEvents,
+  cancelEvent,
+  CampusEvent,
+  EVENT_CATEGORIES,
+  incrementEventLikes,
+  decrementEventLikes,
+} from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
@@ -39,8 +46,48 @@ function isCampusLocation(location: string): boolean {
   return campusTerms.some(term => value.includes(term))
 }
 
+const likedEventsStorageKey = 'atriumx-liked-events'
+
 function EventCard({ event, canCancel, onCancel }: { event: CampusEvent; canCancel: boolean; onCancel: () => void }) {
   const navigate = useNavigate()
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(event.like_count ?? 0)
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(likedEventsStorageKey) || '[]')
+      setLiked(Array.isArray(stored) && stored.includes(event.id))
+    } catch {
+      setLiked(false)
+    }
+  }, [event.id])
+
+  useEffect(() => {
+    setLikeCount(event.like_count ?? 0)
+  }, [event.like_count])
+
+  const toggleLike = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    setLiked(current => {
+      const next = !current
+      try {
+        const stored = JSON.parse(localStorage.getItem(likedEventsStorageKey) || '[]')
+        const currentIds = Array.isArray(stored) ? stored : []
+        const updated = next
+          ? Array.from(new Set([...currentIds, event.id]))
+          : currentIds.filter((id: string) => id !== event.id)
+        localStorage.setItem(likedEventsStorageKey, JSON.stringify(updated))
+      } catch {
+        // Keep the visual like state even if localStorage is unavailable.
+      }
+
+      setLikeCount(count => Math.max(0, count + (next ? 1 : -1)))
+      if (next) incrementEventLikes(event.id)
+      else decrementEventLikes(event.id)
+
+      return next
+    })
+  }
 
   return (
     <article
@@ -71,9 +118,29 @@ function EventCard({ event, canCancel, onCancel }: { event: CampusEvent; canCanc
           {event.category}
         </span>
 
-        <span className="absolute top-3 right-3 bg-white/95 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-          {event.price == null ? 'Free' : `R${Number(event.price).toFixed(2)}`}
-        </span>
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+          <span className="bg-white/95 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {event.price == null ? 'Free' : `R${Number(event.price).toFixed(2)}`}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {likeCount > 0 && (
+              <span className="bg-white/95 backdrop-blur-sm border border-white/80 text-slate-600 text-[11px] font-bold px-2 py-1 rounded-full shadow-sm">
+                {likeCount}
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label={liked ? 'Unlike event' : 'Like event'}
+              aria-pressed={liked}
+              onClick={toggleLike}
+              className={`w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 ${
+                liked ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
+              }`}
+            >
+              <Heart size={18} className={liked ? 'fill-current' : ''} />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="p-4 flex flex-col gap-2.5">
