@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Trash2, Play, Pause, RotateCcw, Sparkles, X, ChevronDown, ChevronUp, CheckCircle2, Circle, CalendarClock, BookOpen, Clock, Wallet, Timer, Eye, PartyPopper, Lock, Users, Calendar, ClipboardList, Plus, NotebookText } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getSeenMySpaceIntro, markSeenMySpaceIntro } from '../services/dataService'
+import { handoffNotebookSessionKey, unlockNotebook } from '../services/notebook'
 import { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import {
   Deadline, getDeadlines, createDeadline, deleteDeadline,
@@ -107,7 +108,7 @@ function MySpaceIntroModal({ onClose }: { onClose: () => void }) {
 }
 
 function DeadlinesSection({ userId }: { userId: string }) {
-  const { showToast } = useApp()
+  const { currentUser, showToast } = useApp()
   const [items, setItems] = useState<Deadline[]>([])
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
@@ -1551,17 +1552,42 @@ function WatchlistPopup({ userId, onClose }: { userId: string; onClose: () => vo
 
 function NotebookPopup({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
+  const { currentUser, showToast } = useApp()
   const [passcode, setPasscode] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
+
+  const handleOpenNotebook = async () => {
+    if (!currentUser || !passcode) return
+    setUnlocking(true)
+    const { key, error } = await unlockNotebook(currentUser.id, passcode)
+    setUnlocking(false)
+    if (error || !key) {
+      showToast(error || 'Could not unlock your notebook.', 'error')
+      return
+    }
+    handoffNotebookSessionKey(currentUser.id, key)
+    setPasscode('')
+    onClose()
+    navigate('/notebook')
+  }
+
   return (
     <ModalShell title="Notebook" onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="bg-slate-deep border border-slate-border rounded-2xl p-4">
           <p className="text-cream font-bold text-sm mb-2">Private Notebook</p>
-          <p className="text-cream-muted text-xs mb-3">Private notes, locked with a passcode only you know. Not even AtriumX can read them.</p>
-          <input type="password" value={passcode} onChange={e => setPasscode(e.target.value)} placeholder="Enter passcode" className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          <p className="text-cream-muted text-xs mb-3">Enter your passcode here and AtriumX will take you directly into your notebook. Your passcode is never stored by AtriumX.</p>
+          <input
+            type="password"
+            value={passcode}
+            onChange={e => setPasscode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleOpenNotebook()}
+            placeholder="Enter passcode"
+            className="w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
+          />
         </div>
-        <button onClick={() => { onClose(); navigate('/notebook') }} className="w-full bg-blue-600 hover:bg-blue-600-muted text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-          <NotebookText size={18} /> Open Notebook
+        <button onClick={handleOpenNotebook} disabled={unlocking || !passcode} className="w-full bg-blue-600 hover:bg-blue-600-muted disabled:opacity-60 text-slate-deep font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <NotebookText size={18} /> {unlocking ? 'Unlocking…' : 'Open Notebook'}
         </button>
       </div>
     </ModalShell>
@@ -1655,7 +1681,7 @@ export default function MySpace() {
                           <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${group.iconBg}`}>
                             <Icon size={15} className={group.iconText} />
                           </span>
-                          <span className="whitespace-nowrap text-[#111827]">{t}</span>
+                          <span className="whitespace-nowrap">{t}</span>
                         </button>
                       )
                     })}
