@@ -1113,6 +1113,18 @@ export async function markChatImageSeen(messageId: string): Promise<void> {
   await supabase.rpc('mark_chat_image_seen', { p_message_id: messageId })
 }
 
+// ── DELETE CHAT FOR ME (migration 050_delete_chat_for_me) ──────────────────
+// Deletes the conversation from the caller's own side only: their history
+// disappears and can never come back, but the other person's copy is
+// completely untouched. If the other person messages again afterwards, the
+// conversation reappears for the caller showing only messages sent from
+// that point on. Enforced server-side by clear_chat_for_me() and the RLS
+// policy on messages — this call cannot be undone.
+export async function clearChatForMe(conversationId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('clear_chat_for_me', { p_conversation_id: conversationId })
+  return { error: error ? error.message : null }
+}
+
 export async function deleteConversation(
   convId: string
 ): Promise<{ error: string | null }> {
