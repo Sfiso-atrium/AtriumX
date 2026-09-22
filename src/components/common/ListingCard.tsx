@@ -1,7 +1,15 @@
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, Pencil, Heart, Image as ImageIcon } from 'lucide-react'
-import { Listing, Profile, PLAN_TIERS, PlanKey, BUSINESS_PLAN_ORDER } from '../../services/dataService'
+import {
+  Listing,
+  Profile,
+  PLAN_TIERS,
+  PlanKey,
+  BUSINESS_PLAN_ORDER,
+  incrementListingLikes,
+  decrementListingLikes,
+} from '../../services/dataService'
 import ListingCountdown from './ListingCountdown'
 interface ListingCardProps {
   listing: Listing | any
@@ -26,6 +34,7 @@ const navigate = useNavigate()
   const imageUrl = listing.image_urls?.[0]
   const likedStorageKey = 'atriumx-liked-listings'
   const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(listing.like_count ?? 0)
 
   useEffect(() => {
     try {
@@ -35,6 +44,10 @@ const navigate = useNavigate()
       setLiked(false)
     }
   }, [listing.id])
+
+  useEffect(() => {
+    setLikeCount(listing.like_count ?? 0)
+  }, [listing.like_count])
 
   const toggleLike = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
@@ -50,6 +63,13 @@ const navigate = useNavigate()
       } catch {
         // Keep the visual like state even if localStorage is unavailable.
       }
+
+      setLikeCount((count: number) => Math.max(0, count + (next ? 1 : -1)))
+      if (listing.id) {
+        if (next) incrementListingLikes(listing.id)
+        else decrementListingLikes(listing.id)
+      }
+
       return next
     })
   }
@@ -73,17 +93,24 @@ const navigate = useNavigate()
           </div>
         )}
 
-        <button
-          type="button"
-          aria-label={liked ? 'Unlike listing' : 'Like listing'}
-          aria-pressed={liked}
-          onClick={toggleLike}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 ${
-            liked ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
-          }`}
-        >
-          <Heart size={18} className={liked ? 'fill-current' : ''} />
-        </button>
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          {likeCount > 0 && (
+            <span className="bg-white/95 backdrop-blur-sm border border-white/80 text-slate-600 text-[11px] font-bold px-2 py-1 rounded-full shadow-sm">
+              {likeCount}
+            </span>
+          )}
+          <button
+            type="button"
+            aria-label={liked ? 'Unlike listing' : 'Like listing'}
+            aria-pressed={liked}
+            onClick={toggleLike}
+            className={`w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-white/80 flex items-center justify-center shadow-sm transition-all hover:scale-105 ${
+              liked ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
+            }`}
+          >
+            <Heart size={18} className={liked ? 'fill-current' : ''} />
+          </button>
+        </div>
 
         {isFeatured && (
           <div className="absolute top-3 left-3 bg-white/95 text-blue-600 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm border border-white">
