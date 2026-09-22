@@ -112,7 +112,7 @@ export default function PostEvent() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-20 pb-28">
+        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
           {/* Lets someone who tapped the wrong thing swap without going back. */}
           <PostTypeSwitcher current="event" />
 
