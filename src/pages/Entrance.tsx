@@ -12,7 +12,11 @@ export default function Entrance() {
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
-      navigate('/space', { replace: true })
+      // My Space doesn't exist for a business account (it shows a locked
+      // screen — see MySpace.tsx), so this used to strand a business
+      // account here every time the app opened. Discover is their home
+      // instead, same as the bottom nav already sends them there.
+      navigate(currentUser.account_type === 'business' ? '/feed' : '/space', { replace: true })
     }
   }, [isLoadingAuth, currentUser, navigate])
 
