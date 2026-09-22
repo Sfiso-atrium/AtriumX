@@ -44,67 +44,65 @@ body {
   scrollbar-width: none;
 }
 
-/* Black & white mode: white background, black text, borders lightened.
-   Accent classes (gold/ember/teal/sapphire buttons) are intentionally
-   left untouched so buttons keep their color. */
-html.bw-mode {
-  --atriumx-bg-deep-rgb: 255 255 255;
-  --atriumx-bg-card-rgb: 244 244 245;
-  --atriumx-border-rgb: 212 212 216;
-  --atriumx-cream-rgb: 10 10 10;
-  --atriumx-cream-muted-rgb: 82 82 91;
-}
-
-html.bw-mode body {
+/* Dark mode: deep navy page surfaces, blue-accented controls, and
+   light text. The semantic AtriumX classes inherit their colours from
+   the shared theme tokens above. */
+html.dark-mode body {
   background-color: rgb(var(--atriumx-bg-deep-rgb));
   color: rgb(var(--atriumx-cream-rgb));
 }
 
-.bw-mode .bg-slate-deep {
-  background-color: rgb(var(--atriumx-bw-bg-deep-rgb)) !important;
+/* Keep hard-coded light utility classes readable when dark mode is active. */
+html.dark-mode .bg-white,
+html.dark-mode .bg-white\/95,
+html.dark-mode .bg-white\/90,
+html.dark-mode .bg-white\/80 {
+  background-color: rgb(var(--atriumx-bg-card-rgb)) !important;
 }
 
-.bw-mode .bg-slate-card {
-  background-color: rgb(var(--atriumx-bw-bg-card-rgb)) !important;
+html.dark-mode .bg-slate-50,
+html.dark-mode .bg-slate-100 {
+  background-color: rgb(var(--atriumx-bg-card-rgb)) !important;
 }
 
-.bw-mode .border-slate-border {
-  border-color: rgb(var(--atriumx-bw-border-rgb)) !important;
+html.dark-mode .text-black,
+html.dark-mode .text-slate-900,
+html.dark-mode .text-slate-800,
+html.dark-mode .text-slate-700,
+html.dark-mode .text-slate-600 {
+  color: rgb(var(--atriumx-cream-rgb)) !important;
 }
 
-.bw-mode .border-slate-deep {
-  border-color: rgb(var(--atriumx-bw-bg-deep-rgb)) !important;
+html.dark-mode .text-slate-500,
+html.dark-mode .text-slate-400,
+html.dark-mode .text-slate-300 {
+  color: rgb(var(--atriumx-cream-muted-rgb)) !important;
 }
 
-.bw-mode .text-cream {
-  color: rgb(var(--atriumx-bw-cream-rgb)) !important;
+html.dark-mode .border-slate-100,
+html.dark-mode .border-slate-200 {
+  border-color: rgb(var(--atriumx-border-rgb)) !important;
 }
 
-.bw-mode .text-cream-muted {
-  color: rgb(var(--atriumx-bw-cream-muted-rgb)) !important;
+/* Common light blue surfaces used by the entrance and empty-state UI. */
+html.dark-mode [class*="bg-[#EFF6FF]"],
+html.dark-mode [class*="bg-[#F0F7FF]"],
+html.dark-mode [class*="bg-[#F8FAFF]"],
+html.dark-mode [class*="bg-[#f5f8fc]"],
+html.dark-mode [class*="bg-[#F1F5F9]"],
+html.dark-mode [class*="bg-[#DBEAFE]"],
+html.dark-mode [class*="bg-[#E0E7FF]"],
+html.dark-mode [class*="bg-[#EEF3FB]"] {
+  background-color: rgb(var(--atriumx-bg-card-rgb)) !important;
 }
 
-.bw-mode .text-slate-border {
-  color: rgb(var(--atriumx-bw-border-rgb)) !important;
-}
-
-/* The Pomodoro timer card uses a gradient background (Tailwind's
-   from-/to- utilities set background-image, not background-color), so the
-   plain .bg-slate-card / .bg-slate-deep overrides above don't touch it —
-   it was staying dark navy in bw-mode while its text switched to
-   near-black, making the timer unreadable. */
-.bw-mode .pomodoro-card {
-  background-image: none !important;
-  background-color: rgb(var(--atriumx-bw-bg-card-rgb)) !important;
-}
-
-/* Several menus/lists use hover:bg-slate-deep or hover:bg-slate-card for
-   the hover highlight. The overrides above only match the plain classes,
-   not their :hover variants, so hovering in bw-mode was still showing
-   the original dark navy background. Hover now shows no color at all. */
-.bw-mode .hover\:bg-slate-deep:hover,
-.bw-mode .hover\:bg-slate-card:hover {
-  background-color: transparent !important;
+html.dark-mode [class*="border-[#DBEAFE]"],
+html.dark-mode [class*="border-[#BFDBFE]"],
+html.dark-mode [class*="border-[#EAF0F8]"],
+html.dark-mode [class*="border-[#e5ebf3]"],
+html.dark-mode [class*="border-[#e8eef6]"],
+html.dark-mode [class*="border-[#d7e1ee]"] {
+  border-color: rgb(var(--atriumx-border-rgb)) !important;
 }
 
 /* Focus Mode decorative bubbles use the same AtriumX theme variables, so they
