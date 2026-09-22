@@ -359,7 +359,7 @@ export default function EventsPage() {
 
 
 
-          <div className="-mx-4 mt-2 mb-6">
+          <div className="px-4 mt-2 mb-6">
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
           </div>
 
