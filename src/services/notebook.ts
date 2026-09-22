@@ -96,6 +96,23 @@ export interface NotebookEntry {
   attachments: NotebookAttachment[]
 }
 
+// One-time in-memory handoff used when My Space unlocks the notebook and
+// immediately opens the notebook page. The decrypted key never goes into
+// the URL, local storage, or the database, and is consumed once by the
+// destination page.
+let pendingNotebookSession: { userId: string; key: CryptoKey } | null = null
+
+export function handoffNotebookSessionKey(userId: string, key: CryptoKey): void {
+  pendingNotebookSession = { userId, key }
+}
+
+export function takeNotebookSessionKey(userId: string): CryptoKey | null {
+  if (!pendingNotebookSession || pendingNotebookSession.userId !== userId) return null
+  const key = pendingNotebookSession.key
+  pendingNotebookSession = null
+  return key
+}
+
 export async function hasNotebookSetup(userId: string): Promise<boolean> {
   const { data } = await supabase
     .from('notebook_key_setup')
