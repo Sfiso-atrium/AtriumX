@@ -2696,6 +2696,58 @@ export async function decrementEventLikes(eventId: string): Promise<void> {
   } catch (_) {}
 }
 
+// ── EVENT COMMENTS ("reviews") ──────────────────────────────────────────────
+
+export interface EventComment {
+  id: string
+  event_id: string
+  author_id: string
+  comment: string
+  created_at: string
+  author?: { full_name: string; avatar_initials: string; avatar_color: string }
+}
+
+export async function getEventComments(eventId: string): Promise<EventComment[]> {
+  const { data, error } = await supabase
+    .from('event_comments')
+    .select(`
+      *,
+      author:profiles_public!author_id(full_name, avatar_initials, avatar_color)
+    `)
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+  return data as unknown as EventComment[]
+}
+
+export async function addEventComment(
+  eventId: string,
+  authorId: string,
+  comment: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('event_comments')
+    .insert({ event_id: eventId, author_id: authorId, comment: comment.trim() })
+  return { error: error ? error.message : null }
+}
+
+export async function updateEventComment(
+  commentId: string,
+  comment: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('event_comments')
+    .update({ comment: comment.trim() })
+    .eq('id', commentId)
+  return { error: error ? error.message : null }
+}
+
+export async function deleteEventComment(commentId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('event_comments').delete().eq('id', commentId)
+  return { error: error ? error.message : null }
+}
+
 // ── LOOKING FOR (public watchlists) ────────────────────────────────────────
 
 export interface WantedPost {
