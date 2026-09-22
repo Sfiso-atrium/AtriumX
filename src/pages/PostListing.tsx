@@ -243,7 +243,7 @@ setLoading(true)
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
           {/* Only on a new listing — switching type mid-edit would throw
               away the listing being edited. */}
           {!editListing && <PostTypeSwitcher current="listing" />}
