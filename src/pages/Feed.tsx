@@ -344,17 +344,30 @@ const filteredBusiness = useMemo(() => {
               </div>
               <div className="px-4 flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
                 {lookingFor.map(w => (
-                  <div key={w.id} className="min-w-[250px] max-w-[290px] min-h-[180px] flex-shrink-0 snap-start bg-slate-card rounded-2xl p-4 flex flex-col justify-between">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-cream font-bold text-sm break-words">{w.keyword || w.category || 'Anything good'}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {w.category && <span className="text-[10px] font-bold text-cream-muted">{w.category}</span>}
-                          {w.max_price != null && <span className="text-[11px] text-cream-muted">up to R{Number(w.max_price).toFixed(2)}</span>}
-                        </div>
+                  <div
+                    key={w.id}
+                    className="min-w-[250px] max-w-[290px] min-h-[360px] flex-shrink-0 snap-start bg-slate-card border border-slate-border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ease-out cursor-default hover:-translate-y-1.5 hover:border-teal-light/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
+                  >
+                    <div className="flex flex-col gap-4">
+                      <p className="text-cream font-bold text-xl leading-snug break-words">
+                        {w.keyword || w.category || 'Anything good'}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {w.category && (
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 capitalize">
+                            {w.category}
+                          </span>
+                        )}
+                        {w.max_price != null && (
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted">
+                            up to R{Number(w.max_price).toFixed(2)}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-cream-muted text-[11px] flex-shrink-0">{w.seeker?.full_name ?? 'A student'}</span>
                     </div>
+                    <p className="text-cream-muted text-sm font-medium pt-4 mt-4 border-t border-slate-border">
+                      {w.seeker?.full_name ?? 'A student'}
+                    </p>
                   </div>
                 ))}
               </div>
