@@ -65,6 +65,8 @@ useEffect(() => {
   // only runs once on mount. This keeps the list itself live.
   const activeRef = useRef<FullConversation | null>(null)
   useEffect(() => { activeRef.current = active }, [active])
+  const conversationsRef = useRef<FullConversation[]>([])
+  useEffect(() => { conversationsRef.current = conversations }, [conversations])
 
   useEffect(() => {
     if (!currentUser) return
@@ -75,6 +77,16 @@ useEffect(() => {
         { event: 'INSERT', schema: 'public', table: 'messages' },
         payload => {
           const msg = payload.new as Message
+          const alreadyListed = conversationsRef.current.some(c => c.id === msg.conversation_id)
+          if (!alreadyListed) {
+            // Not in the list yet — either a brand-new conversation, or
+            // one this person deleted their side of. Either way, a plain
+            // re-fetch is the simplest way to get it (and, for a deleted
+            // chat, only its messages sent from now on — the database
+            // enforces that on its own) rather than guessing its shape here.
+            getConversationsForUser(currentUser.id).then(data => setConversations(data as FullConversation[]))
+            return
+          }
           setConversations(prev => {
             const idx = prev.findIndex(c => c.id === msg.conversation_id)
             if (idx === -1) return prev
@@ -236,6 +248,12 @@ return (
                     prev.map(c => c.id === active.id ? { ...c, is_resolved: true } : c)
                   )
                   setActive(prev => prev ? { ...prev, is_resolved: true } : prev)
+                }}
+                onDeleted={() => {
+                  const deletedId = active.id
+                  setConversations(prev => prev.filter(c => c.id !== deletedId))
+                  setActive(prev => (prev?.id === deletedId ? null : prev))
+                  navigate('/chat', { replace: true })
                 }}
               />
             ) : (
