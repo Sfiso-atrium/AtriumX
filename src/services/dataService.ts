@@ -1452,6 +1452,7 @@ export async function registerBusinessWithEmail(
         avatar_initials: initials,
         avatar_color: avatarColor,
         account_type: 'business',
+        university,
         email,
         ref_code: refCode || null,
       },
@@ -2620,13 +2621,22 @@ export async function getEvents(): Promise<CampusEvent[]> {
 
 // Full active-event board for the Discover Events page. Unlike getEvents(),
 // this intentionally includes past events so the UI can show a Past section.
-export async function getAllEvents(): Promise<CampusEvent[]> {
-  const { data, error } = await supabase
+// `universities`, when passed, narrows the RLS-permitted rows down to a
+// specific set — used by business accounts, who (after migration 053) are
+// permitted to see events for every university on their access list, but
+// should only be shown the one(s) relevant to them, not every campus.
+export async function getAllEvents(universities?: string[]): Promise<CampusEvent[]> {
+  let query = supabase
     .from('events')
     .select('*, host:profiles_public!inner(*)')
     .eq('status', 'active')
     .order('starts_at', { ascending: true })
 
+  if (universities && universities.length > 0) {
+    query = query.in('university', universities)
+  }
+
+  const { data, error } = await query
   if (error || !data) return []
   return data as CampusEvent[]
 }
@@ -2818,16 +2828,25 @@ export interface LookingForEntry {
   seeker?: Profile
 }
 
-// Reads other people's watchlists as "wanted" posts. RLS (migration 047)
-// restricts this to same-university rows flagged public, so there's no
-// university filter needed here — the database is already the boundary.
-export async function getLookingFor(): Promise<LookingForEntry[]> {
-  const { data, error } = await supabase
+// Reads other people's watchlists as "wanted" posts. RLS (migrations 047
+// and 053) restricts this to same-university rows flagged public — for a
+// student that means their own university, for a business it means any
+// university on their access list. `university`, when passed, narrows
+// that further to one specific campus — used by the marketplace, which is
+// always scoped to whichever single university (student's own, or the
+// business's currently-selected one) is active at the time.
+export async function getLookingFor(university?: string | null): Promise<LookingForEntry[]> {
+  let query = supabase
     .from('watchlists')
     .select('id, user_id, keyword, category, max_price, created_at, seeker:profiles_public!inner(*)')
     .order('created_at', { ascending: false })
     .limit(100)
 
+  if (university) {
+    query = query.eq('seeker.university', university)
+  }
+
+  const { data, error } = await query
   if (error || !data) return []
-  return data as LookingForEntry[]
+  return data as unknown as LookingForEntry[]
 }
