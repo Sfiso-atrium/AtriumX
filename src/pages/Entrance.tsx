@@ -1,4 +1,4 @@
-// src/pages/Entrance.tsx - WHITE THEME synced with atriumx-theme.css
+// src/pages/Entrance.tsx - theme synced with atriumx-theme.css
 // Light, airy, 50/50 split with literal vertical divider - image desktop-only
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -8,15 +8,11 @@ import InstallAppButton from '../components/common/InstallAppButton'
 
 export default function Entrance() {
   const navigate = useNavigate()
-  const { currentUser, isLoadingAuth, setRedirectAfterLogin, bwMode, toggleBwMode } = useApp()
+  const { currentUser, isLoadingAuth, setRedirectAfterLogin, darkMode, toggleDarkMode } = useApp()
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
-      // My Space doesn't exist for a business account (it shows a locked
-      // screen — see MySpace.tsx), so this used to strand a business
-      // account here every time the app opened. Discover is their home
-      // instead, same as the bottom nav already sends them there.
-      navigate(currentUser.account_type === 'business' ? '/feed' : '/space', { replace: true })
+      navigate('/space', { replace: true })
     }
   }, [isLoadingAuth, currentUser, navigate])
 
@@ -67,10 +63,10 @@ export default function Entrance() {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button
-                onClick={toggleBwMode}
-                aria-label="Toggle black and white mode"
+                onClick={toggleDarkMode}
+                aria-label="Toggle dark mode"
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center transition-all ${
-                  bwMode ? 'border-gold text-gold bg-gold/10' : 'border-slate-border text-cream-muted hover:text-cream bg-slate-card'
+                  darkMode ? 'border-teal-light text-teal-light bg-teal-faint' : 'border-slate-border text-cream-muted hover:text-cream bg-slate-card'
                 }`}
               >
                 <Contrast size={16} />
