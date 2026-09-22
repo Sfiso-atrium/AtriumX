@@ -1,11 +1,18 @@
 // src/pages/EventDetails.tsx
 // Event detail page styled in the same visual language as ListingDetail.
-// Reviews are intentionally left as a placeholder for a future event-review flow.
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Clock3, MapPin, University, UserRound, Image as ImageIcon } from 'lucide-react'
-import { CampusEvent, getEventById } from '../services/dataService'
+import { ArrowLeft, CalendarDays, Clock3, MapPin, University, UserRound, Image as ImageIcon, Trash2 } from 'lucide-react'
+import {
+  CampusEvent,
+  EventComment,
+  getEventById,
+  getEventComments,
+  addEventComment,
+  deleteEventComment,
+} from '../services/dataService'
+import { useApp } from '../context/AppContext'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 
@@ -28,8 +35,13 @@ function formatTime(iso: string) {
 export default function EventDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { currentUser, setAuthPromptOpen, showToast } = useApp()
   const [event, setEvent] = useState<CampusEvent | null>(null)
   const [loading, setLoading] = useState(true)
+  const [comments, setComments] = useState<EventComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
+  const [commentText, setCommentText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -43,6 +55,41 @@ export default function EventDetails() {
         setLoading(false)
       })
   }, [id])
+
+  const loadComments = () => {
+    if (!id) return
+    setCommentsLoading(true)
+    getEventComments(id)
+      .then(data => {
+        setComments(data)
+        setCommentsLoading(false)
+      })
+      .catch(() => setCommentsLoading(false))
+  }
+
+  useEffect(() => {
+    loadComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  const handleSubmitComment = async () => {
+    if (!currentUser) { setAuthPromptOpen(true); return }
+    if (!id || !commentText.trim()) return
+
+    setSubmitting(true)
+    const { error } = await addEventComment(id, currentUser.id, commentText.trim())
+    setSubmitting(false)
+
+    if (error) { showToast(error, 'error'); return }
+    setCommentText('')
+    loadComments()
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    const { error } = await deleteEventComment(commentId)
+    if (error) { showToast(error, 'error'); return }
+    setComments(prev => prev.filter(c => c.id !== commentId))
+  }
 
   if (loading) {
     return (
@@ -170,13 +217,80 @@ export default function EventDetails() {
 
           <section className="mt-5 bg-slate-card border border-slate-border rounded-2xl p-4 md:p-5">
             <div className="flex items-center justify-between gap-3 mb-3">
-              <h2 className="text-cream font-bold text-sm">Reviews</h2>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-cream-muted">Reserved space</span>
+              <h2 className="text-cream font-bold text-sm">Comments</h2>
+              {comments.length > 0 && (
+                <span className="text-[10px] font-bold uppercase tracking-wide text-cream-muted">
+                  {comments.length}
+                </span>
+              )}
             </div>
-            <div className="border border-dashed border-slate-border rounded-xl py-8 px-4 text-center">
-              <p className="text-cream-muted text-sm">Event reviews will appear here.</p>
-              <p className="text-cream-muted/70 text-xs mt-1">The review functionality is intentionally left open for you to add.</p>
+
+            <div className="flex flex-col gap-2 mb-4">
+              <textarea
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder={currentUser ? 'Share your thoughts on this event...' : 'Log in to comment on this event.'}
+                onFocus={() => { if (!currentUser) setAuthPromptOpen(true) }}
+                rows={3}
+                maxLength={1000}
+                className="w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors resize-none"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSubmitComment}
+                  disabled={submitting || !commentText.trim()}
+                  className="bg-ember hover:bg-ember-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors"
+                >
+                  {submitting ? 'Posting...' : 'Post comment'}
+                </button>
+              </div>
             </div>
+
+            {commentsLoading ? (
+              <p className="text-cream-muted text-sm">Loading comments...</p>
+            ) : comments.length === 0 ? (
+              <div className="border border-dashed border-slate-border rounded-xl py-8 px-4 text-center">
+                <p className="text-cream-muted text-sm">No comments yet.</p>
+                <p className="text-cream-muted/70 text-xs mt-1">Be the first to say something about this event.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {comments.map(c => (
+                  <div key={c.id} className="bg-slate-deep border border-slate-border rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                          style={{ backgroundColor: c.author?.avatar_color || '#0D9488' }}
+                        >
+                          {c.author?.avatar_initials || '?'}
+                        </div>
+                        <span className="text-cream text-sm font-medium truncate">
+                          {c.author?.full_name || 'Anonymous'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-cream-muted text-[11px]">
+                          {new Date(c.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {currentUser?.id === c.author_id && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(c.id)}
+                            aria-label="Delete comment"
+                            className="text-cream-muted hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-cream-muted text-xs leading-relaxed whitespace-pre-wrap">{c.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </main>
 
