@@ -78,12 +78,16 @@ useEffect(() => {
 
     restoreSession().then(profile => {
       if (mounted) {
-        setCurrentUser(profile)
+        // Do not let the initial session lookup clear a user who has just
+        // completed signup/login while that lookup was still in flight.
+        if (profile) setCurrentUser(profile)
         setIsLoadingAuth(false)
       }
     }).catch(() => {
       if (mounted) {
-        setCurrentUser(null)
+        // Keep any in-memory user established during signup/login; a failed
+        // initial session lookup should not send the app back to a blank
+        // signed-out route.
         setIsLoadingAuth(false)
       }
     })
