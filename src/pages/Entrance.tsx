@@ -2,7 +2,7 @@
 // Light, airy, 50/50 split with literal vertical divider - image desktop-only
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Store, Backpack, MessageCircle, MapPin, CalendarCheck, Contrast, ArrowRight, Sparkles, Check, Shield } from 'lucide-react'
+import { GraduationCap, Store, Building2, Backpack, MessageCircle, MapPin, CalendarCheck, Contrast, ArrowRight, Sparkles, Check, Shield } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InstallAppButton from '../components/common/InstallAppButton'
 
@@ -124,7 +124,7 @@ export default function Entrance() {
               ))}
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-3 mb-8">
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
               <div className="group bg-slate-card border border-slate-border hover:border-[#BFDBFE] rounded-[16px] p-4 transition-all hover:shadow-[0_8px_24px_rgba(37,99,235,0.08)] hover:-translate-y-0.5">
                 <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center mb-3">
                   <GraduationCap size={18} className="text-[#2563EB]" />
@@ -144,6 +144,17 @@ export default function Entrance() {
                 <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">Access business tools for partners.</p>
                 <button onClick={() => navigate('/retailer')} className="w-full bg-white border border-slate-border hover:border-slate-border text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-slate-deep transition-colors">
                   Explore <ArrowRight size={12} />
+                </button>
+              </div>
+
+              <div className="group bg-slate-card border border-[#A7F3D0] hover:border-[#6EE7B7] rounded-[16px] p-4 transition-all hover:shadow-[0_8px_24px_rgba(16,185,129,0.08)] hover:-translate-y-0.5">
+                <div className="w-9 h-9 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center mb-3">
+                  <Building2 size={18} className="text-[#059669]" />
+                </div>
+                <h3 className="text-cream font-bold text-[13px] mb-1">I'm Accommodation</h3>
+                <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">List student accommodation separately and reach campus residents.</p>
+                <button onClick={() => navigate('/retailer/signup?accommodation=1')} className="w-full bg-white border border-slate-border hover:border-[#A7F3D0] text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-[#ECFDF5] transition-colors">
+                  Get Started <ArrowRight size={12} />
                 </button>
               </div>
 
