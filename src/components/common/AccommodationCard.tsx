@@ -21,7 +21,7 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-cream font-bold text-[15px] leading-tight line-clamp-2">{listing.title}</h3>
-          <span className="text-teal-light font-extrabold text-sm whitespace-nowrap">R{listing.monthly_rent.toLocaleString()}/mo</span>
+          <span className="text-teal-light font-extrabold text-sm whitespace-nowrap">{listing.monthly_rent != null ? `R${listing.monthly_rent.toLocaleString()}/mo` : 'Pricing varies'}</span>
         </div>
         <div className="flex items-center gap-1.5 mt-2 text-cream-muted text-xs">
           <MapPin size={13} />
