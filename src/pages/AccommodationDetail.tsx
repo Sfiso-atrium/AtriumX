@@ -1,0 +1,108 @@
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Send, Star } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
+import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview } from '../services/dataService'
+
+export default function AccommodationDetail() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { currentUser, showToast, setAuthPromptOpen, setRedirectAfterLogin, businessProfile } = useApp()
+  const [listing, setListing] = useState<AccommodationListing | null>(null)
+  const [reviews, setReviews] = useState<AccommodationReview[]>([])
+  const [activeImage, setActiveImage] = useState(0)
+  const [reviewStars, setReviewStars] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    getAccommodationListingById(id, currentUser?.id).then(data => { setListing(data); setLoading(false) })
+  }, [id, currentUser?.id])
+
+  useEffect(() => {
+    if (!id) return
+    getAccommodationReviews(id).then(setReviews)
+  }, [id])
+
+  const isOwner = currentUser?.id === listing?.seller_id
+  const canReply = isOwner && businessProfile?.is_accommodation && businessProfile.accommodation_plan !== 'accommodation_free'
+  const average = useMemo(() => reviews.length ? reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length : 0, [reviews])
+
+  if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
+  if (!listing) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Accommodation not found.</div>
+
+  const handleChat = async () => {
+    if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return }
+    if (currentUser.account_type !== 'student') { showToast('Accommodation chat is available to students.', 'info'); return }
+    const { convId, error } = await startAccommodationConversation(listing.id, currentUser.id, listing.seller_id)
+    if (error) { showToast(error, 'error'); return }
+    if (convId) navigate(`/chat/${convId}`)
+  }
+
+  const handleReview = async () => {
+    if (!currentUser) { setAuthPromptOpen(true); return }
+    if (currentUser.account_type !== 'student') { showToast('Only students can review accommodation.', 'info'); return }
+    if (!reviewComment.trim()) { showToast('Write a short review first.', 'info'); return }
+    setSaving(true)
+    const { error } = await submitAccommodationReview(listing.id, currentUser.id, reviewStars, reviewComment)
+    setSaving(false)
+    if (error) { showToast(error, 'error'); return }
+    setReviewComment('')
+    setReviewStars(5)
+    getAccommodationReviews(listing.id).then(setReviews)
+    showToast('Review posted.', 'success')
+  }
+
+  const handleReply = async (reviewId: string) => {
+    const reply = (replyDrafts[reviewId] || '').trim()
+    if (!reply) return
+    setSaving(true)
+    const { error } = await replyToAccommodationReview(reviewId, reply)
+    setSaving(false)
+    if (error) { showToast(error, 'error'); return }
+    setReplyDrafts(prev => ({ ...prev, [reviewId]: '' }))
+    getAccommodationReviews(listing.id).then(setReviews)
+    showToast('Reply posted.', 'success')
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-deep pb-24">
+      <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
+        <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream"><ArrowLeft size={20} /></button>
+        {!isOwner && <button className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
+      </div>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
+          <div className="md:flex">
+            <div className="relative w-full md:w-[52%] aspect-[4/3] bg-slate-deep">
+              {listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
+              {listing.image_urls.length > 1 && <><button onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button><button onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button></>}
+            </div>
+            <div className="p-5 md:p-7 flex-1">
+              <div className="flex flex-wrap gap-2 mb-3"><span className="px-2.5 py-1 rounded-full bg-teal-faint text-teal-light text-xs font-bold">Accommodation</span><span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span></div>
+              <h1 className="font-serif text-3xl text-cream">{listing.title}</h1>
+              <p className="text-teal-light font-extrabold text-2xl mt-3">R{listing.monthly_rent.toLocaleString()} <span className="text-cream-muted text-sm font-semibold">/ month</span></p>
+              <div className="flex items-center gap-2 mt-3 text-cream-muted text-sm"><MapPin size={15} /> {listing.address}</div>
+              <div className="flex items-center gap-2 mt-2 text-cream-muted text-sm"><span className="font-semibold text-cream">University:</span> {listing.universities.join(', ')}</div>
+              <div className="flex items-center gap-1.5 mt-3 text-gold text-sm"><Star size={15} className="fill-current" /> {average ? average.toFixed(1) : 'No reviews yet'} {average ? `(${reviews.length})` : ''}</div>
+              <p className="text-cream-muted text-sm leading-relaxed mt-5 whitespace-pre-wrap">{listing.description}</p>
+              {listing.amenities.length > 0 && <div className="mt-5"><h2 className="text-cream font-bold text-sm mb-2">What it offers</h2><div className="flex flex-wrap gap-2">{listing.amenities.map(item => <span key={item} className="px-3 py-1.5 rounded-full bg-teal-faint text-teal-light text-xs font-semibold">{item}</span>)}</div></div>}
+              {!isOwner && <button onClick={handleChat} className="mt-6 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
+            </div>
+          </div>
+        </div>
+
+        <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
+          <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-current" /> {average ? average.toFixed(1) : '—'}</div></div>
+          {!isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-gold' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
+          <div className="space-y-4">
+            {reviews.length === 0 ? <p className="text-cream-muted text-sm">No reviews yet.</p> : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-gold mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}

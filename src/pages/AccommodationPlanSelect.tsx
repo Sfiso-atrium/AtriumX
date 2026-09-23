@@ -47,7 +47,7 @@ export default function AccommodationPlanSelect() {
             const tier = ACCOMMODATION_PLANS[plan]
             const active = plan === current
             return (
-              <button key={plan} onClick={() => choose(plan)} disabled={paying || active} className={`w-full text-left bg-slate-card border-2 rounded-2xl p-5 transition-all ${active ? 'border-teal-light opacity-70 cursor-not-allowed' : 'border-slate-border hover:border-teal-light'}`}>
+              <div key={plan} className={`w-full text-left bg-slate-card border-2 rounded-2xl p-5 transition-all ${active ? 'border-teal-light' : 'border-slate-border hover:border-teal-light'}`}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-cream font-bold text-lg">{tier.label}</p>
@@ -58,7 +58,14 @@ export default function AccommodationPlanSelect() {
                 <ul className="mt-4 space-y-2">
                   {FEATURES[plan].map(f => <li key={f} className="flex items-center gap-2 text-sm text-cream-muted"><Check size={14} className="text-teal-light" />{f}</li>)}
                 </ul>
-              </button>
+                <div className="mt-5">
+                  {active ? (
+                    <button onClick={() => navigate('/accommodation/post')} className="w-full bg-teal-primary text-white font-bold py-2.5 rounded-xl">Create listing with this plan</button>
+                  ) : (
+                    <button onClick={() => choose(plan)} disabled={paying} className="w-full border border-slate-border text-cream font-bold py-2.5 rounded-xl hover:border-teal-light disabled:opacity-50">{paying ? 'Opening payment...' : `Upgrade to ${tier.label}`}</button>
+                  )}
+                </div>
+              </div>
             )
           })}
         </div>

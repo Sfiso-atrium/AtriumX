@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Tag, ShoppingBag, HandHelping } from 'lucide-react'
+import { ArrowLeft, Tag, ShoppingBag, HandHelping, Building2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { Conversation, Message, Profile, WantedPost, getConversationsForUser } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
@@ -13,6 +13,7 @@ type FullConversation = Conversation & {
   seller: Profile
   listing?: { id: string; title: string; image_urls: string[]; price: number }
   wanted_post?: Pick<WantedPost, 'id' | 'title' | 'category' | 'max_price' | 'price_flexible' | 'urgency'>
+  accommodation_listing?: { id: string; title: string; image_urls: string[]; monthly_rent: number }
 }
 
 function useIsMobile() {
@@ -178,7 +179,7 @@ conversations.map(conv => {
                   ? `${lastMsg.sender_id === currentUser?.id ? 'You: ' : ''}${
                       lastMsg.content.length > 40 ? lastMsg.content.slice(0, 40) + '...' : lastMsg.content
                     }`
-                  : conv.listing?.title || conv.wanted_post?.title
+                  : conv.accommodation_listing?.title || conv.listing?.title || conv.wanted_post?.title
 return (
                   <button
                     key={conv.id}
@@ -198,15 +199,15 @@ return (
                         className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-deep ${
                           iAmSeller ? 'bg-teal-primary' : 'bg-ember'
                         }`}
-                        title={conv.wanted_post_id
-                          ? (iAmSeller ? 'Your wanted post' : 'You can help')
-                          : (iAmSeller ? 'Your listing' : "You're interested")}
+                        title={conv.accommodation_listing_id ? (iAmSeller ? 'Your accommodation' : 'Accommodation') : conv.wanted_post_id ? (iAmSeller ? 'Your wanted post' : 'You can help') : (iAmSeller ? 'Your listing' : "You're interested")}
                       >
-                        {conv.wanted_post_id
-                          ? <HandHelping size={11} className="text-white" />
-                          : iAmSeller
-                            ? <Tag size={11} className="text-white" />
-                            : <ShoppingBag size={11} className="text-white" />}
+                        {conv.accommodation_listing_id
+                          ? <Building2 size={11} className="text-white" />
+                          : conv.wanted_post_id
+                            ? <HandHelping size={11} className="text-white" />
+                            : iAmSeller
+                              ? <Tag size={11} className="text-white" />
+                              : <ShoppingBag size={11} className="text-white" />}
                       </span>
                       {unread > 0 && (
                         <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-deep">
@@ -218,7 +219,7 @@ return (
                       <p className="text-cream font-bold text-sm truncate">
                         {other?.full_name || 'Unknown'}{' '}
                         <span className="text-cream-muted font-normal">
-                          ({conv.wanted_post_id ? (iAmSeller ? 'Can help' : 'Looking for this') : (iAmSeller ? 'Buying' : 'Selling')})
+                          ({conv.accommodation_listing_id ? (iAmSeller ? 'Accommodation' : 'Student accommodation') : conv.wanted_post_id ? (iAmSeller ? 'Can help' : 'Looking for this') : (iAmSeller ? 'Buying' : 'Selling')})
                         </span>
                       </p>
                       <p className="text-cream-muted text-xs truncate">{preview}</p>
