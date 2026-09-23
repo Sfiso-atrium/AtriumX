@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { getLatestPayment, getUserById, PLAN_TIERS, PlanKey } from '../services/dataService'
+import { getLatestPayment, getUserById, PLAN_TIERS, ACCOMMODATION_PLANS, PlanKey, AccommodationPlanKey } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
@@ -30,12 +30,13 @@ const MAX_POLLS = 12 // ~30 seconds before we stop and explain
 export default function PaymentResult() {
   const navigate = useNavigate()
   const { outcome } = useParams<{ outcome: string }>()
-  const { currentUser, setCurrentUser } = useApp()
+  const { currentUser, setCurrentUser, refreshBusinessProfile } = useApp()
 
   const [status, setStatus] = useState<Status>(
     outcome === 'cancelled' ? 'cancelled' : 'confirming'
   )
-  const [planKey, setPlanKey] = useState<PlanKey | null>(null)
+  const [planKey, setPlanKey] = useState<string | null>(null)
+  const [paymentType, setPaymentType] = useState<'business' | 'accommodation'>(() => sessionStorage.getItem('atriumx_payment_type') === 'accommodation' ? 'accommodation' : 'business')
 
   useEffect(() => {
     if (outcome === 'cancelled' || !currentUser) return
@@ -50,12 +51,14 @@ export default function PaymentResult() {
       const payment = await getLatestPayment(currentUser.id)
 
       if (payment?.status === 'complete') {
-        setPlanKey(payment.plan_key as PlanKey)
+        setPlanKey(payment.plan_key)
+        setPaymentType(payment.plan_key.startsWith('accommodation_') ? 'accommodation' : 'business')
         setStatus('complete')
         // Pull the profile fresh so the rest of the app sees the new plan
         // straight away instead of after a reload.
         const refreshed = await getUserById(currentUser.id)
         if (refreshed) setCurrentUser(refreshed)
+        await refreshBusinessProfile()
         return
       }
 
@@ -74,7 +77,7 @@ export default function PaymentResult() {
 
     tick()
     return () => { cancelled = true }
-  }, [outcome, currentUser, setCurrentUser])
+  }, [outcome, currentUser, setCurrentUser, refreshBusinessProfile])
 
   const body = () => {
     switch (status) {
@@ -88,9 +91,9 @@ export default function PaymentResult() {
       case 'complete':
         return {
           icon: <CheckCircle2 size={44} className="text-teal-light" />,
-          title: `You're on ${planKey ? PLAN_TIERS[planKey].label : 'your new plan'}`,
+          title: `You're on ${planKey ? (planKey.startsWith('accommodation_') ? ACCOMMODATION_PLANS[planKey as AccommodationPlanKey]?.label : PLAN_TIERS[planKey as PlanKey]?.label) : 'your new plan'}`,
           text: 'Your plan is active and your listings have moved across to it.',
-          action: { label: 'Post a listing', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/post' },
+          action: { label: 'Post a listing', to: paymentType === 'accommodation' ? '/accommodation/plan-select' : (currentUser?.account_type === 'business' ? '/business/plan-select' : '/post') },
         }
       case 'slow':
         return {
@@ -104,14 +107,14 @@ export default function PaymentResult() {
           icon: <XCircle size={44} className="text-cream-muted" />,
           title: 'Payment cancelled',
           text: "Nothing was charged. Your plan hasn't changed — you can pick one again whenever you're ready.",
-          action: { label: 'Back to plans', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select' },
+          action: { label: 'Back to plans', to: paymentType === 'accommodation' ? '/accommodation/plan-select' : (currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select') },
         }
       case 'failed':
         return {
           icon: <XCircle size={44} className="text-ember" />,
           title: "That payment didn't go through",
           text: "Nothing was charged to you. If you think this is wrong, don't pay again — get in touch and we'll check it against our records first.",
-          action: { label: 'Back to plans', to: currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select' },
+          action: { label: 'Back to plans', to: paymentType === 'accommodation' ? '/accommodation/plan-select' : (currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select') },
         }
     }
   }
