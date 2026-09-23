@@ -9,13 +9,14 @@ import AccommodationCard from '../components/common/AccommodationCard'
 
 export default function AccommodationHome() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile } = useApp()
+  const { currentUser, businessProfile, isLoadingAuth } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
 
   useEffect(() => {
     if (currentUser?.id && businessProfile?.is_accommodation) getAccommodationListings(null).then(data => setListings(data.filter(item => item.seller_id === currentUser.id)))
   }, [currentUser?.id, businessProfile?.is_accommodation, businessProfile?.accommodation_plan])
 
+  if (isLoadingAuth) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   if (!currentUser || currentUser.account_type !== 'business' || !businessProfile?.is_accommodation) return null
   const plan = businessProfile.accommodation_plan as AccommodationPlanKey
   const maxProperties = 1
