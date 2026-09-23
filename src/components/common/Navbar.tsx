@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
+  Building2,
   BellOff,
   ChevronDown,
   Compass,
@@ -24,7 +25,7 @@ import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, partner, darkMode, toggleDarkMode } = useApp()
+  const { currentUser, partner, darkMode, toggleDarkMode, businessProfile: contextBusinessProfile } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -111,7 +112,7 @@ export default function Navbar() {
 
             {/* LOGO - fixed spacing: logo = 'a', same distance as other letters */}
             <button
-              onClick={() => navigate(currentUser ? (currentUser.account_type === 'business' ? '/feed' : '/space') : '/')}
+              onClick={() => navigate(currentUser ? (currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation' : '/feed') : '/space') : '/')}
               className="flex items-center min-w-0 group"
               aria-label="AtriumX home"
             >
@@ -191,7 +192,7 @@ export default function Navbar() {
                   </div>
                 )}
                 <button
-                  onClick={() => navigate(currentUser.account_type === 'business' ? '/business/plan-select' : '/plan-select')}
+                  onClick={() => navigate(currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select') : '/plan-select')}
                   className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
                   aria-label="Create a post"
                   title="Create a post"
@@ -237,7 +238,7 @@ export default function Navbar() {
       >
         <div className="flex items-center justify-between mb-5">
           <button
-            onClick={() => go(currentUser ? (currentUser.account_type === 'business' ? '/feed' : '/space') : '/')}
+            onClick={() => go(currentUser ? (currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation' : '/feed') : '/space') : '/')}
             className="flex items-center gap-[4px]"
             aria-label="AtriumX home"
           >
@@ -255,16 +256,22 @@ export default function Navbar() {
 
         {currentUser ? (
           <>
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{currentUser.account_type === 'business' ? 'Business' : 'My Space'}</p>
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{contextBusinessProfile?.is_accommodation ? 'Accommodation' : currentUser.account_type === 'business' ? 'Business' : 'My Space'}</p>
             <nav className="space-y-1">
               {currentUser.account_type !== 'business' && (
                 <button onClick={() => go('/space')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/space' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                   <NotebookPen className="w-4 h-4" /> My Space
                 </button>
               )}
-              <button onClick={() => go('/feed')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/feed' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
-                <Compass className="w-4 h-4" /> Discover
-              </button>
+              {contextBusinessProfile?.is_accommodation ? (
+                <button onClick={() => go('/accommodation')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/accommodation' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                  <Building2 className="w-4 h-4" /> Accommodation
+                </button>
+              ) : (
+                <button onClick={() => go('/feed')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/feed' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                  <Compass className="w-4 h-4" /> Discover
+                </button>
+              )}
               <button onClick={() => go('/chat')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname.startsWith('/chat') ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                 <MessageCircle className="w-4 h-4" /> Messages
               </button>
