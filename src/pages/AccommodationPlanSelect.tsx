@@ -7,9 +7,9 @@ import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
 const FEATURES: Record<AccommodationPlanKey, string[]> = {
-  accommodation_free: ['1 university', '1 accommodation listing', 'Basic visibility'],
-  accommodation_featured: ['2 universities', '1 accommodation listing', 'Featured placement', 'Accommodation reviews can be replied to'],
-  accommodation_premium: ['3 universities', '1 accommodation listing', 'Premium featured placement', 'Accommodation reviews can be replied to'],
+  accommodation_free: ['1 university', '1 accommodation listing', 'Up to 3 photos', 'Basic visibility'],
+  accommodation_featured: ['2 universities', '1 accommodation listing', 'Up to 12 photos', 'Featured placement', 'Accommodation reviews can be replied to'],
+  accommodation_premium: ['3 universities', '1 accommodation listing', 'Up to 30 photos', 'Premium featured placement', 'Optional property video', 'Accommodation reviews can be replied to'],
 }
 
 export default function AccommodationPlanSelect() {
@@ -41,7 +41,7 @@ export default function AccommodationPlanSelect() {
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
         <h1 className="font-serif text-3xl text-cream">Accommodation plans</h1>
-        <p className="text-cream-muted text-sm mt-1 mb-6">Choose the visibility and reach for your accommodation properties.</p>
+        <p className="text-cream-muted text-sm mt-1 mb-6">Choose the visibility and reach for your accommodation listing. Your whole accommodation provider is represented by one listing, including all of your buildings.</p>
         <div className="grid gap-4">
           {ACCOMMODATION_PLAN_ORDER.map(plan => {
             const tier = ACCOMMODATION_PLANS[plan]
