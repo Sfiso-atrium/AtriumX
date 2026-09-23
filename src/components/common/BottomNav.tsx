@@ -50,7 +50,7 @@ type NavTab = {
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
+  const { currentUser, businessProfile, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
   const [chooserOpen, setChooserOpen] = useState(false)
 
   const isActive = (path: string) => {
@@ -70,26 +70,42 @@ export default function BottomNav() {
     navigate(path)
   }
 
-  const tabs: NavTab[] = currentUser
-    ? currentUser.account_type === 'business'
-      ? [
+  let tabs: NavTab[] = []
+
+  if (currentUser) {
+    if (currentUser.account_type === 'business') {
+      if (businessProfile?.is_accommodation) {
+        tabs = [
+          { label: 'Accommodation', icon: HomeIcon, path: '/accommodation', onClick: () => navigate('/accommodation') },
+          { label: 'Post', icon: PostIcon, path: '/accommodation/plan-select', onClick: () => navigate('/accommodation/plan-select'), action: true },
+          { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+          { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
+        ]
+      } else {
+        tabs = [
           { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
           { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
           { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
           { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
         ]
-      : [
-          { label: 'My Space', icon: HomeIcon, path: '/space', onClick: () => navigate('/space') },
-          { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
-          { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
-          { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
-          { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
-        ]
-    : [
+      }
+    } else {
+      tabs = [
+        { label: 'My Space', icon: HomeIcon, path: '/space', onClick: () => navigate('/space') },
         { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
-        { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => handleProtected('/plan-select'), action: true },
-        { label: 'Events', icon: EventsIcon, path: '/events', onClick: () => navigate('/events') },
+        { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
+        { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+        { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
       ]
+    }
+  } else {
+    tabs = [
+      { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
+      { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => handleProtected('/plan-select'), action: true },
+      { label: 'Events', icon: EventsIcon, path: '/events', onClick: () => navigate('/events') },
+    ]
+  }
+
 
   return (
     <>
