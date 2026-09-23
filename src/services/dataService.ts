@@ -55,10 +55,41 @@ has_pending_edit: boolean
 }
 
 
+export interface AccommodationListing {
+  id: string
+  seller_id: string
+  title: string
+  monthly_rent: number
+  address: string
+  description: string
+  amenities: string[]
+  image_urls: string[]
+  universities: string[]
+  plan_tier: AccommodationPlanKey
+  status: 'active' | 'suspended'
+  created_at: string
+  seller?: Profile
+  avg_rating: number
+  total_reviews: number
+}
+
+export interface AccommodationReview {
+  id: string
+  accommodation_listing_id: string
+  student_id: string
+  stars: number
+  comment: string | null
+  reply: string | null
+  replied_at: string | null
+  created_at: string
+  student?: { full_name: string; avatar_initials: string; avatar_color: string }
+}
+
 export interface Conversation {
   id: string
   listing_id: string | null
   wanted_post_id: string | null
+  accommodation_listing_id: string | null
   buyer_id: string
   seller_id: string
   is_resolved: boolean
@@ -67,6 +98,7 @@ export interface Conversation {
   created_at: string
   listing?: Listing
   wanted_post?: WantedPost
+  accommodation_listing?: AccommodationListing
   other_party?: Profile
   last_message?: Message
   unread_count?: number
@@ -964,6 +996,103 @@ export async function uploadEventPoster(
   return { url: data.publicUrl, error: null }
 }
 
+// ── ACCOMMODATION ───────────────────────────────────────────────────────────
+
+export async function uploadAccommodationImage(file: File, userId: string): Promise<{ url: string | null; error: string | null }> {
+  const ext = file.name.split('.').pop()
+  const filename = `accommodation/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('listing-images').upload(filename, file, { upsert: false })
+  if (uploadError) return { url: null, error: uploadError.message }
+  const { data } = supabase.storage.from('listing-images').getPublicUrl(filename)
+  return { url: data.publicUrl, error: null }
+}
+
+export async function createAccommodationListing(payload: {
+  sellerId: string
+  title: string
+  monthlyRent: number
+  address: string
+  description: string
+  amenities: string[]
+  imageUrls: string[]
+  universities: string[]
+  planTier: AccommodationPlanKey
+}): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('create_accommodation_listing', {
+    p_seller_id: payload.sellerId,
+    p_title: payload.title,
+    p_monthly_rent: payload.monthlyRent,
+    p_address: payload.address,
+    p_description: payload.description,
+    p_amenities: payload.amenities,
+    p_image_urls: payload.imageUrls,
+    p_universities: payload.universities,
+    p_plan_tier: payload.planTier,
+  })
+  return { id: data || null, error: error ? error.message : null }
+}
+
+export async function getAccommodationListings(university?: string | null): Promise<AccommodationListing[]> {
+  let query = supabase
+    .from('accommodation_listings')
+    .select(`*, seller:profiles_public(*)`)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+  if (university) query = query.contains('universities', [university])
+  const { data, error } = await query
+  if (error || !data) return []
+  const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
+  const stats = new Map<string, { total: number; sum: number }>()
+  reviews.data?.forEach(r => {
+    const current = stats.get(r.accommodation_listing_id) || { total: 0, sum: 0 }
+    current.total += 1
+    current.sum += r.stars
+    stats.set(r.accommodation_listing_id, current)
+  })
+  return (data as any[]).map(item => ({
+    ...item,
+    amenities: item.amenities || [],
+    image_urls: item.image_urls || [],
+    universities: item.universities || [],
+    avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
+    total_reviews: stats.get(item.id)?.total || 0,
+  })) as AccommodationListing[]
+}
+
+export async function getAccommodationListingById(id: string, viewerId?: string): Promise<AccommodationListing | null> {
+  const { data, error } = await supabase.from('accommodation_listings').select('*, seller:profiles_public(*)').eq('id', id).single()
+  if (error || !data) return null
+  const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
+  const total = reviews?.length || 0
+  const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
+  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], universities: data.universities || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+}
+
+export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
+  const { data, error } = await supabase.from('accommodation_reviews').select('*, student:profiles_public!student_id(full_name, avatar_initials, avatar_color)').eq('accommodation_listing_id', accommodationListingId).order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data as AccommodationReview[]
+}
+
+export async function submitAccommodationReview(accommodationListingId: string, studentId: string, stars: number, comment: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('accommodation_reviews').insert({ accommodation_listing_id: accommodationListingId, student_id: studentId, stars, comment: comment.trim() || null })
+  if (error?.message.includes('duplicate key')) return { error: 'You have already reviewed this accommodation.' }
+  return { error: error ? error.message : null }
+}
+
+export async function replyToAccommodationReview(reviewId: string, reply: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('accommodation_reviews').update({ reply: reply.trim(), replied_at: new Date().toISOString() }).eq('id', reviewId)
+  return { error: error ? error.message : null }
+}
+
+export async function startAccommodationConversation(accommodationListingId: string, buyerId: string, sellerId: string): Promise<{ convId: string | null; error: string | null }> {
+  const { data: existing } = await supabase.from('conversations').select('id').eq('accommodation_listing_id', accommodationListingId).eq('buyer_id', buyerId).single()
+  if (existing) return { convId: existing.id, error: null }
+  const { data, error } = await supabase.from('conversations').insert({ accommodation_listing_id: accommodationListingId, buyer_id: buyerId, seller_id: sellerId }).select('id').single()
+  if (error || !data) return { convId: null, error: error?.message || 'Failed to start conversation.' }
+  return { convId: data.id, error: null }
+}
+
 // ── CONVERSATIONS ──────────────────────────────────────────────────────────
 
 export async function startConversation(
@@ -1048,6 +1177,7 @@ export async function getConversationsForUser(
       *,
       listing:listings(id, title, image_urls, price),
       wanted_post:wanted_posts(id, title, category, max_price, price_flexible, urgency),
+      accommodation_listing:accommodation_listings(id, title, image_urls, monthly_rent),
 buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
       seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
@@ -1549,7 +1679,9 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
     .eq('id', id)
     .single()
   if (error || !data) return null
-  return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: data.accommodation_plan ?? 'accommodation_free', accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
+  const accommodationExpires = data.accommodation_plan_expires_at ? new Date(data.accommodation_plan_expires_at).getTime() : null
+  const effectiveAccommodationPlan = accommodationExpires && accommodationExpires < Date.now() ? 'accommodation_free' : (data.accommodation_plan ?? 'accommodation_free')
+  return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: effectiveAccommodationPlan, accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
 }
 
 export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
