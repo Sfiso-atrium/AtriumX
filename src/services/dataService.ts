@@ -156,6 +156,25 @@ export type PlanKey = keyof typeof PLAN_TIERS
 export const PLAN_ORDER: PlanKey[] = ['ghost', 'visible', 'loud', 'unmissable']
 export const BUSINESS_PLAN_ORDER: PlanKey[] = ['noticeboard', 'featured', 'campus_partner']
 
+export type AccommodationPlanKey = 'accommodation_free' | 'accommodation_featured' | 'accommodation_premium'
+
+export const ACCOMMODATION_PLANS: Record<AccommodationPlanKey, {
+  label: string
+  price: string
+  priceNum: number
+  days: number
+}> = {
+  accommodation_free: { label: 'Free', price: 'Free', priceNum: 0, days: 30 },
+  accommodation_featured: { label: 'Featured', price: 'R199', priceNum: 199, days: 30 },
+  accommodation_premium: { label: 'Premium', price: 'R399', priceNum: 399, days: 30 },
+}
+export const ACCOMMODATION_PLAN_ORDER: AccommodationPlanKey[] = [
+  'accommodation_free',
+  'accommodation_featured',
+  'accommodation_premium',
+]
+
+
 // Plans that cost money and therefore have to go through PayFast. The
 // free tiers ('ghost', 'noticeboard') are granted directly and never
 // touch this path.
@@ -187,6 +206,7 @@ export interface PaymentRecord {
 // On success this navigates away from the app entirely (a real form POST
 // to PayFast), so nothing after the submit() runs.
 export async function startPlanPayment(planKey: PlanKey): Promise<{ error: string | null }> {
+  sessionStorage.setItem('atriumx_payment_type', 'business')
   const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
     body: { planKey },
   })
@@ -213,6 +233,35 @@ export async function startPlanPayment(planKey: PlanKey): Promise<{ error: strin
   document.body.appendChild(form)
   form.submit()
 
+  return { error: null }
+}
+
+
+export async function startAccommodationPlanPayment(planKey: Exclude<AccommodationPlanKey, 'accommodation_free'>): Promise<{ error: string | null }> {
+  sessionStorage.setItem('atriumx_payment_type', 'accommodation')
+  const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
+    body: { planKey },
+  })
+
+  if (error) return { error: 'Could not reach the payment service. Please try again.' }
+  if (data?.error) return { error: data.error }
+  if (!data?.url || !data?.fields) return { error: 'Could not start payment. Please try again.' }
+
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = data.url
+  form.style.display = 'none'
+
+  for (const [name, value] of Object.entries(data.fields as Record<string, string>)) {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = name
+    input.value = value
+    form.appendChild(input)
+  }
+
+  document.body.appendChild(form)
+  form.submit()
   return { error: null }
 }
 
@@ -1414,6 +1463,9 @@ export interface BusinessProfile {
   website: string | null
   universities: string[]
   status: 'pending' | 'approved' | 'rejected'
+  is_accommodation: boolean
+  accommodation_plan: 'accommodation_free' | 'accommodation_featured' | 'accommodation_premium'
+  accommodation_plan_expires_at: string | null
   created_at: string
 }
 
@@ -1431,6 +1483,7 @@ export async function registerBusinessWithEmail(
   physicalAddress: string | undefined,
   website: string | undefined,
   university: string,
+  isAccommodation: boolean,
   refCode?: string
 ): Promise<{ user: Profile | null; error: string | null }> {
   const initials = businessName
@@ -1479,6 +1532,9 @@ const { error: bizError } = await supabase.from('business_profiles').insert({
     physical_address: physicalAddress?.trim() || null,
     website: website?.trim() || null,
     universities: [university],
+    is_accommodation: isAccommodation,
+    accommodation_plan: 'accommodation_free',
+    accommodation_plan_expires_at: null,
     status: 'approved',
   })
   if (bizError) return { user: null, error: bizError.message }
@@ -1493,7 +1549,7 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
     .eq('id', id)
     .single()
   if (error || !data) return null
-  return { ...data, universities: data.universities ?? [] } as BusinessProfile
+  return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: data.accommodation_plan ?? 'accommodation_free', accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
 }
 
 export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
