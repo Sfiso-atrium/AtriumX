@@ -7,9 +7,9 @@ import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
 const FEATURES: Record<AccommodationPlanKey, string[]> = {
-  accommodation_free: ['1 university', '1 property', 'Basic visibility'],
-  accommodation_featured: ['2 universities', '3 properties', 'Featured placement', 'Accommodation reviews can be replied to'],
-  accommodation_premium: ['3 universities', '10 properties', 'Premium featured placement', 'Accommodation reviews can be replied to'],
+  accommodation_free: ['1 university', '1 accommodation listing', 'Basic visibility'],
+  accommodation_featured: ['2 universities', '1 accommodation listing', 'Featured placement', 'Accommodation reviews can be replied to'],
+  accommodation_premium: ['3 universities', '1 accommodation listing', 'Premium featured placement', 'Accommodation reviews can be replied to'],
 }
 
 export default function AccommodationPlanSelect() {
