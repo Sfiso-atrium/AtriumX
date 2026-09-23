@@ -79,13 +79,15 @@ export default function AccommodationDetail() {
         <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
           <div className="md:flex md:gap-6 md:items-stretch">
             <div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-slate-deep overflow-hidden">
-              {listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
+              {listing.video_url ? (
+                <video src={listing.video_url} controls poster={listing.image_urls?.[0] || undefined} className="w-full h-full object-cover bg-black" />
+              ) : listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
               {average > 0 && (
                 <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
                   <Star size={13} className="fill-amber-400 text-amber-400" /> {average.toFixed(1)} ({reviews.length})
                 </span>
               )}
-              {listing.image_urls.length > 1 && <><button onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button><button onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button></>}
+              {!listing.video_url && listing.image_urls.length > 1 && <><button onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button><button onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button></>}
             </div>
             <div className="p-5 md:p-7 md:flex-1 md:min-w-0 flex flex-col justify-center gap-2">
               <div className="flex flex-wrap items-center gap-2">
