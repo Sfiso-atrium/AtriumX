@@ -73,6 +73,7 @@ export interface AccommodationListing {
   description: string
   amenities: string[]
   image_urls: string[]
+  video_url: string | null
   universities: string[]
   building_count: number
   room_pricing: AccommodationRoomPricing[]
@@ -1018,6 +1019,15 @@ export async function uploadAccommodationImage(file: File, userId: string): Prom
   return { url: data.publicUrl, error: null }
 }
 
+export async function uploadAccommodationVideo(file: File, userId: string): Promise<{ url: string | null; error: string | null }> {
+  const ext = file.name.split('.').pop() || 'mp4'
+  const filename = `accommodation-videos/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('listing-images').upload(filename, file, { upsert: false })
+  if (uploadError) return { url: null, error: uploadError.message }
+  const { data } = supabase.storage.from('listing-images').getPublicUrl(filename)
+  return { url: data.publicUrl, error: null }
+}
+
 export async function createAccommodationListing(payload: {
   sellerId: string
   title: string
@@ -1029,6 +1039,7 @@ export async function createAccommodationListing(payload: {
   universities: string[]
   planTier: AccommodationPlanKey
   roomPricing: AccommodationRoomPricing[]
+  videoUrl?: string | null
 }): Promise<{ id: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc('create_accommodation_listing', {
     p_seller_id: payload.sellerId,
@@ -1041,6 +1052,7 @@ export async function createAccommodationListing(payload: {
     p_universities: payload.universities,
     p_plan_tier: payload.planTier,
     p_room_pricing: payload.roomPricing,
+    p_video_url: payload.videoUrl || null,
   })
   return { id: data || null, error: error ? error.message : null }
 }
@@ -1066,6 +1078,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     ...item,
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
+    video_url: item.video_url || null,
     universities: item.universities || [],
     building_count: item.building_count || 1,
     room_pricing: item.room_pricing || [],
@@ -1080,7 +1093,7 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
-  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], universities: data.universities || [], building_count: data.building_count || 1, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], video_url: data.video_url || null, universities: data.universities || [], building_count: data.building_count || 1, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
 }
 
 export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
