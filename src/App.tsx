@@ -1,4 +1,5 @@
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import Entrance from './pages/Entrance'
 import Feed from './pages/Feed'
@@ -30,6 +31,8 @@ import ToolkitPage from './pages/ToolkitPage'
 import QRToolPage from './pages/QRToolPage'
 import Toast from './components/common/Toast'
 import AuthPromptModal from './components/common/AuthPromptModal'
+import AccommodationHome from './pages/AccommodationHome'
+import AccommodationPlanSelect from './pages/AccommodationPlanSelect'
 
 function ToastLayer() {
   const { toasts } = useApp()
@@ -43,6 +46,16 @@ function ToastLayer() {
 function ModalLayer() {
   const { authPromptOpen } = useApp()
   return authPromptOpen ? <AuthPromptModal /> : null
+}
+
+
+function AccommodationGuard({ children }: { children: ReactNode }) {
+  const { currentUser, businessProfile, isLoadingAuth } = useApp()
+  if (isLoadingAuth) return null
+  if (currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
+    return <Navigate to="/accommodation" replace />
+  }
+  return <>{children}</>
 }
 
 function NotFound() {
@@ -72,11 +85,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Entrance />} />
           <Route path="/student" element={<StudentAuth />} />
-          <Route path="/feed" element={<Feed />} />
+          <Route path="/feed" element={<AccommodationGuard><Feed /></AccommodationGuard>} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/plan-select" element={<PlanSelect />} />
           <Route path="/payment/:outcome" element={<PaymentResult />} />
-          <Route path="/events" element={<EventsPage />} />
+          <Route path="/events" element={<AccommodationGuard><EventsPage /></AccommodationGuard>} />
           <Route path="/event/:id" element={<EventDetails />} />
           <Route path="/post-event" element={<PostEvent />} />
 <Route path="/post" element={<PostListing />} />
@@ -91,6 +104,8 @@ export default function App() {
           <Route path="/retailer/signup" element={<RetailerSignup />} />
           <Route path="/business/post" element={<BusinessPostListing />} />
           <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
+          <Route path="/accommodation" element={<AccommodationHome />} />
+          <Route path="/accommodation/plan-select" element={<AccommodationPlanSelect />} />
           <Route path="/partner" element={<PartnerDashboard />} />
           <Route path="/group/:groupId" element={<StudyGroupChat />} />
           <Route path="/groups" element={<StudyGroupsList />} />
