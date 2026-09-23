@@ -10,7 +10,9 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
       className="group text-left flex-shrink-0 w-[300px] bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-light hover:-translate-y-0.5 transition-all duration-200"
     >
       <div className="h-44 bg-slate-deep overflow-hidden">
-        {listing.image_urls?.[0] ? (
+        {listing.video_url ? (
+          <video src={listing.video_url} muted loop autoPlay playsInline poster={listing.image_urls?.[0] || undefined} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+        ) : listing.image_urls?.[0] ? (
           <img src={listing.image_urls[0]} alt={listing.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-cream-muted">
