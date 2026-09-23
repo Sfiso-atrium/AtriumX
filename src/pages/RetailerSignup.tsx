@@ -29,6 +29,7 @@ export default function RetailerSignup() {
   const [physicalAddress, setPhysicalAddress] = useState('')
   const [website, setWebsite] = useState('')
   const [university, setUniversity] = useState('')
+  const [isAccommodation, setIsAccommodation] = useState<boolean | null>(() => searchParams.get('accommodation') === '1' ? true : null)
   const [universitySearch, setUniversitySearch] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -66,6 +67,7 @@ export default function RetailerSignup() {
     }
 
     if (!businessName.trim()) return setError('Business name is required.')
+    if (isAccommodation === null) return setError('Please tell us whether this business is an accommodation provider.')
     if (!university) return setError('Please select your university.')
     if (!businessType) return setError('Select a business type.')
     if (businessType === 'Other' && !customType.trim()) return setError('Please specify your business type.')
@@ -89,6 +91,7 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
       physicalAddress.trim() || undefined,
       website.trim() || undefined,
       university,
+      isAccommodation,
       refCode
     )
     setLoading(false)
@@ -96,7 +99,7 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
     if (err) return setError(err)
     if (user) {
       setCurrentUser(user)
-      navigate('/feed')
+      navigate(isAccommodation ? '/accommodation' : '/feed')
     }
   }
 
@@ -138,6 +141,25 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
                   value={customType} onChange={e => setCustomType(e.target.value)}
                   className={inputClass} />
               )}
+
+              <div>
+                <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Accommodation provider</label>
+                <p className="text-cream-muted text-xs mb-2">Tell us whether this business offers student accommodation. You can only change this during account creation.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ value: true, label: 'Yes, accommodation' }, { value: false, label: 'No, other business' }].map(option => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setIsAccommodation(option.value)}
+                      className={`px-3 py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                        isAccommodation === option.value ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream-muted hover:border-teal-light'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div>
                 <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">University</label>
