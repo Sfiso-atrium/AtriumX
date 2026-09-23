@@ -22,7 +22,7 @@ interface Props {
     seller: Profile
     listing?: { id: string; title: string; image_urls: string[]; price: number }
     wanted_post?: Pick<WantedPost, 'id' | 'title' | 'category' | 'max_price' | 'price_flexible' | 'urgency'>
-    accommodation_listing?: { id: string; title: string; image_urls: string[]; monthly_rent: number }
+    accommodation_listing?: { id: string; title: string; image_urls: string[]; monthly_rent: number | null }
   }
   onResolved: () => void
   // Removes this conversation from the caller's own list once they've
