@@ -76,24 +76,38 @@ export default function AccommodationDetail() {
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
-          <div className="md:flex">
-            <div className="relative w-full md:w-[52%] aspect-[4/3] bg-slate-deep">
+          <div className="md:flex md:gap-6 md:items-stretch">
+            <div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-slate-deep overflow-hidden">
               {listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
+              {average > 0 && (
+                <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
+                  <Star size={13} className="fill-amber-400 text-amber-400" /> {average.toFixed(1)} ({reviews.length})
+                </span>
+              )}
               {listing.image_urls.length > 1 && <><button onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button><button onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button></>}
             </div>
-            <div className="p-5 md:p-7 flex-1">
-              <div className="flex flex-wrap gap-2 mb-3"><span className="px-2.5 py-1 rounded-full bg-teal-faint text-teal-light text-xs font-bold">Accommodation</span><span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span></div>
-              <h1 className="font-serif text-3xl text-cream">{listing.title}</h1>
-              <p className="text-teal-light font-extrabold text-2xl mt-3">R{listing.monthly_rent.toLocaleString()} <span className="text-cream-muted text-sm font-semibold">/ month</span></p>
-              <div className="flex items-center gap-2 mt-3 text-cream-muted text-sm"><MapPin size={15} /> {listing.address}</div>
-              <div className="flex items-center gap-2 mt-2 text-cream-muted text-sm"><span className="font-semibold text-cream">University:</span> {listing.universities.join(', ')}</div>
-              <div className="flex items-center gap-1.5 mt-3 text-gold text-sm"><Star size={15} className="fill-current" /> {average ? average.toFixed(1) : 'No reviews yet'} {average ? `(${reviews.length})` : ''}</div>
-              <p className="text-cream-muted text-sm leading-relaxed mt-5 whitespace-pre-wrap">{listing.description}</p>
-              {listing.amenities.length > 0 && <div className="mt-5"><h2 className="text-cream font-bold text-sm mb-2">What it offers</h2><div className="flex flex-wrap gap-2">{listing.amenities.map(item => <span key={item} className="px-3 py-1.5 rounded-full bg-teal-faint text-teal-light text-xs font-semibold">{item}</span>)}</div></div>}
-              {!isOwner && <button onClick={handleChat} className="mt-6 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
+            <div className="p-5 md:p-7 md:flex-1 md:min-w-0 flex flex-col justify-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-serif text-2xl text-cream">{listing.title}</h1>
+                <span className="px-2.5 py-1 rounded-full bg-teal-faint text-teal-light text-xs font-bold">Accommodation</span>
+                <span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span>
+              </div>
+              <p className="text-teal-light font-extrabold text-xl">R{listing.monthly_rent.toLocaleString()} <span className="text-cream-muted text-sm font-semibold">/ month</span></p>
+              <p className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> {listing.address}</p>
+              <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">University:</span> {listing.universities.join(', ')}</p>
+              {listing.description && <p className="text-cream-muted text-sm leading-relaxed whitespace-pre-wrap mt-1">{listing.description}</p>}
             </div>
           </div>
         </div>
+
+        {listing.amenities.length > 0 && (
+          <div className="mt-4 bg-slate-card border border-slate-border rounded-xl p-4">
+            <h2 className="text-cream font-bold text-sm mb-2">What it offers</h2>
+            <div className="flex flex-wrap gap-2">{listing.amenities.map(item => <span key={item} className="px-3 py-1.5 rounded-full bg-teal-faint text-teal-light text-xs font-semibold">{item}</span>)}</div>
+          </div>
+        )}
+
+        {!isOwner && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
 
         <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
           <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-current" /> {average ? average.toFixed(1) : '—'}</div></div>
