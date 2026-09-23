@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ImagePlus, Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, AccommodationRoomType, createAccommodationListing, getAccommodationListings, getBusinessProfile, uploadAccommodationImage } from '../services/dataService'
+import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, AccommodationRoomType, createAccommodationListing, getAccommodationListings, getBusinessProfile, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
 
@@ -23,6 +23,8 @@ export default function AccommodationPostListing() {
   const [universitySearch, setUniversitySearch] = useState('')
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>(businessProfile?.universities?.slice(0, 1) ?? [])
   const [images, setImages] = useState<string[]>([])
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [existingListings, setExistingListings] = useState<any[]>([])
@@ -69,6 +71,15 @@ export default function AccommodationPostListing() {
     setRoomPricing(prev => prev.filter(room => room.room_type !== roomType))
   }
 
+  const handleVideoFile = async (file: File | undefined) => {
+    if (!file || !currentUser || plan !== 'accommodation_premium') return
+    setUploadingVideo(true)
+    const { url, error: uploadError } = await uploadAccommodationVideo(file, currentUser.id)
+    setUploadingVideo(false)
+    if (uploadError || !url) { showToast(uploadError || 'Could not upload video.', 'error'); return }
+    setVideoUrl(url)
+  }
+
   const handleImageFiles = async (files: FileList | null) => {
     if (!files || !currentUser) return
     const picked = Array.from(files).slice(0, Math.max(0, maxPhotos - images.length))
@@ -104,6 +115,7 @@ export default function AccommodationPostListing() {
       universities: selectedUniversities,
       planTier: plan,
       roomPricing,
+      videoUrl,
     })
     setBusy(false)
     if (createError) { setError(createError); return }
@@ -184,6 +196,26 @@ export default function AccommodationPostListing() {
               {AMENITY_OPTIONS.map(amenity => <button key={amenity} onClick={() => toggleAmenity(amenity)} className={`text-left px-3 py-2.5 rounded-xl border text-xs font-semibold ${selectedAmenities.includes(amenity) ? 'bg-teal-faint border-teal-light text-teal-light' : 'bg-slate-deep border-slate-border text-cream-muted'}`}>{selectedAmenities.includes(amenity) ? '✓ ' : ''}{amenity}</button>)}
             </div>
             <input value={otherAmenities} onChange={e => setOtherAmenities(e.target.value)} placeholder="Other amenities, separated by commas" className="mt-3 w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+          </section>
+
+
+          <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div><h2 className="text-cream font-bold text-base">Property video</h2><p className="text-cream-muted text-xs mt-1">Optional. A video can be added on the Premium plan and will be kept with your accommodation listing.</p></div>
+              {plan === 'accommodation_premium' ? (
+                <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold">Add video<input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={e => handleVideoFile(e.target.files?.[0])} disabled={uploadingVideo} className="hidden" /></label>
+              ) : <span className="text-cream-muted text-xs bg-slate-deep border border-slate-border px-3 py-2 rounded-xl">Premium only</span>}
+            </div>
+            {plan !== 'accommodation_premium' ? (
+              <p className="text-cream-muted text-xs border border-dashed border-slate-border rounded-xl py-6 px-4 text-center">Video uploads are available on the Premium accommodation plan. This is optional.</p>
+            ) : videoUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-slate-border bg-black">
+                <video src={videoUrl} controls className="w-full max-h-80 object-contain" />
+                <button type="button" onClick={() => setVideoUrl(null)} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center" aria-label="Remove property video"><X size={15} /></button>
+              </div>
+            ) : (
+              <p className="text-cream-muted text-xs border border-dashed border-slate-border rounded-xl py-6 px-4 text-center">No video added. This is optional.</p>
+            )}
           </section>
 
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
