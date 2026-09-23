@@ -12,7 +12,7 @@ const AMENITY_OPTIONS = [
 
 export default function AccommodationPostListing() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, showToast } = useApp()
+  const { currentUser, businessProfile, showToast, isLoadingAuth } = useApp()
   const [title, setTitle] = useState('')
   const [buildingCount, setBuildingCount] = useState('1')
   const [roomPricing, setRoomPricing] = useState<AccommodationRoomPricing[]>([])
@@ -43,6 +43,7 @@ export default function AccommodationPostListing() {
     getAccommodationListings(null).then(items => setExistingListings(items.filter(item => item.seller_id === currentUser.id)))
   }, [currentUser?.id, businessProfile?.is_accommodation])
 
+  if (isLoadingAuth) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   if (!currentUser || currentUser.account_type !== 'business' || !businessProfile?.is_accommodation) return null
 
   const toggleAmenity = (amenity: string) => setSelectedAmenities(prev => prev.includes(amenity) ? prev.filter(item => item !== amenity) : [...prev, amenity])
