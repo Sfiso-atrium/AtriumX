@@ -2,7 +2,7 @@ import {
   createContext, useContext, useState,
   useEffect, useCallback, ReactNode
 } from 'react'
-import { Profile, restoreSession, getUnreadMessageCount, getPartnerStatus, Partner } from '../services/dataService'
+import { Profile, BusinessProfile, restoreSession, getBusinessProfile, getUnreadMessageCount, getPartnerStatus, Partner } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 
 interface Toast {
@@ -28,6 +28,8 @@ interface AppContextType {
   setRedirectAfterLogin: (path: string | null) => void
   isLoadingAuth: boolean
   partner: Partner | null
+  businessProfile: BusinessProfile | null
+  refreshBusinessProfile: () => Promise<void>
   darkMode: boolean
   toggleDarkMode: () => void
 }
@@ -44,6 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('atriumx_dark') === '1')
 
   const setCurrentUser = useCallback((user: Profile | null) => {
@@ -51,11 +54,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (user) {
       getUnreadMessageCount(user.id).then(setUnreadMessageCount)
       getPartnerStatus(user.id).then(setPartner)
+      if (user.account_type === 'business') getBusinessProfile(user.id).then(setBusinessProfile)
+      else setBusinessProfile(null)
     } else {
       setUnreadMessageCount(0)
       setPartner(null)
+      setBusinessProfile(null)
     }
   }, [])
+
+  const refreshBusinessProfile = useCallback(async () => {
+    if (!currentUser || currentUser.account_type !== 'business') {
+      setBusinessProfile(null)
+      return
+    }
+    const profile = await getBusinessProfile(currentUser.id)
+    setBusinessProfile(profile)
+  }, [currentUser])
+
 
 useEffect(() => {
     let mounted = true
@@ -116,6 +132,8 @@ useEffect(() => {
       redirectAfterLogin, setRedirectAfterLogin,
       isLoadingAuth,
       partner,
+      businessProfile,
+      refreshBusinessProfile,
       darkMode, toggleDarkMode,
     }}>
       {children}
