@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Send, Star } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, MapPin, MessageCircle, Send, Star, Tag } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview } from '../services/dataService'
@@ -16,6 +16,7 @@ export default function AccommodationDetail() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showPricing, setShowPricing] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -92,13 +93,51 @@ export default function AccommodationDetail() {
                 <span className="px-2.5 py-1 rounded-full bg-teal-faint text-teal-light text-xs font-bold">Accommodation</span>
                 <span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span>
               </div>
-              <p className="text-teal-light font-extrabold text-xl">R{listing.monthly_rent.toLocaleString()} <span className="text-cream-muted text-sm font-semibold">/ month</span></p>
+              {listing.monthly_rent != null ? <p className="text-teal-light font-extrabold text-xl">From R{listing.monthly_rent.toLocaleString('en-ZA')} <span className="text-cream-muted text-sm font-semibold">/ month</span></p> : <p className="text-cream-muted text-sm font-semibold">Pricing available by room type</p>}
               <p className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> {listing.address}</p>
+              <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">Buildings:</span> {listing.building_count}</p>
               <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">University:</span> {listing.universities.join(', ')}</p>
               {listing.description && <p className="text-cream-muted text-sm leading-relaxed whitespace-pre-wrap mt-1">{listing.description}</p>}
             </div>
           </div>
         </div>
+
+        {listing.room_pricing?.length > 0 && (
+          <div className="mt-4 w-full bg-slate-card border border-slate-border rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowPricing(!showPricing)}
+              className="w-full flex items-center gap-3 p-4 text-left"
+              aria-expanded={showPricing}
+            >
+              <Tag size={22} className="text-gold flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-gold font-bold text-sm">Pricing Options</p>
+                <p className="text-cream-muted text-xs">See room types and available funding prices.</p>
+              </div>
+              {showPricing ? <ChevronUp size={18} className="text-cream-muted flex-shrink-0" /> : <ChevronDown size={18} className="text-cream-muted flex-shrink-0" />}
+            </button>
+            {showPricing && (
+              <div className="px-4 pb-4 space-y-3">
+                {listing.room_pricing.map(room => {
+                  const label = room.room_type === 'single' ? 'Single' : room.room_type === 'shared_2' ? 'Shared 2' : 'Shared 3'
+                  const prices = [
+                    ['Bursary', room.bursary],
+                    ['NSFAS', room.nsfas],
+                    ['Self-funded', room.self_funded],
+                  ] as const
+                  return (
+                    <div key={room.room_type} className="border border-slate-border rounded-2xl p-4">
+                      <p className="text-cream font-bold text-sm mb-3">{label}</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {prices.map(([name, amount]) => <div key={name}><p className="text-cream-muted text-[10px] font-bold uppercase tracking-wide">{name}</p><p className="text-gold font-bold text-sm mt-1">{amount != null ? `R ${amount.toLocaleString('en-ZA')}` : 'Not provided'}</p></div>)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {listing.amenities.length > 0 && (
           <div className="mt-4 bg-slate-card border border-slate-border rounded-xl p-4">
