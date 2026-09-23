@@ -146,26 +146,28 @@ Deno.serve(async (req) => {
       return ok()
     }
 
-    // Everything checks out -- activate the plan.
-    //
-    // Expiry runs from now, not from the old expiry date. Someone
-    // upgrading mid-plan is choosing to start the new tier immediately;
-    // stacking the remainder of a cheaper plan on top of a more expensive
-    // one would be the wrong way round.
+    // Everything checks out -- activate the correct kind of plan.
+    // Accommodation plans live on business_profiles and deliberately do not
+    // touch the ordinary business/student plan column.
     const expiresAt = new Date(Date.now() + payment.plan_days * 24 * 60 * 60 * 1000).toISOString()
 
-    await supabase
-      .from('profiles')
-      .update({ plan: payment.plan_key, plan_expires_at: expiresAt })
-      .eq('id', payment.user_id)
+    if (String(payment.plan_key).startsWith('accommodation_')) {
+      await supabase
+        .from('business_profiles')
+        .update({ accommodation_plan: payment.plan_key, accommodation_plan_expires_at: expiresAt })
+        .eq('id', payment.user_id)
+    } else {
+      await supabase
+        .from('profiles')
+        .update({ plan: payment.plan_key, plan_expires_at: expiresAt })
+        .eq('id', payment.user_id)
 
-    // Plan is account-wide, so existing listings move to the new tier too
-    // -- same behaviour createListing already had.
-    await supabase
-      .from('listings')
-      .update({ plan_tier: payment.plan_key })
-      .eq('seller_id', payment.user_id)
-      .in('status', ['active', 'pending'])
+      await supabase
+        .from('listings')
+        .update({ plan_tier: payment.plan_key })
+        .eq('seller_id', payment.user_id)
+        .in('status', ['active', 'pending'])
+    }
 
     await supabase
       .from('payments')
