@@ -41,12 +41,14 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 // importing it -- the client copy is for display only and can be edited
 // by anyone with devtools. If you change a price, change it in BOTH
 // places, and treat this one as the real one.
-const PLAN_PRICES: Record<string, { amount: number; days: number; label: string }> = {
+const PLAN_PRICES: Record<string, { amount: number; days: number; label: string; accommodation?: boolean }> = {
   visible:        { amount: 29,  days: 7,  label: 'Visible' },
   loud:           { amount: 79,  days: 14, label: 'Loud' },
   unmissable:     { amount: 149, days: 30, label: 'Unmissable' },
   featured:       { amount: 350, days: 14, label: 'Featured' },
   campus_partner: { amount: 800, days: 30, label: 'Campus Partner' },
+  accommodation_featured: { amount: 199, days: 30, label: 'Accommodation Featured', accommodation: true },
+  accommodation_premium: { amount: 399, days: 30, label: 'Accommodation Premium', accommodation: true },
 }
 
 const CORS = {
@@ -105,6 +107,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unknown or free plan.' }, { status: 400, headers: CORS })
     }
 
+    if (plan.accommodation) {
+      const { data: accommodationProfile } = await supabase
+        .from('business_profiles')
+        .select('is_accommodation')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!accommodationProfile?.is_accommodation) {
+        return Response.json({ error: 'Accommodation plans are only available to accommodation accounts.' }, { status: 403, headers: CORS })
+      }
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, email')
@@ -149,6 +162,7 @@ Deno.serve(async (req) => {
       // what without trusting anything else in the payload.
       custom_str1: user.id,
       custom_str2: planKey,
+      custom_str3: plan.accommodation ? 'accommodation' : 'business',
     }
 
     fields.signature = signPayload(fields)
