@@ -9,20 +9,12 @@ import AccommodationCard from '../components/common/AccommodationCard'
 
 export default function AccommodationHome() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
 
   useEffect(() => {
     if (currentUser?.id && businessProfile?.is_accommodation) getAccommodationListings(null).then(data => setListings(data.filter(item => item.seller_id === currentUser.id)))
   }, [currentUser?.id, businessProfile?.is_accommodation, businessProfile?.accommodation_plan])
-
-  if (isLoadingAuth || (currentUser?.account_type === 'business' && !businessProfile)) {
-    return (
-      <div className="min-h-screen bg-slate-deep flex items-center justify-center px-4">
-        <p className="text-cream-muted text-sm">Loading accommodation...</p>
-      </div>
-    )
-  }
 
   if (!currentUser || currentUser.account_type !== 'business' || !businessProfile?.is_accommodation) return null
   const plan = businessProfile.accommodation_plan as AccommodationPlanKey
