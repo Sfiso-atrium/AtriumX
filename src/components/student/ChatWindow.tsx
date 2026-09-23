@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Flag, Paperclip, X, Trash2 } from 'lucide-react'
+import { CircleCheck as CheckCircle, Tag, ShoppingBag, HandHelping, Building2, Flag, Paperclip, X, Trash2 } from 'lucide-react'
 import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
@@ -22,6 +22,7 @@ interface Props {
     seller: Profile
     listing?: { id: string; title: string; image_urls: string[]; price: number }
     wanted_post?: Pick<WantedPost, 'id' | 'title' | 'category' | 'max_price' | 'price_flexible' | 'urgency'>
+    accommodation_listing?: { id: string; title: string; image_urls: string[]; monthly_rent: number }
   }
   onResolved: () => void
   // Removes this conversation from the caller's own list once they've
@@ -65,6 +66,7 @@ export default function ChatWindow({ conversation, onResolved, onDeleted }: Prop
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isSeller = currentUser?.id === conversation.seller_id
   const isWantedPost = !!conversation.wanted_post_id
+  const isAccommodation = !!conversation.accommodation_listing_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
   const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
   const maxMsgs = sellerPlan ? PLAN_TIERS[sellerPlan]?.maxMsgs ?? 999 : 999
@@ -72,6 +74,7 @@ export default function ChatWindow({ conversation, onResolved, onDeleted }: Prop
   // level too (migration 014), this just shows them why instead of a
   // silent failed send.
   const sellerLocked = isSeller &&
+    !isAccommodation &&
     (conversation.seller as Profile & { account_type?: string })?.account_type === 'business' &&
     sellerPlan === 'noticeboard'
 
@@ -209,7 +212,7 @@ export default function ChatWindow({ conversation, onResolved, onDeleted }: Prop
     // about here. Structurally, sendRatingInvite would have nothing valid
     // to attach the rating to anyway (conversation.listing?.id would be
     // undefined), but this keeps it from even being offered as an option.
-    if (!isWantedPost) setShowResolvePrompt(true)
+    if (!isWantedPost && !isAccommodation) setShowResolvePrompt(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -261,15 +264,15 @@ const handleDeleteChat = async () => {
             className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white ${
               isSeller ? 'bg-teal-primary' : 'bg-ember'
             }`}
-            title={isWantedPost
-              ? (isSeller ? 'Your wanted post' : 'You can help')
-              : (isSeller ? 'Your listing' : "You're interested")}
+            title={isAccommodation ? (isSeller ? 'Your accommodation' : 'Accommodation') : isWantedPost ? (isSeller ? 'Your wanted post' : 'You can help') : (isSeller ? 'Your listing' : "You're interested")}
           >
-            {isWantedPost
-              ? <HandHelping size={9} className="text-white" />
-              : isSeller
-                ? <Tag size={9} className="text-white" />
-                : <ShoppingBag size={9} className="text-white" />}
+            {isAccommodation
+              ? <Building2 size={9} className="text-white" />
+              : isWantedPost
+                ? <HandHelping size={9} className="text-white" />
+                : isSeller
+                  ? <Tag size={9} className="text-white" />
+                  : <ShoppingBag size={9} className="text-white" />}
           </span>
         </div>
 
@@ -277,22 +280,22 @@ const handleDeleteChat = async () => {
           <p className="text-cream font-bold text-sm leading-tight truncate">{otherParty.full_name}</p>
           <div className="flex items-center gap-2 mt-1 min-w-0">
             <span className="flex-shrink-0 text-[11px] font-semibold leading-none px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
-              {isWantedPost ? (isSeller ? 'Can help' : 'Looking for this') : (isSeller ? 'Buying' : 'Selling')}
+              {isAccommodation ? (isSeller ? 'Accommodation' : 'Student accommodation') : isWantedPost ? (isSeller ? 'Can help' : 'Looking for this') : (isSeller ? 'Buying' : 'Selling')}
             </span>
             {titleExpanded ? (
               <div
                 onClick={() => setTitleExpanded(false)}
                 className="min-w-0 max-w-[150px] overflow-x-auto whitespace-nowrap text-cream-muted text-xs cursor-pointer"
               >
-                {conversation.listing?.title || conversation.wanted_post?.title}
+                {conversation.accommodation_listing?.title || conversation.listing?.title || conversation.wanted_post?.title}
               </div>
             ) : (
               <button
                 onClick={() => setTitleExpanded(true)}
-                title={conversation.listing?.title || conversation.wanted_post?.title}
+                title={conversation.accommodation_listing?.title || conversation.listing?.title || conversation.wanted_post?.title}
                 className="min-w-0 text-cream-muted text-xs truncate max-w-[150px]"
               >
-                {conversation.listing?.title || conversation.wanted_post?.title}
+                {conversation.accommodation_listing?.title || conversation.listing?.title || conversation.wanted_post?.title}
               </button>
             )}
           </div>
