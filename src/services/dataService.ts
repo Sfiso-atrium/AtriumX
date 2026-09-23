@@ -55,16 +55,27 @@ has_pending_edit: boolean
 }
 
 
+export type AccommodationRoomType = 'single' | 'shared_2' | 'shared_3'
+
+export interface AccommodationRoomPricing {
+  room_type: AccommodationRoomType
+  bursary: number | null
+  nsfas: number | null
+  self_funded: number | null
+}
+
 export interface AccommodationListing {
   id: string
   seller_id: string
   title: string
-  monthly_rent: number
+  monthly_rent: number | null
   address: string
   description: string
   amenities: string[]
   image_urls: string[]
   universities: string[]
+  building_count: number
+  room_pricing: AccommodationRoomPricing[]
   plan_tier: AccommodationPlanKey
   status: 'active' | 'suspended'
   created_at: string
@@ -1010,24 +1021,26 @@ export async function uploadAccommodationImage(file: File, userId: string): Prom
 export async function createAccommodationListing(payload: {
   sellerId: string
   title: string
-  monthlyRent: number
+  buildingCount: number
   address: string
   description: string
   amenities: string[]
   imageUrls: string[]
   universities: string[]
   planTier: AccommodationPlanKey
+  roomPricing: AccommodationRoomPricing[]
 }): Promise<{ id: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc('create_accommodation_listing', {
     p_seller_id: payload.sellerId,
     p_title: payload.title,
-    p_monthly_rent: payload.monthlyRent,
+    p_building_count: payload.buildingCount,
     p_address: payload.address,
     p_description: payload.description,
     p_amenities: payload.amenities,
     p_image_urls: payload.imageUrls,
     p_universities: payload.universities,
     p_plan_tier: payload.planTier,
+    p_room_pricing: payload.roomPricing,
   })
   return { id: data || null, error: error ? error.message : null }
 }
@@ -1054,6 +1067,8 @@ export async function getAccommodationListings(university?: string | null): Prom
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
     universities: item.universities || [],
+    building_count: item.building_count || 1,
+    room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
   })) as AccommodationListing[]
@@ -1065,7 +1080,7 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
-  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], universities: data.universities || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], universities: data.universities || [], building_count: data.building_count || 1, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
 }
 
 export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
