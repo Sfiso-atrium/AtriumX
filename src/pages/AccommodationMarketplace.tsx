@@ -66,7 +66,7 @@ export default function AccommodationMarketplace() {
                     <h2 className="text-2xl sm:text-[26px] font-extrabold text-cream">{title}</h2>
                     <span className="text-cream-muted text-xs">{items.length} {items.length === 1 ? 'property' : 'properties'}</span>
                   </div>
-                  <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
+                  <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x">
                     {items.map(listing => <div key={listing.id} className="snap-start"><AccommodationCard listing={listing} /></div>)}
                   </div>
                 </section>
