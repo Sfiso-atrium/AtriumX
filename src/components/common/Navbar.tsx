@@ -275,6 +275,11 @@ export default function Navbar() {
               <button onClick={() => go('/chat')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname.startsWith('/chat') ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                 <MessageCircle className="w-4 h-4" /> Messages
               </button>
+              {currentUser.account_type !== 'business' && (
+                <button onClick={() => go('/accommodations')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/accommodations' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+                  <Building2 className="w-4 h-4" /> Accommodation
+                </button>
+              )}
             </nav>
 
             <div className="mt-4">
