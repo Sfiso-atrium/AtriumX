@@ -1,4 +1,4 @@
-import { Building2, MapPin, Star } from 'lucide-react'
+import { Building2, MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { AccommodationListing } from '../../services/dataService'
 
@@ -27,20 +27,6 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
           <MapPin size={13} />
           <span className="truncate">{listing.universities.join(' · ')}</span>
         </div>
-        {listing.avg_rating > 0 && (
-          <div className="flex items-center gap-1 mt-2 text-xs text-gold">
-            <Star size={13} className="fill-current" /> {listing.avg_rating.toFixed(1)} ({listing.total_reviews})
-          </div>
-        )}
-        <p className="text-cream-muted text-xs leading-relaxed mt-3 line-clamp-2">{listing.description}</p>
-        {listing.amenities.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {listing.amenities.slice(0, 3).map(item => (
-              <span key={item} className="px-2 py-1 rounded-full bg-teal-faint text-teal-light text-[10px] font-semibold">{item}</span>
-            ))}
-            {listing.amenities.length > 3 && <span className="px-2 py-1 rounded-full bg-slate-deep text-cream-muted text-[10px] font-semibold">+{listing.amenities.length - 3}</span>}
-          </div>
-        )}
       </div>
     </button>
   )
