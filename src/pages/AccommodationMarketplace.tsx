@@ -31,6 +31,12 @@ export default function AccommodationMarketplace() {
     return map
   }, [listings])
 
+  // Whichever section actually has properties in it — used below to tell
+  // whether "More accommodation" is the only thing on the page, in which
+  // case its own heading would just be pointing at everything and is
+  // dropped rather than shown.
+  const sectionsWithItems = SECTION_ORDER.filter(plan => (grouped.get(plan) ?? []).length > 0)
+
   if (currentUser?.account_type === 'business') return null
 
   return (
@@ -59,13 +65,21 @@ export default function AccommodationMarketplace() {
             {SECTION_ORDER.map(plan => {
               const items = grouped.get(plan) ?? []
               if (items.length === 0) return null
+              // "More accommodation" only needs a heading when it's sitting
+              // alongside Premium and/or Featured properties. When it's the
+              // only section on the page, a caption would just be
+              // describing the entire page, so the listings are shown with
+              // no caption at all rather than a redundant one.
+              const isOnlySection = sectionsWithItems.length === 1 && sectionsWithItems[0] === plan
               const title = ACCOMMODATION_PLANS[plan].label === 'Premium' ? 'Premium accommodation' : ACCOMMODATION_PLANS[plan].label === 'Featured' ? 'Featured accommodation' : 'More accommodation'
               return (
                 <section key={plan}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-2xl sm:text-[26px] font-extrabold text-cream">{title}</h2>
-                    <span className="text-cream-muted text-xs">{items.length} {items.length === 1 ? 'property' : 'properties'}</span>
-                  </div>
+                  {!isOnlySection && (
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-2xl sm:text-[26px] font-extrabold text-cream">{title}</h2>
+                      <span className="text-cream-muted text-xs">{items.length} {items.length === 1 ? 'property' : 'properties'}</span>
+                    </div>
+                  )}
                   <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x">
                     {items.map(listing => <div key={listing.id} className="snap-start"><AccommodationCard listing={listing} /></div>)}
                   </div>
