@@ -26,8 +26,10 @@ export default function AccommodationHome() {
 
   useEffect(() => {
     if (!currentUser?.id || !businessProfile?.is_accommodation) return
+    // Includes this account's own listing mixed in with everyone else's —
+    // an accommodation account browses the same market it's part of.
     getAccommodationListings(null).then(data => {
-      setListings(data.filter(item => item.seller_id !== currentUser.id))
+      setListings(data)
       setLoading(false)
     })
   }, [currentUser?.id, businessProfile?.is_accommodation])
@@ -71,8 +73,8 @@ export default function AccommodationHome() {
         <div className="flex items-end justify-between gap-4 mb-7">
           <div>
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Accommodation</p>
-            <h1 className="font-serif text-3xl sm:text-4xl text-cream">Other accommodation</h1>
-            <p className="text-cream-muted text-sm mt-2">See what other student accommodation providers have listed on AtriumX.</p>
+            <h1 className="font-serif text-3xl sm:text-4xl text-cream">Accommodation</h1>
+            <p className="text-cream-muted text-sm mt-2">See what's listed on AtriumX, including your own.</p>
           </div>
           <Building2 className="hidden sm:block text-teal-light" size={30} />
         </div>
@@ -82,7 +84,7 @@ export default function AccommodationHome() {
         ) : listings.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
             <Building2 size={36} className="mx-auto text-cream-muted mb-4" />
-            <p className="text-cream font-semibold">No other accommodation is listed yet.</p>
+            <p className="text-cream font-semibold">No accommodation is listed yet.</p>
             <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>
           </div>
         ) : (
@@ -106,7 +108,16 @@ export default function AccommodationHome() {
                     </div>
                   )}
                   <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x">
-                    {items.map(item => <div key={item.id} className="snap-start"><AccommodationCard listing={item} /></div>)}
+                    {items.map(item => (
+                      <div key={item.id} className="relative snap-start">
+                        {item.seller_id === currentUser.id && (
+                          <span className="absolute top-2 left-2 z-10 px-2 py-1 rounded-full bg-slate-deep/90 border border-teal-light text-teal-light text-[10px] font-bold">
+                            Your listing
+                          </span>
+                        )}
+                        <AccommodationCard listing={item} />
+                      </div>
+                    ))}
                   </div>
                 </section>
               )
