@@ -95,7 +95,7 @@ if (user) {
     : step === 'university' ? 'Select your university'
     : 'Join your campus'
   const subheadingText =
-    mode === 'login' ? 'Sign in to continue to My Space and the rest of AtriumX'
+    mode === 'login' ? 'Sign in to continue'
     : step === 'type' ? 'Choose the option that best describes you.'
     : step === 'university' ? 'This helps us show you relevant events, listings and opportunities.'
     : 'Create your free account to get started with AtriumX'
