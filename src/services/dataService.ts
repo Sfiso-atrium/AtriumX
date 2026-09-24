@@ -176,6 +176,20 @@ export interface Report {
   reporter?: { full_name: string }
 }
 
+export interface AccommodationReport {
+  id: string
+  accommodation_listing_id: string
+  reporter_id: string
+  reason: string
+  status: 'open' | 'reviewed'
+  created_at: string
+  reporter_name: string | null
+  seller_id: string
+  seller_name: string | null
+  listing_title: string
+  listing_image_urls: string[]
+}
+
 export interface ChatReport extends Report {
   conversation?: {
     id: string
@@ -911,6 +925,21 @@ export async function reportListing(
   return { error: error ? error.message : null }
 }
 
+export async function reportAccommodationListing(
+  accommodationListingId: string,
+  reporterId: string,
+  reason: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('accommodation_reports')
+    .insert({
+      accommodation_listing_id: accommodationListingId,
+      reporter_id: reporterId,
+      reason,
+    })
+  return { error: error ? error.message : null }
+}
+
 export async function reportConversation(
   conversationId: string,
   subject: { listingId?: string | null; wantedPostId?: string | null },
@@ -1631,6 +1660,22 @@ export async function getReportsForListings(listingIds: string[]): Promise<Repor
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return data as unknown as Report[]
+}
+
+export async function getAccommodationReportsForAdmin(): Promise<AccommodationReport[]> {
+  const { data, error } = await supabase.rpc('get_accommodation_reports_admin')
+  if (error || !data) return []
+  return data as AccommodationReport[]
+}
+
+export async function clearAccommodationReports(
+  accommodationListingId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('accommodation_reports')
+    .delete()
+    .eq('accommodation_listing_id', accommodationListingId)
+  return { error: error ? error.message : null }
 }
 
 export async function clearReports(listingId: string): Promise<{ error: string | null }> {
