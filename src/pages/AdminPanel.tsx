@@ -34,6 +34,7 @@ import {
 } from '../services/dataService'
 import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
+import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 
 type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'businesses' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
@@ -57,6 +58,7 @@ const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { 
   const [partnerSearchResults, setPartnerSearchResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [warningReport, setWarningReport] = useState<AccommodationReport | null>(null)
 
   useEffect(() => {
     if (isLoadingAuth) return
@@ -200,6 +202,17 @@ const handleClearReports = async (id: string) => {
   const handleMarkSuggestionRead = async (id: string) => {
     await markSuggestionRead(id)
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s))
+  }
+
+  const handleAccommodationWarningSent = (deadlineAt: string | null) => {
+    if (!warningReport) return
+    setAccommodationReports(prev => prev.map(report =>
+      report.id === warningReport.id
+        ? { ...report, status: 'reviewed', report_warning_sent_at: new Date().toISOString(), report_edit_deadline_at: deadlineAt }
+        : report
+    ))
+    setWarningReport(null)
+    showToast('Notification sent to the accommodation owner.', 'success')
   }
 
   if (loading) return (
@@ -496,6 +509,20 @@ const activeList =
                 <p className="text-cream-muted text-xs mt-1 pl-2 border-l-2 border-red-500/40">
                   "{report.reason}" — {report.reporter_name || 'Unknown user'}
                 </p>
+                <div className="flex items-center justify-between gap-3 mt-4">
+                  <div className="text-cream-muted text-[11px]">
+                    {report.report_edit_deadline_at
+                      ? `Correction deadline: ${new Date(report.report_edit_deadline_at).toLocaleString()}`
+                      : 'Owner has not yet been notified.'}
+                  </div>
+                  <button
+                    onClick={() => setWarningReport(report)}
+                    className="inline-flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light text-white text-xs font-bold px-3 py-2 rounded-xl"
+                  >
+                    <MessageSquareText size={13} />
+                    {report.report_edit_deadline_at ? 'Send again' : 'Notify owner'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -617,6 +644,13 @@ const activeList =
           </div>
         ))}
       </div>
+      {warningReport && (
+        <AccommodationReportWarningModal
+          report={warningReport}
+          onClose={() => setWarningReport(null)}
+          onSent={handleAccommodationWarningSent}
+        />
+      )}
       <BottomNav />
     </div>
   )
