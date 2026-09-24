@@ -148,7 +148,7 @@ export default function AccommodationDetail() {
           </div>
         )}
 
-        {!isOwner && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
+        {!isOwner && currentUser?.account_type !== 'business' && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
 
         <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
           <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-current" /> {average ? average.toFixed(1) : '—'}</div></div>
