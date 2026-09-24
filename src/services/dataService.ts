@@ -90,6 +90,9 @@ export interface AccommodationListing {
   seller?: Profile
   avg_rating: number
   total_reviews: number
+  report_warning_sent_at?: string | null
+  report_edit_deadline_at?: string | null
+  report_required_field?: string | null
 }
 
 export interface AccommodationReview {
@@ -1185,6 +1188,70 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
   const { data: business } = await supabase.from('business_profiles').select('website').eq('id', (data as any).seller_id).maybeSingle()
   return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], video_url: data.video_url || null, universities: data.universities || [], building_count: data.building_count || 1, building_addresses: data.building_addresses || [], seller_website: business?.website ?? null, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+}
+
+export type AccommodationReportField =
+  | 'title'
+  | 'monthly_rent'
+  | 'address'
+  | 'description'
+  | 'amenities'
+  | 'image_urls'
+  | 'universities'
+  | 'building_count'
+  | 'building_addresses'
+
+export async function updateAccommodationReportedField(
+  listingId: string,
+  sellerId: string,
+  field: AccommodationReportField,
+  value: string
+): Promise<{ error: string | null }> {
+  let patch: Record<string, unknown>
+
+  switch (field) {
+    case 'title':
+    case 'address':
+    case 'description':
+      patch = { [field]: value.trim() }
+      break
+    case 'monthly_rent': {
+      const amount = value.trim()
+      patch = { monthly_rent: amount ? Number(amount) : null }
+      if (amount && (!Number.isFinite(Number(amount)) || Number(amount) < 0)) {
+        return { error: 'Enter a valid monthly rent.' }
+      }
+      break
+    }
+    case 'building_count': {
+      const count = Number(value)
+      if (!Number.isInteger(count) || count < 1) return { error: 'Enter a valid building count.' }
+      patch = { building_count: count }
+      break
+    }
+    case 'amenities':
+      patch = { amenities: value.split(',').map(item => item.trim()).filter(Boolean) }
+      break
+    case 'universities':
+      patch = { universities: value.split(',').map(item => item.trim()).filter(Boolean) }
+      break
+    case 'building_addresses':
+      patch = { building_addresses: value.split('\n').map(item => item.trim()).filter(Boolean) }
+      break
+    case 'image_urls':
+      patch = { image_urls: value.split('\n').map(item => item.trim()).filter(Boolean) }
+      break
+    default:
+      return { error: 'Unsupported accommodation field.' }
+  }
+
+  const { error } = await supabase
+    .from('accommodation_listings')
+    .update(patch)
+    .eq('id', listingId)
+    .eq('seller_id', sellerId)
+
+  return { error: error ? error.message : null }
 }
 
 export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
