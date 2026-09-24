@@ -56,7 +56,6 @@ export default function AccommodationMarketplace() {
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
         ) : listings.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
-            <Building2 size={36} className="mx-auto text-cream-muted mb-4" />
             <p className="text-cream font-semibold">No accommodation is listed for your university yet.</p>
             <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>
           </div>
