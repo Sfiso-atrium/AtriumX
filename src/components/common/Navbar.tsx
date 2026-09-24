@@ -232,18 +232,32 @@ export default function Navbar() {
 
       <aside
         aria-label="Primary navigation"
-        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 px-5 py-5 flex flex-col transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-80 max-w-[86%] bg-slate-card border-r border-slate-border z-50 px-5 py-5 flex flex-col overflow-y-auto overscroll-contain transition-transform duration-300 ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => go(currentUser ? (currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation' : '/feed') : '/space') : '/')}
-            className="flex items-center gap-[4px]"
+            className="flex items-center min-w-0 group"
             aria-label="AtriumX home"
           >
-            <img src="/logo.png" alt="AtriumX" className="h-8 w-8 object-contain" />
-            <span className="text-[22px] font-extrabold text-teal-primary tracking-tight">triumX</span>
+            <div className="flex items-baseline gap-[1px] h-[18.2px] sm:h-[20.47px]">
+              <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0 -mt-[13.81px] sm:-mt-[15.53px] -mr-[8.09px] sm:-mr-[9.1px] translate-y-[7.35px] sm:translate-y-[8.27px]" />
+              <span
+                className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
+                style={{ letterSpacing: '-0.01em' }}
+              >
+                <span className="inline-flex" style={{ gap: '0.5px' }}>
+                  <span>t</span>
+                  <span>r</span>
+                  <span>i</span>
+                  <span>u</span>
+                  <span>m</span>
+                  <span className="ml-[0.5px]">X</span>
+                </span>
+              </span>
+            </div>
           </button>
           <button
             onClick={closeMenu}
@@ -356,7 +370,7 @@ export default function Navbar() {
               <div className="space-y-1 px-1 pb-2">
                 <a href="/How-it-works.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">How It Works</a>
                 <a href="/Faq.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">FAQ</a>
-                <a href="/Safety.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Safety Tips</a>
+                <a href="/safety.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Safety Tips</a>
                 <a href="/Terms.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Terms of Service</a>
                 <a href="/Privacy.html" onClick={closeMenu} className="block text-cream-muted hover:text-teal-light text-sm py-2 pl-3 transition-colors">Privacy Policy</a>
               </div>
