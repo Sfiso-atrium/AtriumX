@@ -11,7 +11,7 @@ export default function AccommodationDetail() {
   const [listing, setListing] = useState<AccommodationListing | null>(null)
   const [reviews, setReviews] = useState<AccommodationReview[]>([])
   const [activeImage, setActiveImage] = useState(0)
-  const [reviewStars, setReviewStars] = useState(5)
+  const [reviewStars, setReviewStars] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -52,9 +52,9 @@ export default function AccommodationDetail() {
     const { error } = await submitAccommodationReview(listing.id, currentUser.id, reviewStars, reviewComment)
     setSaving(false)
     if (error) { showToast(error, 'error'); return }
-    setReviewComment('')
-    setReviewStars(5)
     setShowReviewForm(false)
+    setReviewComment('')
+    setReviewStars(0)
     getAccommodationReviews(listing.id).then(setReviews)
     showToast('Review posted.', 'success')
   }
