@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, MapPin, MessageCircle, Send, Star, Tag } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, Plus, Send, Star, Tag } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview } from '../services/dataService'
+import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
 
 export default function AccommodationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +17,7 @@ export default function AccommodationDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
+  const [showReviewForm, setShowReviewForm] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -53,6 +54,7 @@ export default function AccommodationDetail() {
     if (error) { showToast(error, 'error'); return }
     setReviewComment('')
     setReviewStars(5)
+    setShowReviewForm(false)
     getAccommodationReviews(listing.id).then(setReviews)
     showToast('Review posted.', 'success')
   }
@@ -97,8 +99,9 @@ export default function AccommodationDetail() {
               </div>
               {listing.monthly_rent != null ? <p className="text-teal-light font-extrabold text-xl">From R{listing.monthly_rent.toLocaleString('en-ZA')} <span className="text-cream-muted text-sm font-semibold">/ month</span></p> : <p className="text-cream-muted text-sm font-semibold">Pricing available by room type</p>}
               <p className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> {listing.address}</p>
+              {listing.building_addresses?.map((addr, i) => addr ? <p key={i} className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> <span><span className="font-semibold text-cream">Building {i + 2}:</span> {addr}</span></p> : null)}
               <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">Buildings:</span> {listing.building_count}</p>
-              <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">University:</span> {listing.universities.join(', ')}</p>
+              {listing.seller_website && <a href={/^https?:\/\//i.test(listing.seller_website) ? listing.seller_website : `https://${listing.seller_website}`} target="_blank" rel="noopener noreferrer" className="text-teal-light text-sm flex items-center gap-1.5 hover:underline w-fit break-all"><Globe size={15} className="flex-shrink-0" /> {listing.seller_website}</a>}
               {listing.description && <p className="text-cream-muted text-sm leading-relaxed whitespace-pre-wrap mt-1">{listing.description}</p>}
             </div>
           </div>
@@ -121,7 +124,7 @@ export default function AccommodationDetail() {
             {showPricing && (
               <div className="px-4 pb-4 space-y-3">
                 {listing.room_pricing.map(room => {
-                  const label = room.room_type === 'single' ? 'Single' : room.room_type === 'shared_2' ? 'Shared 2' : 'Shared 3'
+                  const label = roomTypeLabel(room.room_type)
                   const prices = [
                     ['Bursary', room.bursary],
                     ['NSFAS', room.nsfas],
@@ -151,10 +154,10 @@ export default function AccommodationDetail() {
         {!isOwner && currentUser?.account_type !== 'business' && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
 
         <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
-          <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-current" /> {average ? average.toFixed(1) : '—'}</div></div>
-          {!isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-gold' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
+          <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="flex items-center gap-3"><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-amber-400 text-amber-400" /> {average ? average.toFixed(1) : '—'}</div>{!isOwner && (!currentUser || (currentUser.account_type === 'student' && !reviews.some(r => r.student_id === currentUser.id))) && <button onClick={() => { if (!currentUser) { setAuthPromptOpen(true); return } setShowReviewForm(v => !v) }} aria-label="Write a review" className="w-8 h-8 rounded-full bg-gold hover:bg-gold/90 text-slate-deep flex items-center justify-center transition-colors flex-shrink-0"><Plus size={16} strokeWidth={2.5} /></button>}</div></div>
+          {showReviewForm && !isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-amber-400' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
           <div className="space-y-4">
-            {reviews.length === 0 ? <p className="text-cream-muted text-sm">No reviews yet.</p> : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-gold mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
+            {reviews.length === 0 ? <p className="text-cream-muted text-sm">No reviews yet.</p> : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
           </div>
         </section>
       </main>
