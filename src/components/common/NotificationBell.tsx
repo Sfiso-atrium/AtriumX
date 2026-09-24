@@ -89,6 +89,8 @@ export default function NotificationBell() {
         setRatingBuyerId(data.buyer_id)
         setRatingTarget(notif)
       }
+    } else if (notif.type === 'accommodation_report_warning' && notif.accommodation_listing_id) {
+      navigate(`/accommodation/${notif.accommodation_listing_id}`)
     } else if (notif.type === 'listing_approved' && notif.listing_id) {
       navigate(`/listing/${notif.listing_id}`)
     } else if (notif.type === 'listing_rejected' && currentUser) {
