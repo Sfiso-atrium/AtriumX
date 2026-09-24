@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Globe } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Globe, Building2, Plus, ArrowRight } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { Profile as ProfileType, Listing, Rating, BusinessProfile, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile, logout } from '../services/dataService'
+import {
+  Profile as ProfileType, Listing, Rating, BusinessProfile, AccommodationListing, AccommodationPlanKey,
+  ACCOMMODATION_PLANS, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile,
+  getAccommodationListingsBySeller, logout,
+} from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
+import AccommodationCard from '../components/common/AccommodationCard'
 import BottomNav from '../components/common/BottomNav'
 
 export default function Profile() {
@@ -14,6 +19,11 @@ export default function Profile() {
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [ratings, setRatings] = useState<Rating[]>([])
+  // The accommodation account's own property — shown only to them, on their
+  // own profile. This is the management panel that used to live on the
+  // /accommodation home screen; that screen now shows OTHER accommodation
+  // instead (see AccommodationHome.tsx).
+  const [accommodationListings, setAccommodationListings] = useState<AccommodationListing[]>([])
   const [loading, setLoading] = useState(true)
   const [showSold, setShowSold] = useState(false)
   const [showReviews, setShowReviews] = useState(false)
@@ -26,10 +36,17 @@ export default function Profile() {
         setListings(l)
         setRatings(r)
         setLoading(false)
-        if (p?.account_type === 'business') getBusinessProfile(userId).then(setBusiness)
+        if (p?.account_type === 'business') {
+          getBusinessProfile(userId).then(b => {
+            setBusiness(b)
+            if (b?.is_accommodation && currentUser?.id === userId) {
+              getAccommodationListingsBySeller(userId).then(setAccommodationListings)
+            }
+          })
+        }
       }
     )
-  }, [userId])
+  }, [userId, currentUser?.id])
 
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
@@ -125,6 +142,53 @@ export default function Profile() {
               )}
             </div>
           )}
+
+          {isOwn && business?.is_accommodation && (() => {
+            const plan = business.accommodation_plan as AccommodationPlanKey
+            const maxProperties = 1
+            const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
+            const atLimit = accommodationListings.length >= maxProperties
+            return (
+              <div className="bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-6 mb-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-1">Accommodation</p>
+                    <h2 className="font-serif text-xl text-cream">Your accommodation listing</h2>
+                  </div>
+                  {accommodationListings.length === 0 ? (
+                    <button onClick={() => navigate('/accommodation/plan-select')} className="inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm">
+                      <Plus size={16} /> Add accommodation
+                    </button>
+                  ) : (
+                    <button onClick={() => navigate(`/accommodation/${accommodationListings[0].id}`)} className="inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm">
+                      View accommodation
+                    </button>
+                  )}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3 mt-5">
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Current plan</p><p className="text-cream font-bold mt-1">{ACCOMMODATION_PLANS[plan].label}</p></div>
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Accommodation listings</p><p className="text-cream font-bold mt-1">{Math.min(accommodationListings.length, maxProperties)} / {maxProperties}</p></div>
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Universities</p><p className="text-cream font-bold mt-1">{business.universities.length} / {maxUniversities}</p></div>
+                </div>
+                {atLimit && <p className="text-cream-muted text-xs mt-4">Your accommodation account uses one listing for the whole provider. Add all buildings and room pricing to that listing.</p>}
+                {accommodationListings.length === 0 && (
+                  <div className="border border-dashed border-slate-border rounded-2xl py-10 text-center mt-5">
+                    <Building2 size={30} className="mx-auto text-cream-muted mb-3" />
+                    <p className="text-cream font-semibold text-sm">You have no accommodation listing yet.</p>
+                    <p className="text-cream-muted text-xs mt-1.5">Start with your property details, monthly rent and what you offer.</p>
+                    <button onClick={() => navigate('/accommodation/plan-select')} className="mt-4 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2 rounded-xl text-xs">
+                      Create listing <ArrowRight size={13} />
+                    </button>
+                  </div>
+                )}
+                {accommodationListings.length > 0 && (
+                  <div className="flex gap-4 overflow-x-auto pb-1 mt-5">
+                    {accommodationListings.map(item => <AccommodationCard key={item.id} listing={item} />)}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {isOwn && pendingListings.length > 0 && (
             <p className="text-gold text-sm mb-4 transition-all duration-300 hover:translate-x-1 hover:scale-[1.01]">
