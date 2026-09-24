@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import { Compass, Plus, UserRound } from 'lucide-react'
 import { PostTypeModal } from './PostTypeChooser'
@@ -52,6 +52,27 @@ export default function BottomNav() {
   const location = useLocation()
   const { currentUser, businessProfile, setAuthPromptOpen, setRedirectAfterLogin, unreadMessageCount } = useApp()
   const [chooserOpen, setChooserOpen] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+
+  // Publish how much room this bar takes from the bottom of the screen so
+  // LegalFooter (and anything else) can keep that space clear.
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    const publish = () => {
+      const space = Math.max(0, window.innerHeight - el.getBoundingClientRect().top)
+      document.documentElement.style.setProperty('--bottom-nav-space', `${Math.ceil(space)}px`)
+    }
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(el)
+    window.addEventListener('resize', publish)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', publish)
+      document.documentElement.style.removeProperty('--bottom-nav-space')
+    }
+  }, [])
 
   const isActive = (path: string) => {
     if (path === '/space') return location.pathname === '/space'
@@ -115,6 +136,7 @@ export default function BottomNav() {
           md and up: the compact floating pill, centred at the bottom.
           Same tabs and behaviour in both; only the shell changes. */}
       <nav
+        ref={navRef}
         aria-label="Main navigation"
         className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-t border-slate-border shadow-[0_-4px_20px_rgba(15,23,42,0.06)] md:right-auto md:left-1/2 md:-translate-x-1/2 md:w-max md:bottom-5 md:bg-white md:border md:rounded-full md:shadow-[0_12px_32px_rgba(15,23,42,0.12),0_4px_12px_rgba(15,23,42,0.08)]"
       >
