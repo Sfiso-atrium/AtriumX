@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ImagePlus, Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, AccommodationRoomType, createAccommodationListing, getAccommodationListings, getBusinessProfile, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
+import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, createAccommodationListing, getAccommodationListings, getBusinessProfile, roomTypeLabel, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
 
@@ -10,12 +10,15 @@ const AMENITY_OPTIONS = [
   'Gym', '24hr study room', 'Wi-Fi', 'Laundry', 'Security', 'CCTV', 'Parking', 'Pool', 'Backup power', 'Common area', 'Cleaning service', 'Shuttle'
 ]
 
+type RoomDraft = { id: number; sharing: string; bursary: number | null; nsfas: number | null; self_funded: number | null }
+
 export default function AccommodationPostListing() {
   const navigate = useNavigate()
   const { currentUser, businessProfile, showToast, isLoadingAuth } = useApp()
   const [title, setTitle] = useState('')
   const [buildingCount, setBuildingCount] = useState('1')
-  const [roomPricing, setRoomPricing] = useState<AccommodationRoomPricing[]>([])
+  const [roomPricing, setRoomPricing] = useState<RoomDraft[]>([])
+  const [buildingAddresses, setBuildingAddresses] = useState<string[]>([])
   const [address, setAddress] = useState(businessProfile?.physical_address || '')
   const [description, setDescription] = useState('')
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
@@ -57,19 +60,34 @@ export default function AccommodationPostListing() {
   }
 
   const addRoomType = () => {
-    const available: AccommodationRoomType[] = ['single', 'shared_2', 'shared_3']
-    const next = available.find(type => !roomPricing.some(room => room.room_type === type))
-    if (!next) return
-    setRoomPricing(prev => [...prev, { room_type: next, bursary: null, nsfas: null, self_funded: null }])
+    setRoomPricing(prev => {
+      const used = new Set(prev.map(room => Number(room.sharing)))
+      let next = 1
+      while (used.has(next)) next += 1
+      return [...prev, { id: prev.reduce((max, room) => Math.max(max, room.id), 0) + 1, sharing: String(next), bursary: null, nsfas: null, self_funded: null }]
+    })
   }
 
-  const updateRoomPricing = (roomType: AccommodationRoomType, key: 'bursary' | 'nsfas' | 'self_funded', value: string) => {
+  const updateRoomSharing = (id: number, value: string) => {
+    setRoomPricing(prev => prev.map(room => room.id === id ? { ...room, sharing: value.replace(/[^0-9]/g, '') } : room))
+  }
+
+  const updateRoomPricing = (id: number, key: 'bursary' | 'nsfas' | 'self_funded', value: string) => {
     const amount = value.replace(/[^0-9]/g, '')
-    setRoomPricing(prev => prev.map(room => room.room_type === roomType ? { ...room, [key]: amount ? Number(amount) : null } : room))
+    setRoomPricing(prev => prev.map(room => room.id === id ? { ...room, [key]: amount ? Number(amount) : null } : room))
   }
 
-  const removeRoomType = (roomType: AccommodationRoomType) => {
-    setRoomPricing(prev => prev.filter(room => room.room_type !== roomType))
+  const removeRoomType = (id: number) => {
+    setRoomPricing(prev => prev.filter(room => room.id !== id))
+  }
+
+  const updateBuildingAddress = (index: number, value: string) => {
+    setBuildingAddresses(prev => {
+      const next = [...prev]
+      while (next.length <= index) next.push('')
+      next[index] = value
+      return next
+    })
   }
 
   const handleVideoFile = async (file: File | undefined) => {
@@ -103,6 +121,14 @@ export default function AccommodationPostListing() {
     if (selectedUniversities.length === 0) return setError('Choose at least one university.')
     if (selectedUniversities.length > maxUniversities) return setError(`Your plan allows up to ${maxUniversities} universities.`)
     if (images.length > maxPhotos) return setError(`Your plan allows up to ${maxPhotos} photos.`)
+    const rooms: AccommodationRoomPricing[] = []
+    for (const room of roomPricing) {
+      const sharing = Number(room.sharing)
+      if (!Number.isSafeInteger(sharing) || sharing < 1) return setError('Enter how many students share each room type.')
+      rooms.push({ room_type: sharing === 1 ? 'single' : `shared_${sharing}`, bursary: room.bursary, nsfas: room.nsfas, self_funded: room.self_funded })
+    }
+    if (new Set(rooms.map(room => room.room_type)).size !== rooms.length) return setError('Each room type can only be added once.')
+    const extraAddresses = plan === 'accommodation_free' ? [] : buildingAddresses.slice(0, Math.max(buildings - 1, 0)).map(item => item.trim())
 
     setBusy(true)
     const { id, error: createError } = await createAccommodationListing({
@@ -115,7 +141,8 @@ export default function AccommodationPostListing() {
       imageUrls: images,
       universities: selectedUniversities,
       planTier: plan,
-      roomPricing,
+      roomPricing: rooms,
+      buildingAddresses: extraAddresses,
       videoUrl,
     })
     setBusy(false)
@@ -147,6 +174,14 @@ export default function AccommodationPostListing() {
                 <input value={buildingCount} onChange={e => setBuildingCount(e.target.value.replace(/[^0-9]/g, ''))} min="1" type="number" inputMode="numeric" placeholder="e.g. 3" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
               </div>
               <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Property address" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light self-end" />
+              {plan !== 'accommodation_free' && Number(buildingCount) > 1 && (
+                <div className="sm:col-span-2 space-y-3">
+                  <p className="text-cream-muted text-xs">Optional. Add an address for each additional building. The address above counts as building 1.</p>
+                  {Array.from({ length: Number(buildingCount) - 1 }, (_, i) => (
+                    <input key={i} value={buildingAddresses[i] ?? ''} onChange={e => updateBuildingAddress(i, e.target.value)} placeholder={`Building ${i + 2} address (optional)`} className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                  ))}
+                </div>
+              )}
               <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the property for students" rows={5} className="w-full sm:col-span-2 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light resize-y" />
             </div>
             {hasExistingListing && <p className="text-amber-300 text-xs mt-4">You already have an accommodation listing. Your provider is limited to one listing so all of your buildings belong in that listing.</p>}
@@ -155,21 +190,28 @@ export default function AccommodationPostListing() {
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div><h2 className="text-cream font-bold text-base">Room pricing</h2><p className="text-cream-muted text-xs mt-1">Optional. Add only the room types and funding prices you want students to see.</p></div>
-              <button type="button" onClick={addRoomType} disabled={roomPricing.length >= 3} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold disabled:opacity-40"><Plus size={14} /> Add room type</button>
+              <button type="button" onClick={addRoomType} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold disabled:opacity-40"><Plus size={14} /> Add room type</button>
             </div>
             {roomPricing.length === 0 ? (
               <p className="text-cream-muted text-xs border border-dashed border-slate-border rounded-xl py-8 text-center">No room pricing added. This section is optional.</p>
             ) : (
               <div className="space-y-4">
                 {roomPricing.map(room => {
-                  const label = room.room_type === 'single' ? 'Single' : room.room_type === 'shared_2' ? 'Shared 2' : 'Shared 3'
+                  const label = room.sharing ? roomTypeLabel(Number(room.sharing) === 1 ? 'single' : `shared_${Number(room.sharing)}`) : 'Room type'
                   return (
-                    <div key={room.room_type} className="border border-slate-border rounded-2xl p-4">
-                      <div className="flex items-center justify-between gap-3 mb-3"><p className="text-cream font-bold text-sm">{label}</p><button type="button" onClick={() => removeRoomType(room.room_type)} className="text-cream-muted hover:text-cream" aria-label={`Remove ${label} pricing`}><X size={16} /></button></div>
+                    <div key={room.id} className="border border-slate-border rounded-2xl p-4">
+                      <div className="flex items-end justify-between gap-3 mb-3">
+                        <div className="flex items-end gap-3">
+                          <label className="text-xs text-cream-muted">How many share<input value={room.sharing} onChange={e => updateRoomSharing(room.id, e.target.value)} placeholder="e.g. 4" inputMode="numeric" className="mt-1.5 w-24 block bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
+                          <p className="text-cream font-bold text-sm pb-2.5">{label}</p>
+                        </div>
+                        <button type="button" onClick={() => removeRoomType(room.id)} className="text-cream-muted hover:text-cream pb-2.5" aria-label={`Remove ${label} pricing`}><X size={16} /></button>
+                      </div>
+
                       <div className="grid sm:grid-cols-3 gap-3">
-                        <label className="text-xs text-cream-muted">Bursary<input value={room.bursary ?? ''} onChange={e => updateRoomPricing(room.room_type, 'bursary', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
-                        <label className="text-xs text-cream-muted">NSFAS<input value={room.nsfas ?? ''} onChange={e => updateRoomPricing(room.room_type, 'nsfas', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
-                        <label className="text-xs text-cream-muted">Self-funded<input value={room.self_funded ?? ''} onChange={e => updateRoomPricing(room.room_type, 'self_funded', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
+                        <label className="text-xs text-cream-muted">Bursary<input value={room.bursary ?? ''} onChange={e => updateRoomPricing(room.id, 'bursary', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
+                        <label className="text-xs text-cream-muted">NSFAS<input value={room.nsfas ?? ''} onChange={e => updateRoomPricing(room.id, 'nsfas', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
+                        <label className="text-xs text-cream-muted">Self-funded<input value={room.self_funded ?? ''} onChange={e => updateRoomPricing(room.id, 'self_funded', e.target.value)} placeholder="Optional" inputMode="numeric" className="mt-1.5 w-full bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" /></label>
                       </div>
                     </div>
                   )
