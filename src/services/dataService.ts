@@ -144,11 +144,12 @@ export interface Notification {
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
         'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
         'deadline_reminder' | 'watchlist_match' | 'referral_listing' |
-        'group_deadline_reminder' | 'group_deadline_update' | 'group_message'
+        'group_deadline_reminder' | 'group_deadline_update' | 'group_message' | 'accommodation_report_warning'
   message: string
   listing_id: string | null
   conversation_id: string | null
   group_id: string | null
+  accommodation_listing_id: string | null
   read: boolean
   created_at: string
 }
@@ -188,6 +189,9 @@ export interface AccommodationReport {
   seller_name: string | null
   listing_title: string
   listing_image_urls: string[]
+  report_warning_sent_at: string | null
+  report_edit_deadline_at: string | null
+  report_required_field: string | null
 }
 
 export interface ChatReport extends Report {
@@ -1666,6 +1670,22 @@ export async function getAccommodationReportsForAdmin(): Promise<AccommodationRe
   const { data, error } = await supabase.rpc('get_accommodation_reports_admin')
   if (error || !data) return []
   return data as AccommodationReport[]
+}
+
+export async function sendAccommodationReportWarning(
+  reportId: string,
+  message: string,
+  requiredField: string
+): Promise<{ error: string | null; deadlineAt: string | null }> {
+  const { data, error } = await supabase.rpc('send_accommodation_report_warning', {
+    p_report_id: reportId,
+    p_message: message,
+    p_required_field: requiredField,
+  })
+  return {
+    error: error ? error.message : null,
+    deadlineAt: data?.[0]?.edit_deadline_at ?? null,
+  }
 }
 
 export async function clearAccommodationReports(
