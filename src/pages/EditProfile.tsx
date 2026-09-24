@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { updateProfile } from '../services/dataService'
+import { updateProfile, updateBusinessContact } from '../services/dataService'
 import { supabase } from '../services/supabaseClient'
 
 const AVATAR_COLORS = [
@@ -16,13 +16,21 @@ const AVATAR_COLORS = [
 
 export default function EditProfile() {
   const navigate = useNavigate()
-  const { currentUser, setCurrentUser, showToast } = useApp()
+  const { currentUser, setCurrentUser, showToast, businessProfile, refreshBusinessProfile } = useApp()
 
   const [fullName, setFullName] = useState(currentUser?.full_name ?? '')
   const [residence, setResidence] = useState(currentUser?.residence ?? '')
   const [avatarColor, setAvatarColor] = useState(currentUser?.avatar_color ?? AVATAR_COLORS[0])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [physicalAddress, setPhysicalAddress] = useState(businessProfile?.physical_address ?? '')
+  const [website, setWebsite] = useState(businessProfile?.website ?? '')
+
+  useEffect(() => {
+    if (!businessProfile) return
+    setPhysicalAddress(businessProfile.physical_address ?? '')
+    setWebsite(businessProfile.website ?? '')
+  }, [businessProfile])
 
   // Redirect if somehow reached without a session
   if (!currentUser) {
@@ -49,6 +57,10 @@ const isBusiness = currentUser.account_type === 'business'
     }
     if (!isBusiness && !residence.trim()) {
       setError('Residence is required.')
+      return
+    }
+    if (isBusiness && !physicalAddress.trim() && !website.trim()) {
+      setError('Add a physical address or a website — at least one.')
       return
     }
 
@@ -80,6 +92,17 @@ const { user, error: updateErr } = await updateProfile(currentUser.id, {
 
     if (user) {
       setCurrentUser(user)
+    }
+
+    if (isBusiness) {
+      setLoading(true)
+      const { error: contactErr } = await updateBusinessContact(physicalAddress, website)
+      setLoading(false)
+      if (contactErr) {
+        setError(contactErr)
+        return
+      }
+      await refreshBusinessProfile()
     }
 
     showToast('Profile updated.', 'success')
@@ -155,6 +178,30 @@ const { user, error: updateErr } = await updateProfile(currentUser.id, {
               Type your residence name exactly as it appears on campus.
             </p>
           </div>
+          )}
+
+          {isBusiness && (
+            <>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Physical address (e.g. Shop 4, Campus Square)"
+                  value={physicalAddress}
+                  onChange={e => setPhysicalAddress(e.target.value)}
+                  className={inputClass}
+                />
+                <p className="text-cream-muted text-xs px-1 mt-1">
+                  Add a physical address or a website — at least one.
+                </p>
+              </div>
+              <input
+                type="url"
+                placeholder="Website (e.g. https://yourbusiness.co.za)"
+                value={website}
+                onChange={e => setWebsite(e.target.value)}
+                className={inputClass}
+              />
+            </>
           )}
 
           {error && (
