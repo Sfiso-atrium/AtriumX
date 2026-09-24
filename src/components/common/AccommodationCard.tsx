@@ -60,11 +60,7 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
             ) : null}
           </div>
 
-          {listing.universities.length > 0 && (
-            <div className="text-cream-muted text-xs">
-              <span className="font-semibold text-cream">For:</span> {listing.universities.join(' · ')}
-            </div>
-          )}
+
 
           {listing.building_count > 1 && (
             <div className="text-cream-muted text-xs">
