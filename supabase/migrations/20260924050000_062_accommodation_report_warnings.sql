@@ -228,7 +228,11 @@ GRANT EXECUTE ON FUNCTION public.send_accommodation_report_warning(uuid, text, t
 
 -- Refresh the existing admin report RPC so the admin page also receives the
 -- warning/deadline state after a reload.
-CREATE OR REPLACE FUNCTION public.get_accommodation_reports_admin()
+-- PostgreSQL does not allow CREATE OR REPLACE FUNCTION when the OUT/TABLE
+-- return type changes, so remove the old zero-argument function first.
+DROP FUNCTION IF EXISTS public.get_accommodation_reports_admin();
+
+CREATE FUNCTION public.get_accommodation_reports_admin()
 RETURNS TABLE (
   id uuid,
   accommodation_listing_id uuid,
