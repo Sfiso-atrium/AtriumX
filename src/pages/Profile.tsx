@@ -145,8 +145,9 @@ export default function Profile() {
 
           {isOwn && business?.is_accommodation && (() => {
             const plan = business.accommodation_plan as AccommodationPlanKey
+            const maxProperties = 1
             const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
-            const atLimit = accommodationListings.length >= 1
+            const atLimit = accommodationListings.length >= maxProperties
             return (
               <div className="bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-6 mb-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -164,8 +165,9 @@ export default function Profile() {
                     </button>
                   )}
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3 mt-5">
+                <div className="grid sm:grid-cols-3 gap-3 mt-5">
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Current plan</p><p className="text-cream font-bold mt-1">{ACCOMMODATION_PLANS[plan].label}</p></div>
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Accommodation listings</p><p className="text-cream font-bold mt-1">{Math.min(accommodationListings.length, maxProperties)} / {maxProperties}</p></div>
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Universities</p><p className="text-cream font-bold mt-1">{business.universities.length} / {maxUniversities}</p></div>
                 </div>
                 {atLimit && <p className="text-cream-muted text-xs mt-4">Your accommodation account uses one listing for the whole provider. Add all buildings and room pricing to that listing.</p>}
@@ -211,6 +213,7 @@ export default function Profile() {
           )}
 
           {!business?.is_accommodation && (
+            <>
           <div className="group/section flex items-end justify-between gap-3 mb-3 transition-all duration-200 hover:translate-x-0.5">
             <div>
               <p className="text-cream-muted text-xs uppercase tracking-wide">Your AtriumX</p>
@@ -259,8 +262,6 @@ export default function Profile() {
                 </div>
               )}
             </>
-          )}
-
           )}
 
           {/* Reviews are attached to the seller, not to any single listing —
@@ -314,6 +315,8 @@ export default function Profile() {
                   ))}
                 </div>
               )}
+            </>
+          )}
             </>
           )}
         </div>
