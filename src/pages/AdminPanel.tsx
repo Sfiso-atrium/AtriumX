@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext'
 import {
   Listing,
   Report,
+  AccommodationReport,
   ChatReport,
   BusinessProfile,
   Profile,
@@ -14,6 +15,7 @@ import {
   getAllListingsAdmin,
   getEditedListings,
   getReportsForListings,
+  getAccommodationReportsForAdmin,
   getChatReports,
   approveListingById,
   rejectListingById,
@@ -46,6 +48,7 @@ const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
+  const [accommodationReports, setAccommodationReports] = useState<AccommodationReport[]>([])
 const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
   const [chatReports, setChatReports] = useState<ChatReport[]>([])
   const [partners, setPartners] = useState<Awaited<ReturnType<typeof getAllPartnersAdmin>>>([])
@@ -60,8 +63,8 @@ const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { 
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin()])
-      .then(([pending, all, edited, businesses, chatReps, partnerList, suggestionList]) => {
+Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
+      .then(([pending, all, edited, businesses, chatReps, partnerList, suggestionList, accommodationReps]) => {
         setPendingListings(pending)
         setAllListings(all)
         setEditedListings(edited)
@@ -69,6 +72,7 @@ Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), g
         setChatReports(chatReps)
         setPartners(partnerList)
         setSuggestions(suggestionList)
+        setAccommodationReports(accommodationReps)
         const reported = all.filter(l => l.report_count > 0)
         setReportedListings(reported)
         setLoading(false)
@@ -469,7 +473,34 @@ const activeList =
             </div>
           )
         )}
-{tab !== 'businesses' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 ? (
+{tab === 'reports' && accommodationReports.length > 0 && (
+          <div className="flex flex-col gap-4 mb-6">
+            {accommodationReports.map(report => (
+              <div key={report.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-cream font-bold text-sm truncate">{report.listing_title}</p>
+                    <p className="text-cream-muted text-xs mt-0.5">
+                      {report.seller_name || 'Unknown owner'} · Accommodation
+                    </p>
+                  </div>
+                  {report.listing_image_urls?.[0] && (
+                    <img
+                      src={report.listing_image_urls[0]}
+                      alt=""
+                      className="w-16 h-16 object-cover rounded-xl flex-shrink-0"
+                    />
+                  )}
+                </div>
+                <p className="text-red-400 text-xs font-medium">Report</p>
+                <p className="text-cream-muted text-xs mt-1 pl-2 border-l-2 border-red-500/40">
+                  "{report.reason}" — {report.reporter_name || 'Unknown user'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+{tab !== 'businesses' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'pending' ? 'No pending listings.' :
