@@ -325,7 +325,7 @@ const filteredBusiness = useMemo(() => {
           {featuredListings.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-lg">Featured listings</h2>
+                <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Featured listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -339,7 +339,7 @@ const filteredBusiness = useMemo(() => {
           {!lookingForLoading && lookingFor.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-lg">People are looking for</h2>
+                <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">People are looking for</h2>
                 <HandHelping size={17} className="text-blue-600" />
               </div>
               <div className="px-4 flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -377,7 +377,7 @@ const filteredBusiness = useMemo(() => {
           {verifiedListings.length > 0 && (
             <section className={spottedListings.length === 0 && otherListings.length === 0 ? 'pb-24' : 'pb-5'}>
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-lg">Verified listings</h2>
+                <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Verified listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -391,7 +391,7 @@ const filteredBusiness = useMemo(() => {
           {spottedListings.length > 0 && (
             <section className={otherListings.length === 0 ? 'pb-24' : 'pb-5'}>
               <div className="px-4 pb-2 flex items-center justify-between">
-                <h2 className="text-cream font-bold text-lg">Spotted listings</h2>
+                <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Spotted listings</h2>
                 <span className="text-cream-muted text-[11px]">Scroll</span>
               </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
@@ -412,7 +412,14 @@ const filteredBusiness = useMemo(() => {
             )
           ) : (
             <section className="pb-24">
-              <div className="px-4 pb-2"><h2 className="text-cream font-bold text-lg">More listings</h2></div>
+              {/* "More listings" only needs a caption when Featured, Verified
+                  or Spotted listings are also on the page. When it's the
+                  only section here (the common case, since most listings
+                  have no paid tier), a caption would just be describing the
+                  whole page, so it's left out rather than shown. */}
+              {!(featuredListings.length === 0 && verifiedListings.length === 0 && spottedListings.length === 0) && (
+                <div className="px-4 pb-2"><h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">More listings</h2></div>
+              )}
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
                 {otherListings.map(listing => (
                   <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
