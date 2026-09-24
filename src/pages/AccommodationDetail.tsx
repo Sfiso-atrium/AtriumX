@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, Plus, Send, Star, Tag } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
+import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
 import AccommodationReportModal from '../components/student/AccommodationReportModal'
+import AccommodationReportEditModal from '../components/student/AccommodationReportEditModal'
 
 export default function AccommodationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -20,6 +21,7 @@ export default function AccommodationDetail() {
   const [showPricing, setShowPricing] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showReportEditModal, setShowReportEditModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -33,6 +35,8 @@ export default function AccommodationDetail() {
 
   const isOwner = currentUser?.id === listing?.seller_id
   const canReply = isOwner && businessProfile?.is_accommodation && businessProfile.accommodation_plan !== 'accommodation_free'
+  const reportedField = listing.report_required_field as AccommodationReportField | null | undefined
+  const hasActiveReportDeadline = Boolean(isOwner && reportedField && listing.report_edit_deadline_at)
   const average = useMemo(() => reviews.length ? reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length : 0, [reviews])
 
   if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
@@ -85,6 +89,18 @@ export default function AccommodationDetail() {
         {!isOwner && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {hasActiveReportDeadline && (
+          <div className="mb-4 bg-red-500/5 border border-red-500/20 rounded-2xl p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-red-300 text-sm font-bold">Action required on this listing</p>
+                <p className="text-cream-muted text-xs leading-relaxed mt-1">Edit the reported {reportedField === 'image_urls' ? 'photos' : reportedField === 'monthly_rent' ? 'monthly rent' : reportedField === 'building_count' ? 'building count' : reportedField === 'building_addresses' ? 'building addresses' : reportedField} before {new Date(listing.report_edit_deadline_at!).toLocaleString()} or the listing will be removed from the accommodation feed.</p>
+              </div>
+              <button onClick={() => setShowReportEditModal(true)} className="flex-shrink-0 bg-teal-primary hover:bg-teal-light text-white text-xs font-bold px-3 py-2 rounded-xl">Edit now</button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
           <div className="md:flex md:gap-6 md:items-stretch">
             <div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-slate-deep overflow-hidden">
@@ -172,6 +188,18 @@ export default function AccommodationDetail() {
         <AccommodationReportModal
           accommodationListingId={listing.id}
           onClose={() => setShowReportModal(false)}
+        />
+      )}
+      {showReportEditModal && reportedField && (
+        <AccommodationReportEditModal
+          listing={listing}
+          field={reportedField}
+          onClose={() => setShowReportEditModal(false)}
+          onSaved={next => {
+            setListing(next)
+            setShowReportEditModal(false)
+            showToast('Correction saved. The 3-day warning has been cleared.', 'success')
+          }}
         />
       )}
     </div>
