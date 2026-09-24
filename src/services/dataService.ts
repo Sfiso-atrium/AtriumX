@@ -1087,6 +1087,39 @@ export async function getAccommodationListings(university?: string | null): Prom
   })) as AccommodationListing[]
 }
 
+// The owner's own properties — used on the Profile page's accommodation
+// management panel (moved there from the old AccommodationHome dashboard).
+// Same shape and review stats as getAccommodationListings(), just scoped to
+// one seller instead of "active, everywhere" or "active, one university".
+export async function getAccommodationListingsBySeller(sellerId: string): Promise<AccommodationListing[]> {
+  const { data, error } = await supabase
+    .from('accommodation_listings')
+    .select(`*, seller:profiles_public(*)`)
+    .eq('seller_id', sellerId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
+  const stats = new Map<string, { total: number; sum: number }>()
+  reviews.data?.forEach(r => {
+    const current = stats.get(r.accommodation_listing_id) || { total: 0, sum: 0 }
+    current.total += 1
+    current.sum += r.stars
+    stats.set(r.accommodation_listing_id, current)
+  })
+  return (data as any[]).map(item => ({
+    ...item,
+    amenities: item.amenities || [],
+    image_urls: item.image_urls || [],
+    video_url: item.video_url || null,
+    universities: item.universities || [],
+    building_count: item.building_count || 1,
+    room_pricing: item.room_pricing || [],
+    avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
+    total_reviews: stats.get(item.id)?.total || 0,
+  })) as AccommodationListing[]
+}
+
 export async function getAccommodationListingById(id: string, viewerId?: string): Promise<AccommodationListing | null> {
   const { data, error } = await supabase.from('accommodation_listings').select('*, seller:profiles_public(*)').eq('id', id).single()
   if (error || !data) return null
