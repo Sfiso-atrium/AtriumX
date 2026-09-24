@@ -55,7 +55,12 @@ has_pending_edit: boolean
 }
 
 
-export type AccommodationRoomType = 'single' | 'shared_2' | 'shared_3'
+// 'single' for one student, otherwise 'shared_' followed by how many share (e.g. 'shared_4').
+export type AccommodationRoomType = string
+
+export function roomTypeLabel(roomType: string): string {
+  return roomType === 'single' ? 'Single' : `Shared ${roomType.replace('shared_', '')}`
+}
 
 export interface AccommodationRoomPricing {
   room_type: AccommodationRoomType
@@ -76,6 +81,8 @@ export interface AccommodationListing {
   video_url: string | null
   universities: string[]
   building_count: number
+  building_addresses: string[]
+  seller_website?: string | null
   room_pricing: AccommodationRoomPricing[]
   plan_tier: AccommodationPlanKey
   status: 'active' | 'suspended'
@@ -1040,6 +1047,7 @@ export async function createAccommodationListing(payload: {
   planTier: AccommodationPlanKey
   roomPricing: AccommodationRoomPricing[]
   videoUrl?: string | null
+  buildingAddresses?: string[]
 }): Promise<{ id: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc('create_accommodation_listing', {
     p_seller_id: payload.sellerId,
@@ -1053,8 +1061,18 @@ export async function createAccommodationListing(payload: {
     p_plan_tier: payload.planTier,
     p_room_pricing: payload.roomPricing,
     p_video_url: payload.videoUrl || null,
+    p_building_addresses: payload.buildingAddresses ?? [],
   })
   return { id: data || null, error: error ? error.message : null }
+}
+
+async function getBusinessWebsites(sellerIds: string[]): Promise<Record<string, string | null>> {
+  const ids = Array.from(new Set(sellerIds))
+  if (ids.length === 0) return {}
+  const { data } = await supabase.from('business_profiles').select('id, website').in('id', ids)
+  const map: Record<string, string | null> = {}
+  data?.forEach(p => { map[p.id] = p.website })
+  return map
 }
 
 export async function getAccommodationListings(university?: string | null): Promise<AccommodationListing[]> {
@@ -1066,6 +1084,7 @@ export async function getAccommodationListings(university?: string | null): Prom
   if (university) query = query.contains('universities', [university])
   const { data, error } = await query
   if (error || !data) return []
+  const websites = await getBusinessWebsites((data as any[]).map(item => item.seller_id))
   const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
   const stats = new Map<string, { total: number; sum: number }>()
   reviews.data?.forEach(r => {
@@ -1081,6 +1100,8 @@ export async function getAccommodationListings(university?: string | null): Prom
     video_url: item.video_url || null,
     universities: item.universities || [],
     building_count: item.building_count || 1,
+    building_addresses: item.building_addresses || [],
+    seller_website: websites[item.seller_id] ?? null,
     room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
@@ -1099,6 +1120,7 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
     .eq('status', 'active')
     .order('created_at', { ascending: false })
   if (error || !data) return []
+  const websites = await getBusinessWebsites((data as any[]).map(item => item.seller_id))
   const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
   const stats = new Map<string, { total: number; sum: number }>()
   reviews.data?.forEach(r => {
@@ -1114,6 +1136,8 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
     video_url: item.video_url || null,
     universities: item.universities || [],
     building_count: item.building_count || 1,
+    building_addresses: item.building_addresses || [],
+    seller_website: websites[item.seller_id] ?? null,
     room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
@@ -1126,7 +1150,8 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
-  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], video_url: data.video_url || null, universities: data.universities || [], building_count: data.building_count || 1, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+  const { data: business } = await supabase.from('business_profiles').select('website').eq('id', (data as any).seller_id).maybeSingle()
+  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], video_url: data.video_url || null, universities: data.universities || [], building_count: data.building_count || 1, building_addresses: data.building_addresses || [], seller_website: business?.website ?? null, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
 }
 
 export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
@@ -1743,6 +1768,14 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
   const accommodationExpires = data.accommodation_plan_expires_at ? new Date(data.accommodation_plan_expires_at).getTime() : null
   const effectiveAccommodationPlan = accommodationExpires && accommodationExpires < Date.now() ? 'accommodation_free' : (data.accommodation_plan ?? 'accommodation_free')
   return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: effectiveAccommodationPlan, accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
+}
+
+// Business accounts can't write to business_profiles directly (migration 050),
+// so the address and website are saved through this RPC, which only touches
+// those two columns on the caller's own row.
+export async function updateBusinessContact(address: string, website: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('update_business_contact', { p_address: address, p_website: website })
+  return { error: error ? error.message : null }
 }
 
 export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
