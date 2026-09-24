@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Glo
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { AccommodationListing, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
+import AccommodationReportModal from '../components/student/AccommodationReportModal'
 
 export default function AccommodationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +19,7 @@ export default function AccommodationDetail() {
   const [saving, setSaving] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -35,6 +37,11 @@ export default function AccommodationDetail() {
 
   if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   if (!listing) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Accommodation not found.</div>
+
+  const handleReportClick = () => {
+    if (!currentUser) { setAuthPromptOpen(true); return }
+    setShowReportModal(true)
+  }
 
   const handleChat = async () => {
     if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return }
@@ -75,7 +82,7 @@ export default function AccommodationDetail() {
     <div className="min-h-screen bg-slate-deep pb-24">
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream"><ArrowLeft size={20} /></button>
-        {!isOwner && <button className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
+        {!isOwner && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
@@ -161,6 +168,12 @@ export default function AccommodationDetail() {
           </div>
         </section>
       </main>
+      {showReportModal && (
+        <AccommodationReportModal
+          accommodationListingId={listing.id}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </div>
   )
 }
