@@ -86,7 +86,10 @@ export default function BusinessPlanSelect() {
   }, [currentUser, isLoadingAuth, navigate, forcePlans])
 
   const handleSelectPlan = async (key: PlanKey) => {
-    if (planIsActive && currentPlan === key) return
+    if (planIsActive && currentPlan === key) {
+      navigate('/business/post', { state: { plan: key } })
+      return
+    }
     if (planIsActive && currentPlan) {
       const currentRank = BUSINESS_PLAN_ORDER.indexOf(currentPlan)
       const targetRank = BUSINESS_PLAN_ORDER.indexOf(key)
@@ -192,12 +195,12 @@ export default function BusinessPlanSelect() {
                 <button
                   key={key}
                   onClick={() => handleSelectPlan(key)}
-                  disabled={paying || (isCurrent && planIsActive)}
+                  disabled={paying || isLowerThanCurrent}
                   className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                     isLowerThanCurrent ? 'opacity-40 cursor-not-allowed' : ''
                   } ${
                     isSelected ? PLAN_COLORS[key] + ' bg-slate-card' : 'border-slate-border bg-slate-card hover:border-sapphire-light'
-                  } ${isCurrent && planIsActive ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
