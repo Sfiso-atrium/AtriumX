@@ -12,7 +12,6 @@ import {
   Menu,
   MessageCircle,
   NotebookPen,
-  PlusCircle,
   ShieldCheck,
   UserRound,
   X,
@@ -191,14 +190,6 @@ export default function Navbar() {
                     )}
                   </div>
                 )}
-                <button
-                  onClick={() => navigate(currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select') : '/plan-select')}
-                  className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
-                  aria-label="Create a post"
-                  title="Create a post"
-                >
-                  <PlusCircle className="w-5 h-5" />
-                </button>
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
