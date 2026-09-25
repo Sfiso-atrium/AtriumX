@@ -1181,13 +1181,34 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
 }
 
 export async function getAccommodationListingById(id: string, viewerId?: string): Promise<AccommodationListing | null> {
-  const { data, error } = await supabase.from('accommodation_listings').select('*, seller:profiles_public(*)').eq('id', id).single()
+  const { data, error } = await supabase.rpc('get_accommodation_listing_detail', { p_listing_id: id })
   if (error || !data) return null
+
+  const listing = data as any
+  const { data: seller } = await supabase
+    .from('profiles_public')
+    .select('*')
+    .eq('id', listing.seller_id)
+    .maybeSingle()
+
   const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
-  const { data: business } = await supabase.from('business_profiles').select('website').eq('id', (data as any).seller_id).maybeSingle()
-  return { ...(data as any), amenities: data.amenities || [], image_urls: data.image_urls || [], video_url: data.video_url || null, universities: data.universities || [], building_count: data.building_count || 1, building_addresses: data.building_addresses || [], seller_website: business?.website ?? null, room_pricing: data.room_pricing || [], avg_rating: total ? sum / total : 0, total_reviews: total } as AccommodationListing
+  const { data: business } = await supabase.from('business_profiles').select('website').eq('id', listing.seller_id).maybeSingle()
+  return {
+    ...listing,
+    seller: seller || undefined,
+    amenities: listing.amenities || [],
+    image_urls: listing.image_urls || [],
+    video_url: listing.video_url || null,
+    universities: listing.universities || [],
+    building_count: listing.building_count || 1,
+    building_addresses: listing.building_addresses || [],
+    seller_website: business?.website ?? null,
+    room_pricing: listing.room_pricing || [],
+    avg_rating: total ? sum / total : 0,
+    total_reviews: total
+  } as AccommodationListing
 }
 
 export type AccommodationReportField =
