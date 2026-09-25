@@ -3061,6 +3061,8 @@ export async function getEvents(): Promise<CampusEvent[]> {
 // permitted to see events for every university on their access list, but
 // should only be shown the one(s) relevant to them, not every campus.
 export async function getAllEvents(universities?: string[]): Promise<CampusEvent[]> {
+  if (universities && universities.length === 0) return []
+
   let query = supabase
     .from('events')
     .select('*, host:profiles_public!inner(*)')
