@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, X, HandHelping } from 'lucide-react'
+import { Search, X, HandHelping, MessageCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getLookingFor, LookingForEntry, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getWantedPosts, startWantedConversation, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -36,7 +36,7 @@ stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="ro
 }
 
 export default function Feed() {
-const { activeCategory, setActiveCategory, showToast, currentUser } = useApp()
+const { activeCategory, setActiveCategory, showToast, currentUser, setAuthPromptOpen, setRedirectAfterLogin } = useApp()
   const navigate = useNavigate()
   const location = useLocation()
   const requestedUniversity = new URLSearchParams(location.search).get('university')
@@ -76,8 +76,8 @@ const [bizSearch, setBizSearch] = useState('')
   const [bizMaxPrice, setBizMaxPrice] = useState('')
   const [bizNegotiableOnly, setBizNegotiableOnly] = useState(false)
 
-  const [lookingFor, setLookingFor] = useState<LookingForEntry[]>([])
-  const [lookingForLoading, setLookingForLoading] = useState(true)
+  const [wantedPosts, setWantedPosts] = useState<WantedPost[]>([])
+  const [wantedPostsLoading, setWantedPostsLoading] = useState(true)
 
 const [fetchError, setFetchError] = useState(false)
 
@@ -129,9 +129,10 @@ const [fetchError, setFetchError] = useState(false)
       })
 
     getResidences().then(setResidenceOptions)
-    getLookingFor(marketplaceUniversity)
-      .then(data => { setLookingFor(data); setLookingForLoading(false) })
-      .catch(() => setLookingForLoading(false))
+    setWantedPostsLoading(true)
+    getWantedPosts()
+      .then(data => { setWantedPosts(data); setWantedPostsLoading(false) })
+      .catch(() => setWantedPostsLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
       .then(data => {
         setBusinessListings(data)
@@ -219,6 +220,22 @@ const filteredBusiness = useMemo(() => {
       .then(() => showToast('Application link copied â€” send it their way.', 'success'))
       .catch(() => showToast('Could not copy the link. Try again.', 'error'))
   }
+  const handleWantedPostChat = async (post: WantedPost) => {
+    if (!currentUser) {
+      setRedirectAfterLogin('/feed')
+      setAuthPromptOpen(true)
+      return
+    }
+    if (post.seeker_id === currentUser.id) return
+
+    const { convId, error } = await startWantedConversation(post.id, currentUser.id, post.seeker_id)
+    if (error) {
+      showToast(error, 'error')
+      return
+    }
+    if (convId) navigate(`/chat/${convId}`)
+  }
+
   return (
     <>
       <div className="min-h-screen bg-slate-deep">
@@ -336,40 +353,55 @@ const filteredBusiness = useMemo(() => {
             </section>
           )}
 
-          {!lookingForLoading && lookingFor.length > 0 && (
+          {!wantedPostsLoading && wantedPosts.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
                 <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">People are looking for</h2>
                 <HandHelping size={17} className="text-blue-600" />
               </div>
               <div className="px-4 flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
-                {lookingFor.map(w => (
-                  <div
-                    key={w.id}
-                    className="min-w-[250px] max-w-[290px] min-h-[360px] flex-shrink-0 snap-start bg-slate-card border border-slate-border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ease-out cursor-default hover:-translate-y-1.5 hover:border-teal-light/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
-                  >
-                    <div className="flex flex-col gap-4">
-                      <p className="text-cream font-bold text-xl leading-snug break-words">
-                        {w.keyword || w.category || 'Anything good'}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {w.category && (
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 capitalize">
-                            {w.category}
-                          </span>
-                        )}
-                        {w.max_price != null && (
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted">
-                            up to R{Number(w.max_price).toFixed(2)}
-                          </span>
-                        )}
+                {wantedPosts.map(post => {
+                  const isOwnPost = post.seeker_id === currentUser?.id
+                  return (
+                    <div
+                      key={post.id}
+                      className="relative min-w-[250px] max-w-[290px] min-h-[360px] flex-shrink-0 snap-start bg-slate-card border border-slate-border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ease-out cursor-default hover:-translate-y-1.5 hover:border-teal-light/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
+                    >
+                      <div className="flex flex-col gap-4">
+                        <p className="text-cream font-bold text-xl leading-snug break-words">
+                          {post.title}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {post.category && (
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 capitalize">
+                              {post.category}
+                            </span>
+                          )}
+                          {post.max_price != null && (
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted">
+                              up to R{Number(post.max_price).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      {!isOwnPost && (
+                        <button
+                          type="button"
+                          aria-label={`Chat with ${post.seeker?.full_name ?? 'this student'} about ${post.title}`}
+                          onClick={() => handleWantedPostChat(post)}
+                          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                          <MessageCircle size={20} />
+                        </button>
+                      )}
+
+                      <p className="text-cream-muted text-sm font-medium pt-4 mt-4 border-t border-slate-border">
+                        {post.seeker?.full_name ?? 'A student'}
+                      </p>
                     </div>
-                    <p className="text-cream-muted text-sm font-medium pt-4 mt-4 border-t border-slate-border">
-                      {w.seeker?.full_name ?? 'A student'}
-                    </p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
           )}
@@ -412,14 +444,11 @@ const filteredBusiness = useMemo(() => {
             )
           ) : (
             <section className="pb-24">
-              {/* "More listings" only needs a caption when Featured, Verified
-                  or Spotted listings are also on the page. When it's the
-                  only section here (the common case, since most listings
-                  have no paid tier), a caption would just be describing the
-                  whole page, so it's left out rather than shown. */}
-              {!(featuredListings.length === 0 && verifiedListings.length === 0 && spottedListings.length === 0) && (
-                <div className="px-4 pb-2"><h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">More listings</h2></div>
-              )}
+              <div className="px-4 pb-2">
+                <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">
+                  {featuredListings.length === 0 && verifiedListings.length === 0 && spottedListings.length === 0 ? 'Listings' : 'More listings'}
+                </h2>
+              </div>
               <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
                 {otherListings.map(listing => (
                   <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
