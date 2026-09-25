@@ -9,7 +9,7 @@ import AccommodationReportEditModal from '../components/student/AccommodationRep
 export default function AccommodationDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { currentUser, showToast, setAuthPromptOpen, setRedirectAfterLogin, businessProfile } = useApp()
+  const { currentUser, isLoadingAuth, showToast, setAuthPromptOpen, setRedirectAfterLogin, businessProfile } = useApp()
   const [listing, setListing] = useState<AccommodationListing | null>(null)
   const [reviews, setReviews] = useState<AccommodationReview[]>([])
   const [activeImage, setActiveImage] = useState(0)
@@ -24,9 +24,10 @@ export default function AccommodationDetail() {
   const [showReportEditModal, setShowReportEditModal] = useState(false)
 
   useEffect(() => {
-    if (!id) return
+    if (!id || isLoadingAuth) return
+    setLoading(true)
     getAccommodationListingById(id, currentUser?.id).then(data => { setListing(data); setLoading(false) })
-  }, [id, currentUser?.id])
+  }, [id, currentUser?.id, isLoadingAuth])
 
   useEffect(() => {
     if (!id) return
