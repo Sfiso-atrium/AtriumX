@@ -36,8 +36,8 @@ export default function AccommodationDetail() {
 
   const isOwner = currentUser?.id === listing?.seller_id
   const canReply = isOwner && businessProfile?.is_accommodation && businessProfile.accommodation_plan !== 'accommodation_free'
-  const reportedField = listing.report_required_field as AccommodationReportField | null | undefined
-  const hasActiveReportDeadline = Boolean(isOwner && reportedField && listing.report_edit_deadline_at)
+  const reportedField = listing?.report_required_field as AccommodationReportField | null | undefined
+  const hasActiveReportDeadline = Boolean(isOwner && reportedField && listing?.report_edit_deadline_at)
   const average = useMemo(() => reviews.length ? reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length : 0, [reviews])
 
   if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
