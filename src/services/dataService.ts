@@ -563,7 +563,27 @@ export async function getPublicProfile(id: string): Promise<Profile | null> {
     .eq('id', id)
     .single()
   if (error || !data) return null
-  return { ...data, email: '', watched_residences: data.watched_residences ?? [] } as Profile
+  return { ...data, email: '', watched_residences: [] } as Profile
+}
+
+export interface PublicBusinessProfile {
+  id: string
+  business_name: string
+  business_type: string
+  custom_business_type: string | null
+  physical_address: string | null
+  website: string | null
+  created_at: string
+}
+
+export async function getPublicBusinessProfile(id: string): Promise<PublicBusinessProfile | null> {
+  const { data, error } = await supabase
+    .from('business_profiles_public')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !data) return null
+  return data as PublicBusinessProfile
 }
 export async function updateProfile(
   id: string,
@@ -679,7 +699,7 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   const addressMap: Record<string, { address: string | null; website: string | null }> = {}
   if (sellerIds.length > 0) {
     const { data: profiles } = await supabase
-      .from('business_profiles')
+      .from('business_profiles_public')
       .select('id, physical_address, website')
       .in('id', sellerIds)
     profiles?.forEach(p => {
@@ -709,10 +729,7 @@ export async function getListingById(id: string, viewerId?: string): Promise<Lis
   if (error || !data) return null
 
   if (!viewerId || viewerId !== data.seller_id) {
-    await supabase
-      .from('listings')
-      .update({ view_count: (data.view_count || 0) + 1 })
-      .eq('id', id)
+    await supabase.rpc('increment_listing_view_count', { listing_id: id })
   }
 
   return data as Listing
@@ -909,6 +926,7 @@ export async function renewListing(
     .update({ status: 'active', expires_at: expiresAt })
     .eq('id', listingId)
     .neq('status', 'suspended')
+    .neq('status', 'sold')
     .select('id')
   if (error) return { error: error.message }
   if (!data || data.length === 0) {
@@ -1105,7 +1123,7 @@ export async function createAccommodationListing(payload: {
 async function getBusinessWebsites(sellerIds: string[]): Promise<Record<string, string | null>> {
   const ids = Array.from(new Set(sellerIds))
   if (ids.length === 0) return {}
-  const { data } = await supabase.from('business_profiles').select('id, website').in('id', ids)
+  const { data } = await supabase.from('business_profiles_public').select('id, website').in('id', ids)
   const map: Record<string, string | null> = {}
   data?.forEach(p => { map[p.id] = p.website })
   return map
@@ -1194,7 +1212,7 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const { data: reviews } = await supabase.from('accommodation_reviews').select('stars').eq('accommodation_listing_id', id)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
-  const { data: business } = await supabase.from('business_profiles').select('website').eq('id', listing.seller_id).maybeSingle()
+  const { data: business } = await supabase.from('business_profiles_public').select('website').eq('id', listing.seller_id).maybeSingle()
   return {
     ...listing,
     seller: seller || undefined,
@@ -1385,8 +1403,8 @@ export async function getConversationsForUser(
       listing:listings(id, title, image_urls, price),
       wanted_post:wanted_posts(id, title, category, max_price, price_flexible, urgency),
       accommodation_listing:accommodation_listings(id, title, image_urls, monthly_rent),
-buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
-      seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, plan, account_type),
+buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, account_type),
+      seller:profiles_public!seller_id(id, full_name, avatar_initials, avatar_color, account_type),
       messages(id, conversation_id, sender_id, content, read, sent_at)
     `)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
@@ -1398,23 +1416,43 @@ buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, pla
   const conversations = data as unknown as (Conversation & { messages?: Message[] })[]
 
   const convIds = conversations.map(c => c.id)
+  const clearedAtByConversation: Record<string, string> = {}
   const unreadCounts: Record<string, number> = {}
   if (convIds.length > 0) {
-    const { data: unread } = await supabase
-      .from('messages')
-      .select('conversation_id')
-      .in('conversation_id', convIds)
-      .eq('read', false)
-      .neq('sender_id', userId)
+    const [{ data: states }, { data: unread }] = await Promise.all([
+      supabase
+        .from('conversation_user_state')
+        .select('conversation_id, cleared_at')
+        .eq('user_id', userId)
+        .in('conversation_id', convIds),
+      supabase
+        .from('messages')
+        .select('conversation_id, sent_at')
+        .in('conversation_id', convIds)
+        .eq('read', false)
+        .neq('sender_id', userId),
+    ])
+
+    states?.forEach(state => {
+      if (state.cleared_at) clearedAtByConversation[state.conversation_id] = state.cleared_at
+    })
     unread?.forEach(m => {
-      unreadCounts[m.conversation_id] = (unreadCounts[m.conversation_id] || 0) + 1
+      const clearedAt = clearedAtByConversation[m.conversation_id]
+      if (!clearedAt || new Date(m.sent_at).getTime() > new Date(clearedAt).getTime()) {
+        unreadCounts[m.conversation_id] = (unreadCounts[m.conversation_id] || 0) + 1
+      }
     })
   }
 
-  // Latest activity = the conversation's most recent message. If nobody has
-  // sent a message yet, fall back to when the conversation itself was
-  // created so brand-new chats still slot in correctly.
+  // A conversation cleared from this user's side stays hidden until a newer
+  // message arrives. The other participant's history and visibility are
+  // unaffected because the cutoff belongs to this user only.
   return conversations
+    .filter(c => {
+      const clearedAt = clearedAtByConversation[c.id]
+      if (!clearedAt || !c.messages?.[0]?.sent_at) return true
+      return new Date(c.messages[0].sent_at).getTime() > new Date(clearedAt).getTime()
+    })
     .map(c => ({ ...c, last_message: c.messages?.[0], unread_count: unreadCounts[c.id] || 0 }))
     .sort((a, b) => {
       const aTime = new Date(a.last_message?.sent_at ?? a.created_at).getTime()
@@ -1430,7 +1468,7 @@ export async function getConversationsForListing(
     .from('conversations')
     .select(`
       *,
-buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, plan)
+buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color)
     `)
     .eq('listing_id', listingId)
     .eq('seller_id', sellerId)
@@ -1443,13 +1481,38 @@ buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, pla
 export async function getConversationMessages(
   convId: string
 ): Promise<Message[]> {
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .eq('conversation_id', convId)
-    .order('sent_at', { ascending: true })
+  const [{ data, error }, { data: state }] = await Promise.all([
+    supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('sent_at', { ascending: true }),
+    supabase
+      .from('conversation_user_state')
+      .select('cleared_at')
+      .eq('conversation_id', convId)
+      .maybeSingle(),
+  ])
   if (error || !data) return []
-  return data as Message[]
+
+  const clearedAt = state?.cleared_at ? new Date(state.cleared_at).getTime() : null
+  if (clearedAt === null) return data as Message[]
+
+  return (data as Message[]).filter(message => new Date(message.sent_at).getTime() > clearedAt)
+}
+
+export async function getConversationMessageLimit(
+  convId: string
+): Promise<{ maxMsgs: number; sellerLocked: boolean }> {
+  const { data, error } = await supabase.rpc('get_conversation_message_limit', {
+    p_conversation_id: convId,
+  })
+  if (error || !data) return { maxMsgs: 999, sellerLocked: false }
+  const result = Array.isArray(data) ? data[0] : data
+  return {
+    maxMsgs: Number(result?.max_messages ?? 999),
+    sellerLocked: Boolean(result?.seller_locked),
+  }
 }
 
 export async function sendMessage(
@@ -1928,26 +1991,6 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
 // those two columns on the caller's own row.
 export async function updateBusinessContact(address: string, website: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('update_business_contact', { p_address: address, p_website: website })
-  return { error: error ? error.message : null }
-}
-
-export async function getPendingBusinesses(): Promise<(BusinessProfile & { profile: Profile })[]> {
-  const { data, error } = await supabase
-    .from('business_profiles')
-    .select('*, profile:profiles(*)')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-  if (error || !data) return []
-  return data as (BusinessProfile & { profile: Profile })[]
-}
-
-export async function approveBusinessById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('approve_business', { p_business_id: id })
-  return { error: error ? error.message : null }
-}
-
-export async function rejectBusinessById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('reject_business', { p_business_id: id })
   return { error: error ? error.message : null }
 }
 
@@ -3033,6 +3076,7 @@ export interface CampusEvent {
   price: number | null
   image_url: string | null
   university: string | null
+  target_universities: string[]
   status: 'active' | 'cancelled'
   created_at: string
   like_count: number
@@ -3057,9 +3101,8 @@ export async function getEvents(): Promise<CampusEvent[]> {
 // Full active-event board for the Discover Events page. Unlike getEvents(),
 // this intentionally includes past events so the UI can show a Past section.
 // `universities`, when passed, narrows the RLS-permitted rows down to a
-// specific set — used by business accounts, who (after migration 053) are
-// permitted to see events for every university on their access list, but
-// should only be shown the one(s) relevant to them, not every campus.
+// specific set. Business pages pass the currently selected university when
+// one is selected, while RLS continues to enforce the account's full access set.
 export async function getAllEvents(universities?: string[]): Promise<CampusEvent[]> {
   if (universities && universities.length === 0) return []
 
@@ -3070,7 +3113,7 @@ export async function getAllEvents(universities?: string[]): Promise<CampusEvent
     .order('starts_at', { ascending: true })
 
   if (universities && universities.length > 0) {
-    query = query.in('university', universities)
+    query = query.overlaps('target_universities', universities)
   }
 
   const { data, error } = await query
@@ -3100,6 +3143,7 @@ export async function createEvent(payload: {
   location: string
   price?: number | null
   imageUrl?: string | null
+  universities: string[]
 }): Promise<{ id: string | null; error: string | null }> {
   const { data, error } = await supabase
     .from('events')
@@ -3113,9 +3157,9 @@ export async function createEvent(payload: {
       location: payload.location,
       price: payload.price ?? null,
       image_url: payload.imageUrl || null,
-      // university is stamped by a trigger from the host's profile —
-      // deliberately not sent from here, so nobody can post onto another
-      // campus's board.
+      target_universities: payload.universities,
+      // The database validates that the requested universities are within the
+      // host's permitted scope and stamps the legacy primary university value.
     })
     .select('id')
     .single()
@@ -3124,8 +3168,13 @@ export async function createEvent(payload: {
   return { id: data.id, error: null }
 }
 
-export async function cancelEvent(eventId: string): Promise<void> {
-  await supabase.from('events').update({ status: 'cancelled' }).eq('id', eventId)
+export async function cancelEvent(eventId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('events')
+    .update({ status: 'cancelled' })
+    .eq('id', eventId)
+
+  return { error: error ? error.message : null }
 }
 
 // Persisted event like counter, mirroring incrementListingLikes/
