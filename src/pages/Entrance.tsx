@@ -2,13 +2,13 @@
 // Light, airy, 50/50 split with literal vertical divider - image desktop-only
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Store, Building2, Backpack, MessageCircle, MapPin, CalendarCheck, Contrast, ArrowRight, Sparkles, Check, Shield } from 'lucide-react'
+import { GraduationCap, Store, Building2, Backpack, MessageCircle, MapPin, CalendarCheck, ArrowRight, Sparkles, Check, Shield } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InstallAppButton from '../components/common/InstallAppButton'
 
 export default function Entrance() {
   const navigate = useNavigate()
-  const { currentUser, isLoadingAuth, setRedirectAfterLogin, darkMode, toggleDarkMode } = useApp()
+  const { currentUser, isLoadingAuth, setRedirectAfterLogin } = useApp()
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
@@ -63,15 +63,6 @@ export default function Entrance() {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button
-                onClick={toggleDarkMode}
-                aria-label="Toggle dark mode"
-                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center transition-all ${
-                  darkMode ? 'border-teal-light text-teal-light bg-teal-faint' : 'border-slate-border text-cream-muted hover:text-cream bg-slate-card'
-                }`}
-              >
-                <Contrast size={16} />
-              </button>
-              <button
                 onClick={() => navigate('/student')}
                 className="border border-slate-border hover:border-teal-primary bg-white hover:bg-slate-card text-cream hover:text-teal-primary text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all"
               >
@@ -79,7 +70,7 @@ export default function Entrance() {
               </button>
               <button
                 onClick={() => navigate('/student?mode=register')}
-                className="bg-cream hover:opacity-90 text-slate-deep text-[13px] sm:text-sm font-bold px-3.5 sm:px-5 py-2 rounded-xl transition-opacity shadow-[0_1px_2px_rgba(15,23,42,0.08),0_4px_12px_rgba(15,23,42,0.08)]"
+                className="bg-cream hover:opacity-90 text-white text-[13px] sm:text-sm font-bold px-3.5 sm:px-5 py-2 rounded-xl transition-opacity shadow-[0_1px_2px_rgba(15,23,42,0.08),0_4px_12px_rgba(15,23,42,0.08)]"
               >
                 Get Started
               </button>
@@ -125,35 +116,35 @@ export default function Entrance() {
             </div>
 
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
-              <div className="group bg-slate-card border border-slate-border hover:border-[#BFDBFE] rounded-[16px] p-4 transition-all hover:shadow-[0_8px_24px_rgba(37,99,235,0.08)] hover:-translate-y-0.5">
+              <div className="group bg-slate-card border border-slate-border hover:border-[#BFDBFE] rounded-[16px] p-4 min-h-[188px] flex flex-col transition-all hover:shadow-[0_8px_24px_rgba(37,99,235,0.08)] hover:-translate-y-0.5">
                 <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center mb-3">
                   <GraduationCap size={18} className="text-[#2563EB]" />
                 </div>
                 <h3 className="text-cream font-bold text-[13px] mb-1">I'm a Student</h3>
                 <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">Explore spaces, listings and campus activity.</p>
-                <button onClick={() => { window.location.href = '/Welcome.html' }} className="w-full bg-cream text-slate-deep font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:opacity-90 transition-opacity">
+                <button onClick={() => { window.location.href = '/Welcome.html' }} className="w-full bg-cream text-white font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:opacity-90 transition-opacity mt-auto">
                   Explore <ArrowRight size={12} />
                 </button>
               </div>
 
-              <div className="group bg-slate-card border border-slate-border hover:border-[#A7F3D0] rounded-[16px] p-4 transition-all hover:shadow-[0_8px_24px_rgba(16,185,129,0.08)] hover:-translate-y-0.5">
+              <div className="group bg-slate-card border border-slate-border hover:border-slate-border rounded-[16px] p-4 min-h-[188px] flex flex-col transition-all hover:shadow-[0_8px_24px_rgba(16,185,129,0.08)] hover:-translate-y-0.5">
                 <div className="w-9 h-9 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center mb-3">
                   <Store size={18} className="text-[#059669]" />
                 </div>
                 <h3 className="text-cream font-bold text-[13px] mb-1">I'm a Business</h3>
                 <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">Access business tools for partners.</p>
-                <button onClick={() => navigate('/retailer')} className="w-full bg-white border border-slate-border hover:border-slate-border text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-slate-deep transition-colors">
+                <button onClick={() => navigate('/retailer')} className="w-full bg-white border border-slate-border hover:border-slate-border text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-slate-deep transition-colors mt-auto">
                   Explore <ArrowRight size={12} />
                 </button>
               </div>
 
-              <div className="group bg-slate-card border border-[#A7F3D0] hover:border-[#6EE7B7] rounded-[16px] p-4 transition-all hover:shadow-[0_8px_24px_rgba(16,185,129,0.08)] hover:-translate-y-0.5">
+              <div className="group bg-slate-card border border-slate-border hover:border-slate-border rounded-[16px] p-4 min-h-[188px] flex flex-col transition-all hover:shadow-[0_8px_24px_rgba(16,185,129,0.08)] hover:-translate-y-0.5">
                 <div className="w-9 h-9 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center mb-3">
                   <Building2 size={18} className="text-[#059669]" />
                 </div>
                 <h3 className="text-cream font-bold text-[13px] mb-1">I'm Accommodation</h3>
                 <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">List student accommodation separately and reach campus residents.</p>
-                <button onClick={() => navigate('/retailer/signup?accommodation=1')} className="w-full bg-white border border-slate-border hover:border-[#A7F3D0] text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-[#ECFDF5] transition-colors">
+                <button onClick={() => navigate('/retailer/signup?accommodation=1')} className="w-full bg-white border border-slate-border hover:border-slate-border text-cream font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:bg-[#ECFDF5] transition-colors mt-auto">
                   Get Started <ArrowRight size={12} />
                 </button>
               </div>
