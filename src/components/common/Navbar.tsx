@@ -6,12 +6,12 @@ import {
   BellOff,
   ChevronDown,
   Compass,
-  Contrast,
   GraduationCap,
   Handshake,
   Menu,
   MessageCircle,
   NotebookPen,
+  PlusCircle,
   ShieldCheck,
   UserRound,
   X,
@@ -24,7 +24,7 @@ import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, partner, darkMode, toggleDarkMode, businessProfile: contextBusinessProfile } = useApp()
+  const { currentUser, partner, businessProfile: contextBusinessProfile } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -190,6 +190,14 @@ export default function Navbar() {
                     )}
                   </div>
                 )}
+                <button
+                  onClick={() => navigate(currentUser.account_type === 'business' ? (contextBusinessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select') : '/plan-select')}
+                  className="hidden lg:flex w-9 h-9 rounded-full items-center justify-center bg-teal-primary text-white shadow-sm hover:bg-teal-primary/90 hover:scale-105 active:scale-95 transition-transform"
+                  aria-label="Create a post"
+                  title="Create a post"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
@@ -348,10 +356,7 @@ export default function Navbar() {
           </>
         )}
 
-        <div className="space-y-1 pb-28">
-          <button onClick={toggleDarkMode} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${darkMode ? 'text-teal-light bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
-            <Contrast className="w-4 h-4" /> {darkMode ? 'Dark Mode: On' : 'Dark Mode: Off'}
-          </button>
+        <div className="mt-auto space-y-1">
           <div className="border-t border-slate-border pt-2">
             <button onClick={() => setHelpOpen((open) => !open)} className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-medium text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
               <span>Help & Legal</span>
