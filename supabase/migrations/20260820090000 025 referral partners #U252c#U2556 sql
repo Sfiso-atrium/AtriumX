@@ -1,0 +1,188 @@
+-- Referral Partner program. Naming note: the app already has an unrelated
+-- 'campus_partner' *plan tier* for businesses (see PLAN_TIERS). This
+-- feature — referral partners who earn a cut when people they referred
+-- post paid listings — is a completely different concept and deliberately
+-- named "partners" / "referral" throughout to avoid confusion with that
+-- plan name in code, but is presented as "Referral Partner Program" in
+-- the UI.
+
+-- PARTNERS: who is allowed to see the referral dashboard. Presence of a
+-- row = is a partner. Only an admin can create/remove one — this is a
+-- status granted by you, not something anyone can self-serve into.
+CREATE TABLE partners (
+  user_id uuid PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  referral_code text UNIQUE NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "partners_select_own_or_admin" ON partners FOR SELECT TO authenticated USING (
+  auth.uid() = user_id OR
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "partners_insert_admin" ON partners FOR INSERT TO authenticated WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "partners_delete_admin" ON partners FOR DELETE TO authenticated USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- REFERRALS: the "+1 user" — one row per person who signed up through a
+-- partner's link. A user can only ever be credited to one partner (the
+-- first link they used), enforced by referred_user_id being UNIQUE. No
+-- INSERT policy for authenticated/anon: the only writer is the
+-- SECURITY DEFINER trigger below, so this can't be gamed from the client.
+CREATE TABLE referrals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  referred_user_id uuid NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "referrals_select_own_or_admin" ON referrals FOR SELECT TO authenticated USING (
+  auth.uid() = partner_id OR
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- REFERRAL_EVENTS: one row per listing a referred user creates — this is
+-- both the partner's activity feed ("X made a listing, on plan Y") and the
+-- earnings ledger (amount = 5% of that plan's price, 0 for free plans).
+-- Also written only by the SECURITY DEFINER trigger below.
+CREATE TABLE referral_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  referred_user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  listing_id uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  plan_tier text NOT NULL,
+  amount numeric(10,2) NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE referral_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "referral_events_select_own_or_admin" ON referral_events FOR SELECT TO authenticated USING (
+  auth.uid() = partner_id OR
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- SUGGESTIONS: the feedback box near the Student/Business cards on the
+-- landing page. Deliberately open to anonymous submitters (TO anon,
+-- authenticated) since forcing a sign-in just to leave a suggestion would
+-- defeat the point — it's a plain text box, no sensitive data, and only
+-- an admin can ever read what's submitted.
+CREATE TABLE suggestions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  message text NOT NULL,
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE suggestions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "suggestions_insert_anyone" ON suggestions FOR INSERT TO anon, authenticated WITH CHECK (
+  trim(message) <> ''
+);
+CREATE POLICY "suggestions_select_admin" ON suggestions FOR SELECT TO authenticated USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "suggestions_update_admin" ON suggestions FOR UPDATE TO authenticated USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- Extend the existing signup trigger (migration 001) to also capture a
+-- referral, if the person signed up through a partner's link. Reproduces
+-- the original function body in full (CREATE OR REPLACE replaces the
+-- whole thing) plus the new referral-capture step at the end.
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_partner_id uuid;
+BEGIN
+  INSERT INTO profiles (
+    id, email, full_name, residence,
+    avatar_initials, avatar_color,
+    plan, watched_residences
+  ) VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    NEW.raw_user_meta_data->>'residence',
+    COALESCE(NEW.raw_user_meta_data->>'avatar_initials', upper(left(COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)), 2))),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_color', '#1A5F7A'),
+    'ghost',
+    ARRAY[COALESCE(NEW.raw_user_meta_data->>'residence', '')]
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Referral capture: if a ref_code was passed at signup and it matches a
+  -- real partner, credit this new user to them. Silently does nothing on
+  -- an invalid/missing code — never blocks account creation.
+  IF NEW.raw_user_meta_data->>'ref_code' IS NOT NULL THEN
+    SELECT user_id INTO v_partner_id FROM partners WHERE referral_code = NEW.raw_user_meta_data->>'ref_code';
+    IF v_partner_id IS NOT NULL THEN
+      INSERT INTO referrals (partner_id, referred_user_id)
+      VALUES (v_partner_id, NEW.id)
+      ON CONFLICT (referred_user_id) DO NOTHING;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Fires once per new listing. If the seller was referred by a partner,
+-- logs the activity + 5% earnings and notifies the partner in real time
+-- via the existing notifications table (NotificationBell already
+-- subscribes to it live, per migration 006/009).
+CREATE OR REPLACE FUNCTION notify_referral_listing()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_partner_id uuid;
+  v_seller_name text;
+  v_plan_price numeric(10,2);
+  v_amount numeric(10,2);
+BEGIN
+  SELECT partner_id INTO v_partner_id FROM referrals WHERE referred_user_id = NEW.seller_id;
+  IF v_partner_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- Mirrors PLAN_TIERS.priceNum in src/services/dataService.ts. Kept as a
+  -- plain CASE (not a lookup table) so it stays authoritative and can't be
+  -- influenced by anything client-supplied, same trust boundary as the
+  -- rest of this trigger.
+  v_plan_price := CASE NEW.plan_tier
+    WHEN 'visible' THEN 29
+    WHEN 'loud' THEN 79
+    WHEN 'unmissable' THEN 149
+    WHEN 'featured' THEN 350
+    WHEN 'campus_partner' THEN 800
+    ELSE 0
+  END;
+  v_amount := round(v_plan_price * 0.05, 2);
+
+  SELECT full_name INTO v_seller_name FROM profiles WHERE id = NEW.seller_id;
+
+  INSERT INTO referral_events (partner_id, referred_user_id, listing_id, plan_tier, amount)
+  VALUES (v_partner_id, NEW.seller_id, NEW.id, NEW.plan_tier, v_amount);
+
+  INSERT INTO notifications (user_id, type, message, listing_id)
+  VALUES (
+    v_partner_id, 'referral_listing',
+    COALESCE(v_seller_name, 'Someone you referred') || ' made a listing on the ' || NEW.plan_tier || ' plan.',
+    NEW.id
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER notify_referral_listing
+  AFTER INSERT ON listings
+  FOR EACH ROW EXECUTE FUNCTION notify_referral_listing();
