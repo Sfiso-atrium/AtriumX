@@ -55,6 +55,7 @@ function ModalLayer() {
 function AccommodationGuard({ children }: { children: ReactNode }) {
   const { currentUser, businessProfile, isLoadingAuth } = useApp()
   if (isLoadingAuth) return null
+  if (currentUser?.account_type === 'business' && businessProfile === null) return null
   if (currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
     return <Navigate to="/accommodation" replace />
   }
