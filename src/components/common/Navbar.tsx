@@ -6,6 +6,7 @@ import {
   BellOff,
   ChevronDown,
   Compass,
+  Contrast,
   GraduationCap,
   Handshake,
   Menu,
@@ -23,7 +24,7 @@ import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, partner, businessProfile: contextBusinessProfile } = useApp()
+  const { currentUser, partner, darkMode, toggleDarkMode, businessProfile: contextBusinessProfile } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -189,7 +190,6 @@ export default function Navbar() {
                     )}
                   </div>
                 )}
-
                 <NotificationBell />
                 <button
                   onClick={() => navigate(`/profile/${currentUser.id}`)}
@@ -348,7 +348,10 @@ export default function Navbar() {
           </>
         )}
 
-        <div className="mt-auto space-y-1">
+        <div className="space-y-1 pb-28">
+          <button onClick={toggleDarkMode} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition-colors ${darkMode ? 'text-teal-light bg-slate-deep' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+            <Contrast className="w-4 h-4" /> {darkMode ? 'Dark Mode: On' : 'Dark Mode: Off'}
+          </button>
           <div className="border-t border-slate-border pt-2">
             <button onClick={() => setHelpOpen((open) => !open)} className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left text-sm font-medium text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
               <span>Help & Legal</span>
