@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { registerBusinessWithEmail, loginWithEmail } from '../services/dataService'
+import { registerBusinessWithEmail, loginWithEmail, getBusinessProfile } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 
@@ -61,7 +61,12 @@ export default function RetailerSignup() {
       if (err) return setError(err)
       if (user) {
         setCurrentUser(user)
-        navigate('/feed')
+        if (user.account_type === 'business') {
+          const profile = await getBusinessProfile(user.id)
+          navigate(profile?.is_accommodation ? '/accommodation' : '/feed')
+        } else {
+          navigate('/feed')
+        }
       }
       return
     }
