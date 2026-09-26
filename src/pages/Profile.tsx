@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin, Globe, Building2, Plus, ArrowRight } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  Profile as ProfileType, Listing, Rating, BusinessProfile, AccommodationListing, AccommodationPlanKey,
-  ACCOMMODATION_PLANS, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile,
+  Profile as ProfileType, Listing, Rating, BusinessProfile, PublicBusinessProfile, AccommodationListing, AccommodationPlanKey,
+  ACCOMMODATION_PLANS, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile, getPublicBusinessProfile,
   getAccommodationListingsBySeller, logout,
 } from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
@@ -16,7 +16,8 @@ export default function Profile() {
   const navigate = useNavigate()
   const { currentUser, setCurrentUser } = useApp()
   const [profile, setProfile] = useState<ProfileType | null>(null)
-  const [business, setBusiness] = useState<BusinessProfile | null>(null)
+  const [business, setBusiness] = useState<PublicBusinessProfile | null>(null)
+  const [ownBusiness, setOwnBusiness] = useState<BusinessProfile | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [ratings, setRatings] = useState<Rating[]>([])
   // The accommodation account's own property — shown only to them, on their
@@ -37,12 +38,15 @@ export default function Profile() {
         setRatings(r)
         setLoading(false)
         if (p?.account_type === 'business') {
-          getBusinessProfile(userId).then(b => {
-            setBusiness(b)
-            if (b?.is_accommodation && currentUser?.id === userId) {
-              getAccommodationListingsBySeller(userId).then(setAccommodationListings)
-            }
-          })
+          getPublicBusinessProfile(userId).then(setBusiness)
+          if (currentUser?.id === userId) {
+            getBusinessProfile(userId).then(b => {
+              setOwnBusiness(b)
+              if (b?.is_accommodation) {
+                getAccommodationListingsBySeller(userId).then(setAccommodationListings)
+              }
+            })
+          }
         }
       }
     )
@@ -143,8 +147,8 @@ export default function Profile() {
             </div>
           )}
 
-          {isOwn && business?.is_accommodation && (() => {
-            const plan = business.accommodation_plan as AccommodationPlanKey
+          {isOwn && ownBusiness?.is_accommodation && (() => {
+            const plan = ownBusiness.accommodation_plan as AccommodationPlanKey
             const maxProperties = 1
             const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
             const atLimit = accommodationListings.length >= maxProperties
@@ -168,7 +172,7 @@ export default function Profile() {
                 <div className="grid sm:grid-cols-3 gap-3 mt-5">
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Current plan</p><p className="text-cream font-bold mt-1">{ACCOMMODATION_PLANS[plan].label}</p></div>
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Accommodation listings</p><p className="text-cream font-bold mt-1">{Math.min(accommodationListings.length, maxProperties)} / {maxProperties}</p></div>
-                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Universities</p><p className="text-cream font-bold mt-1">{business.universities.length} / {maxUniversities}</p></div>
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Universities</p><p className="text-cream font-bold mt-1">{ownBusiness.universities.length} / {maxUniversities}</p></div>
                 </div>
                 {atLimit && <p className="text-cream-muted text-xs mt-4">Your accommodation account uses one listing for the whole provider. Add all buildings and room pricing to that listing.</p>}
                 {accommodationListings.length === 0 && (

@@ -7,7 +7,6 @@ import {
   Report,
   AccommodationReport,
   ChatReport,
-  BusinessProfile,
   Profile,
   Partner,
   Suggestion,
@@ -22,9 +21,6 @@ import {
   suspendListingById,
   clearReports,
   acknowledgeListingEdit,
-  getPendingBusinesses,
-  approveBusinessById,
-  rejectBusinessById,
   getAllPartnersAdmin,
   createPartner,
   removePartner,
@@ -36,7 +32,7 @@ import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 
-type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'businesses' | 'partners' | 'suggestions'
+type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
@@ -50,7 +46,6 @@ const [pendingListings, setPendingListings] = useState<Listing[]>([])
 const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [reportReasons, setReportReasons] = useState<Record<string, Report[]>>({})
   const [accommodationReports, setAccommodationReports] = useState<AccommodationReport[]>([])
-const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { profile: Profile })[]>([])
   const [chatReports, setChatReports] = useState<ChatReport[]>([])
   const [partners, setPartners] = useState<Awaited<ReturnType<typeof getAllPartnersAdmin>>>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -65,12 +60,11 @@ const [pendingBusinesses, setPendingBusinesses] = useState<(BusinessProfile & { 
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getPendingBusinesses(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
-      .then(([pending, all, edited, businesses, chatReps, partnerList, suggestionList, accommodationReps]) => {
+Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
+      .then(([pending, all, edited, chatReps, partnerList, suggestionList, accommodationReps]) => {
         setPendingListings(pending)
         setAllListings(all)
         setEditedListings(edited)
-        setPendingBusinesses(businesses)
         setChatReports(chatReps)
         setPartners(partnerList)
         setSuggestions(suggestionList)
@@ -159,24 +153,6 @@ const handleClearReports = async (id: string) => {
     showToast('Listing suspended.', 'success')
   }
 
-  const handleApproveBusiness = async (id: string) => {
-    setActionId(id)
-    const { error } = await approveBusinessById(id)
-    setActionId(null)
-    if (error) { showToast(error, 'error'); return }
-    setPendingBusinesses(prev => prev.filter(b => b.id !== id))
-    showToast('Business approved.', 'success')
-  }
-
-  const handleRejectBusiness = async (id: string) => {
-    setActionId(id)
-    const { error } = await rejectBusinessById(id)
-    setActionId(null)
-    if (error) { showToast(error, 'error'); return }
-    setPendingBusinesses(prev => prev.filter(b => b.id !== id))
-    showToast('Business rejected.', 'success')
-  }
-
   const handlePartnerSearch = async (q: string) => {
     setPartnerSearch(q)
     if (q.trim().length < 2) { setPartnerSearchResults([]); return }
@@ -225,7 +201,7 @@ const activeList =
     tab === 'pending' ? pendingListings :
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
-    tab === 'businesses' || tab === 'partners' || tab === 'suggestions' ? [] :
+    tab === 'partners' || tab === 'suggestions' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -276,16 +252,6 @@ const activeList =
             }`}
           >
             Reported ({reportedListings.length})
-          </button>
-<button
-            onClick={() => setTab('businesses')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'businesses'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Businesses ({pendingBusinesses.length})
           </button>
           <button
             onClick={() => setTab('chatReports')}
@@ -348,186 +314,7 @@ const activeList =
             </div>
           )
         )}
-{tab === 'businesses' && (
-          pendingBusinesses.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-cream-muted text-sm">No pending business applications.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {pendingBusinesses.map(biz => {
-                const busy = actionId === biz.id
-                return (
-                  <div key={biz.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
-                    <p className="text-cream font-bold text-sm">{biz.business_name}</p>
-                    <p className="text-cream-muted text-xs mt-0.5">
-                      {biz.custom_business_type || biz.business_type} · {biz.profile?.email}
-                    </p>
-                    <p className="text-cream-muted text-xs mt-0.5">{biz.contact_number}</p>
-                    <div className="flex gap-2 flex-wrap mt-3">
-                      <button
-                        onClick={() => handleApproveBusiness(biz.id)}
-                        disabled={busy}
-                        className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                      >
-                        <CheckCircle size={13} />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleRejectBusiness(biz.id)}
-                        disabled={busy}
-                        className="flex items-center gap-1.5 border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                      >
-                        <XCircle size={13} />
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )
-        )}
-{tab === 'partners' && (
-          <div className="flex flex-col gap-5">
-            <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
-              <p className="text-cream font-bold text-sm mb-3">Grant partner status</p>
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted" />
-                <input
-                  value={partnerSearch}
-                  onChange={e => handlePartnerSearch(e.target.value)}
-                  placeholder="Search by name or email"
-                  className="w-full bg-slate-deep border border-slate-border rounded-xl pl-9 pr-3 py-2 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
-                />
-              </div>
-              {partnerSearchResults.length > 0 && (
-                <div className="flex flex-col gap-1.5 mt-2.5">
-                  {partnerSearchResults.map(r => (
-                    <div key={r.id} className="flex items-center justify-between gap-3 bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-cream text-sm font-medium truncate">{r.full_name}</p>
-                        <p className="text-cream-muted text-xs truncate">{r.email}</p>
-                      </div>
-                      <button
-                        onClick={() => handleGrantPartner(r)}
-                        className="flex items-center gap-1.5 bg-gold hover:opacity-85 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity flex-shrink-0"
-                      >
-                        <Handshake size={12} /> Make Partner
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {partners.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-cream-muted text-sm">No partners yet.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {partners.map(p => (
-                  <div key={p.user_id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-cream font-bold text-sm truncate">{p.profile?.full_name || 'Unknown'}</p>
-                        <p className="text-cream-muted text-xs truncate">{p.profile?.email}</p>
-                        <p className="text-teal-light text-xs font-mono mt-1">{p.referral_code}</p>
-                      </div>
-                      <button
-                        onClick={() => handleRevokePartner(p.user_id)}
-                        className="flex items-center gap-1 text-red-400 hover:bg-red-500/10 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={12} /> Revoke
-                      </button>
-                    </div>
-                    <div className="flex gap-4 mt-3 pt-3 border-t border-slate-border">
-                      <div>
-                        <p className="text-cream font-bold text-sm">{p.referredCount}</p>
-                        <p className="text-cream-muted text-xs">Referred</p>
-                      </div>
-                      <div>
-                        <p className="text-gold font-bold text-sm">R{p.totalEarnings.toFixed(2)}</p>
-                        <p className="text-cream-muted text-xs">Est. earnings</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-{tab === 'suggestions' && (
-          suggestions.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-cream-muted text-sm">No suggestions yet.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {suggestions.map(s => (
-                <div key={s.id} className={`bg-slate-card border rounded-2xl p-4 ${s.is_read ? 'border-slate-border' : 'border-gold/50'}`}>
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <p className="text-cream-muted text-xs">
-                      {s.user?.full_name || 'Anonymous'} · {new Date(s.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                    {!s.is_read && (
-                      <button
-                        onClick={() => handleMarkSuggestionRead(s.id)}
-                        className="flex items-center gap-1 bg-teal-primary hover:bg-teal-light text-cream text-xs font-bold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <CheckCircle size={12} /> Mark Read
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-cream text-sm leading-relaxed">{s.message}</p>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-{tab === 'reports' && accommodationReports.length > 0 && (
-          <div className="flex flex-col gap-4 mb-6">
-            {accommodationReports.map(report => (
-              <div key={report.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-cream font-bold text-sm truncate">{report.listing_title}</p>
-                    <p className="text-cream-muted text-xs mt-0.5">
-                      {report.seller_name || 'Unknown owner'} · Accommodation
-                    </p>
-                  </div>
-                  {report.listing_image_urls?.[0] && (
-                    <img
-                      src={report.listing_image_urls[0]}
-                      alt=""
-                      className="w-16 h-16 object-cover rounded-xl flex-shrink-0"
-                    />
-                  )}
-                </div>
-                <p className="text-red-400 text-xs font-medium">Report</p>
-                <p className="text-cream-muted text-xs mt-1 pl-2 border-l-2 border-red-500/40">
-                  "{report.reason}" — {report.reporter_name || 'Unknown user'}
-                </p>
-                <div className="flex items-center justify-between gap-3 mt-4">
-                  <div className="text-cream-muted text-[11px]">
-                    {report.report_edit_deadline_at
-                      ? `Correction deadline: ${new Date(report.report_edit_deadline_at).toLocaleString()}`
-                      : 'Owner has not yet been notified.'}
-                  </div>
-                  <button
-                    onClick={() => setWarningReport(report)}
-                    className="inline-flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light text-white text-xs font-bold px-3 py-2 rounded-xl"
-                  >
-                    <MessageSquareText size={13} />
-                    {report.report_edit_deadline_at ? 'Send again' : 'Notify owner'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-{tab !== 'businesses' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
+{tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'pending' ? 'No pending listings.' :

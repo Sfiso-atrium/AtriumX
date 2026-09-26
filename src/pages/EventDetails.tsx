@@ -198,10 +198,10 @@ export default function EventDetails() {
                   <UserRound size={15} className="text-teal-light flex-shrink-0" />
                   <span>Hosted by <span className="text-cream font-semibold">{event.host?.full_name ?? 'a student'}</span></span>
                 </p>
-                {event.university && (
+                {event.target_universities?.length > 0 && (
                   <p className="text-cream-muted flex items-center gap-2">
                     <University size={15} className="text-teal-light flex-shrink-0" />
-                    <span>{event.university}</span>
+                    <span>{event.target_universities.join(', ')}</span>
                   </p>
                 )}
               </div>

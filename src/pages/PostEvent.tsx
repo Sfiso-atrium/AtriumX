@@ -4,11 +4,11 @@
 // to post for now, per the "forget about the plans for those" call. If
 // that changes later it slots in the same place the listing flow has it.
 
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { createEvent, uploadEventPoster, EVENT_CATEGORIES } from '../services/dataService'
+import { createEvent, uploadEventPoster, EVENT_CATEGORIES, getBusinessProfile } from '../services/dataService'
 import { PostTypeSwitcher } from '../components/common/PostTypeChooser'
 import ImageCropModal from '../components/common/ImageCropModal'
 import Navbar from '../components/common/Navbar'
@@ -31,6 +31,41 @@ export default function PostEvent() {
   const [isFree, setIsFree] = useState(true)
   const [price, setPrice] = useState('')
   const [saving, setSaving] = useState(false)
+  const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
+  const [loadingBusinessUniversities, setLoadingBusinessUniversities] = useState(false)
+
+  useEffect(() => {
+    if (currentUser?.account_type !== 'business') {
+      setBusinessUniversities([])
+      setSelectedUniversities(currentUser?.university ? [currentUser.university] : [])
+      setLoadingBusinessUniversities(false)
+      return
+    }
+
+    let mounted = true
+    setLoadingBusinessUniversities(true)
+    getBusinessProfile(currentUser.id)
+      .then(profile => {
+        if (!mounted) return
+        const universities = profile?.universities ?? []
+        setBusinessUniversities(universities)
+        const requestedUniversity = new URLSearchParams(window.location.search).get('university')
+        const initial = requestedUniversity && universities.includes(requestedUniversity)
+          ? requestedUniversity
+          : universities[0]
+        setSelectedUniversities(initial ? [initial] : [])
+        setLoadingBusinessUniversities(false)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setBusinessUniversities([])
+        setSelectedUniversities([])
+        setLoadingBusinessUniversities(false)
+      })
+
+    return () => { mounted = false }
+  }, [currentUser])
 
   // Same crop pipeline as listing photos (ImageCropModal, react-easy-crop
   // underneath) — cropSrc holds the picked file as an object URL while
@@ -82,6 +117,17 @@ export default function PostEvent() {
       return showToast('Enter a valid ticket price, or mark it free.', 'error')
     }
 
+    const eventUniversities = currentUser.account_type === 'business'
+      ? selectedUniversities
+      : (currentUser.university ? [currentUser.university] : [])
+
+    if (eventUniversities.length === 0) return showToast(
+      currentUser.account_type === 'business'
+        ? 'Choose at least one university for this event.'
+        : 'Your account does not have a university set.',
+      'error'
+    )
+
     setSaving(true)
     const { error } = await createEvent({
       hostId: currentUser.id,
@@ -92,6 +138,7 @@ export default function PostEvent() {
       location: location.trim(),
       price: priceNum,
       imageUrl: posterUrl,
+      universities: eventUniversities,
     })
     setSaving(false)
 
@@ -118,7 +165,9 @@ export default function PostEvent() {
 
           <h1 className="font-serif text-2xl text-cream mb-1">Post an Event</h1>
           <p className="text-cream-muted text-sm mb-6">
-            Anyone at your university will see it on the Events board.
+            {currentUser.account_type === 'business'
+              ? 'Choose which universities your business can reach for this event.'
+              : 'Anyone at your university will see it on the Events board.'}
           </p>
 
           <div className="flex flex-col gap-3">
@@ -168,6 +217,42 @@ export default function PostEvent() {
 
             <input className={input} placeholder="Where? (e.g. Great Hall)" value={location} onChange={e => setLocation(e.target.value)} />
 
+            {currentUser.account_type === 'business' && (
+              <div>
+                <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                  Universities this event will reach <span className="text-red-400">*</span>
+                </label>
+                {loadingBusinessUniversities ? (
+                  <p className="text-cream-muted text-sm py-2">Loading your university access...</p>
+                ) : businessUniversities.length === 0 ? (
+                  <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {businessUniversities.map(university => {
+                      const selected = selectedUniversities.includes(university)
+                      return (
+                        <button
+                          key={university}
+                          type="button"
+                          onClick={() => setSelectedUniversities(prev =>
+                            selected ? prev.filter(u => u !== university) : [...prev, university]
+                          )}
+                          className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
+                            selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream hover:border-teal-light'
+                          }`}
+                        >
+                          <span className="flex-1 min-w-0">{university}</span>
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
+                            {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             <textarea
               className={`${input} resize-none`} rows={4}
               placeholder="What's happening? Any details people should know."
@@ -194,7 +279,7 @@ export default function PostEvent() {
 
             <button
               onClick={handleSubmit}
-              disabled={saving}
+              disabled={saving || loadingBusinessUniversities}
               className="bg-gold hover:bg-gold/90 disabled:opacity-60 text-slate-deep font-bold py-3 rounded-xl text-sm transition-colors mt-2"
             >
               {saving ? 'Posting…' : 'Post event'}

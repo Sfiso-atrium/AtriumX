@@ -20,7 +20,7 @@ const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommo
 // from here or from a listing's own page.
 export default function AccommodationHome() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -40,11 +40,11 @@ export default function AccommodationHome() {
   // bookmark, browser history, or a link shared before an account changed
   // type). Send each to their own actual home instead.
   useEffect(() => {
-    if (isLoadingAuth) return
+    if (isLoadingAuth || isLoadingBusinessProfile) return
     if (!currentUser) { navigate('/', { replace: true }); return }
     if (currentUser.account_type === 'student') { navigate('/space', { replace: true }); return }
     if (currentUser.account_type === 'business' && !businessProfile?.is_accommodation) { navigate('/feed', { replace: true }) }
-  }, [isLoadingAuth, currentUser, businessProfile?.is_accommodation, navigate])
+  }, [isLoadingAuth, isLoadingBusinessProfile, currentUser, businessProfile?.is_accommodation, navigate])
 
   const grouped = useMemo(() => {
     const map = new Map<string, AccommodationListing[]>()
@@ -62,7 +62,7 @@ export default function AccommodationHome() {
   // dropped rather than shown.
   const sectionsWithItems = SECTION_ORDER.filter(plan => (grouped.get(plan) ?? []).length > 0)
 
-  if (isLoadingAuth || !currentUser || !businessProfile?.is_accommodation) {
+  if (isLoadingAuth || isLoadingBusinessProfile || !currentUser || !businessProfile?.is_accommodation) {
     return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   }
 

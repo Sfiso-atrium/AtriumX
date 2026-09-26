@@ -257,7 +257,7 @@ const filteredBusiness = useMemo(() => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/events')}
+                onClick={() => navigate(currentUser?.account_type === 'business' && requestedUniversity ? `/events?university=${encodeURIComponent(requestedUniversity)}` : '/events')}
                 className="flex-1 h-full text-cream-muted hover:text-blue-600 hover:bg-blue-50/60 rounded-lg text-sm font-medium transition-colors"
               >
                 Events

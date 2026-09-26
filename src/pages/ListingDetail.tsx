@@ -15,7 +15,7 @@ import {
   getConversationsForListing, getSellerRatings,
   PLAN_TIERS, PlanKey,
   BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview,
-  BusinessProfile, getBusinessProfile
+  PublicBusinessProfile, getPublicBusinessProfile
 } from '../services/dataService'
 function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -87,7 +87,7 @@ const [showReportModal, setShowReportModal] = useState(false)
   const [reviewError, setReviewError] = useState('')
 const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [submittingReplyId, setSubmittingReplyId] = useState<string | null>(null)
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
+  const [businessProfile, setBusinessProfile] = useState<PublicBusinessProfile | null>(null)
   useEffect(() => {
     if (!id) return
     getListingById(id, currentUser?.id)
@@ -121,7 +121,7 @@ const seller = listing?.seller as Profile | undefined
 
   useEffect(() => {
     if (seller?.account_type === 'business' && listing?.seller_id) {
-      getBusinessProfile(listing.seller_id).then(setBusinessProfile)
+      getPublicBusinessProfile(listing.seller_id).then(setBusinessProfile)
     }
   }, [listing?.seller_id, seller?.account_type])
   if (loading) return (
@@ -448,7 +448,7 @@ const expiry = timeLeft(listing.expires_at)
                     <CheckCircle size={16} />
                     {listing.status === 'sold' ? 'Sold' : 'Mark as Sold'}
                   </button>
-                  {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && (
+                  {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && listing.status !== 'sold' && (
                     <button
                       onClick={handleRenew}
                       disabled={actionLoading}

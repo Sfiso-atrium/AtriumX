@@ -2,7 +2,7 @@
 // Events board: image-led cards, horizontal sections, and an event details route.
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, MapPin, Plus, Image as ImageIcon, Search, X, Heart } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
@@ -215,19 +215,19 @@ function HorizontalSection({ title, icon, events, currentUserId, onCancel }: {
 
 export default function EventsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, showToast } = useApp()
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Businesses aren't tied to one university like students are — they can
-  // reach several (see the University access menu). There's no per-
-  // university switcher on this page, so a business sees events for every
-  // university on their access list; a student sees theirs (RLS already
-  // enforces that on its own, so no list is needed for them).
+  // Businesses can reach several universities. When the navbar/feed carries
+  // the currently selected university in the URL, this page shows that
+  // university's events; without a selection it retains the full access set.
   const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
   const [businessUniversitiesLoading, setBusinessUniversitiesLoading] = useState(false)
+  const requestedUniversity = new URLSearchParams(location.search).get('university')
 
   useEffect(() => {
     if (currentUser?.account_type !== 'business') {
@@ -256,13 +256,19 @@ export default function EventsPage() {
   useEffect(() => {
     if (currentUser?.account_type === 'business' && businessUniversitiesLoading) return
 
-    getAllEvents(currentUser?.account_type === 'business' ? businessUniversities : undefined)
+    const selectedUniversities = currentUser?.account_type === 'business'
+      ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
+          ? [requestedUniversity]
+          : businessUniversities)
+      : undefined
+
+    getAllEvents(selectedUniversities)
       .then(data => {
         setEvents(data)
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [currentUser, businessUniversities, businessUniversitiesLoading])
+  }, [currentUser, businessUniversities, businessUniversitiesLoading, requestedUniversity])
 
   const visible = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -304,7 +310,11 @@ export default function EventsPage() {
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
 
   const handleCancel = async (event: CampusEvent) => {
-    await cancelEvent(event.id)
+    const { error } = await cancelEvent(event.id)
+    if (error) {
+      showToast(error, 'error')
+      return
+    }
     setEvents(prev => prev.filter(e => e.id !== event.id))
     showToast('Event cancelled.', 'success')
   }
