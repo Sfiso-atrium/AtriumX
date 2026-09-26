@@ -5,13 +5,12 @@ import SendIcon from '../common/icons/SendIcon'
 import { useApp } from '../../context/AppContext'
 import {
   Message, Conversation, Profile, WantedPost,
-  getConversationMessages, sendMessage,
+  getConversationMessages, getConversationMessageLimit, sendMessage,
   markConversationResolved, getUnreadMessageCount,
   markMessagesRead, sendRatingInvite,
   sendChatImage, CHAT_IMAGE_PLACEHOLDER, clearChatForMe,
 } from '../../services/dataService'
 import { supabase } from '../../services/supabaseClient'
-import { PLAN_TIERS, PlanKey } from '../../services/dataService'
 import ChatReportModal from './ChatReportModal'
 import ChatImage from './ChatImage'
 import ConfirmModal from '../common/ConfirmModal'
@@ -68,15 +67,15 @@ export default function ChatWindow({ conversation, onResolved, onDeleted }: Prop
   const isWantedPost = !!conversation.wanted_post_id
   const isAccommodation = !!conversation.accommodation_listing_id
   const otherParty = isSeller ? conversation.buyer : conversation.seller
-  const sellerPlan = (conversation.seller as Profile & { plan?: string })?.plan as PlanKey | undefined
-  const maxMsgs = sellerPlan ? PLAN_TIERS[sellerPlan]?.maxMsgs ?? 999 : 999
-  // A Noticeboard business can't reply — the send is blocked at the RLS
-  // level too (migration 014), this just shows them why instead of a
-  // silent failed send.
-  const sellerLocked = isSeller &&
-    !isAccommodation &&
-    (conversation.seller as Profile & { account_type?: string })?.account_type === 'business' &&
-    sellerPlan === 'noticeboard'
+  const [maxMsgs, setMaxMsgs] = useState(999)
+  const [sellerLocked, setSellerLocked] = useState(false)
+
+  useEffect(() => {
+    getConversationMessageLimit(conversation.id).then(({ maxMsgs: limit, sellerLocked: locked }) => {
+      setMaxMsgs(limit)
+      setSellerLocked(locked)
+    })
+  }, [conversation.id])
 
   useEffect(() => {
     if (!currentUser) return
