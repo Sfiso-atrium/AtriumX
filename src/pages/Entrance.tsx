@@ -79,7 +79,7 @@ export default function Entrance() {
               </button>
               <button
                 onClick={() => navigate('/student?mode=register')}
-                className="bg-cream hover:opacity-90 text-white text-[13px] sm:text-sm font-bold px-3.5 sm:px-5 py-2 rounded-xl transition-opacity shadow-[0_1px_2px_rgba(15,23,42,0.08),0_4px_12px_rgba(15,23,42,0.08)]"
+                className="bg-cream hover:opacity-90 text-slate-deep text-[13px] sm:text-sm font-bold px-3.5 sm:px-5 py-2 rounded-xl transition-opacity shadow-[0_1px_2px_rgba(15,23,42,0.08),0_4px_12px_rgba(15,23,42,0.08)]"
               >
                 Get Started
               </button>
@@ -131,7 +131,7 @@ export default function Entrance() {
                 </div>
                 <h3 className="text-cream font-bold text-[13px] mb-1">I'm a Student</h3>
                 <p className="text-cream-muted text-[11px] leading-relaxed mb-3 line-clamp-2">Explore spaces, listings and campus activity.</p>
-                <button onClick={() => { window.location.href = '/Welcome.html' }} className="w-full bg-cream text-white font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:opacity-90 transition-opacity">
+                <button onClick={() => { window.location.href = '/Welcome.html' }} className="w-full bg-cream text-slate-deep font-bold text-[12px] py-2 rounded-xl flex items-center justify-center gap-1 hover:opacity-90 transition-opacity">
                   Explore <ArrowRight size={12} />
                 </button>
               </div>
