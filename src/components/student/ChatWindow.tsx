@@ -201,16 +201,20 @@ export default function ChatWindow({ conversation, onResolved, onDeleted }: Prop
     setResolving(false)
     if (error) { showToast(error, 'error'); return }
     onResolved()
-    // Resolving a chat is a separate moment from marking the listing sold
-    // (see ListingDetail's Mark as Sold flow) — a seller may resolve a
-    // conversation that didn't end in a sale. Either way, inviting a rating
-    // here is always an explicit opt-in choice, never automatic.
+    // Product decision: a rating invite now fires automatically (see the
+    // notify_rating_request trigger, migration 077) the moment a listing
+    // conversation is marked resolved, in addition to this explicit
+    // opt-in prompt -- lower friction than requiring the seller to also
+    // press "Invite a rating". Both can safely coexist: send_rating_invite
+    // (called below when the seller confirms this prompt) no-ops if a
+    // rating_request notification for this conversation already exists,
+    // so whichever of the two fires second is just a no-op, not a
+    // duplicate.
     //
-    // A wanted-post conversation has no listing at all -- ratings are a
-    // listing-transaction concept, so there's nothing to invite a rating
-    // about here. Structurally, sendRatingInvite would have nothing valid
-    // to attach the rating to anyway (conversation.listing?.id would be
-    // undefined), but this keeps it from even being offered as an option.
+    // A wanted-post or accommodation conversation has no listing_id at
+    // all -- ratings are a listing-transaction concept, and the trigger
+    // above already guards on listing_id IS NOT NULL for the same reason
+    // -- so there's nothing to invite a rating about here either way.
     if (!isWantedPost && !isAccommodation) setShowResolvePrompt(true)
   }
 
