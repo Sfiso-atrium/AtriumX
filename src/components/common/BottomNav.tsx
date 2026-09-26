@@ -155,13 +155,15 @@ export default function BottomNav() {
               >
                 <div
                   className={
-                    tab.action
-                      ? 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-[0_6px_16px_rgba(37,99,235,0.35)] hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 transition-all duration-200'
-                      : `relative w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center transition-all duration-200 ${
-                          active
-                            ? 'bg-[#2563EB] text-white shadow-[0_6px_16px_rgba(37,99,235,0.30)]'
-                            : 'text-cream-muted hover:text-cream hover:bg-slate-card'
-                        }`
+                    tab.action && tabs.length === 4
+                      ? 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-card border border-slate-border text-cream flex items-center justify-center hover:border-slate-border hover:bg-slate-deep hover:scale-105 active:scale-95 transition-all duration-200'
+                      : tab.action
+                        ? 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-[0_6px_16px_rgba(37,99,235,0.35)] hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 transition-all duration-200'
+                        : `relative w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center transition-all duration-200 ${
+                            active
+                              ? 'bg-[#2563EB] text-white shadow-[0_6px_16px_rgba(37,99,235,0.30)]'
+                              : 'text-cream-muted hover:text-cream hover:bg-slate-card'
+                          }`
                   }
                 >
                   <Icon
