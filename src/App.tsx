@@ -53,9 +53,9 @@ function ModalLayer() {
 
 
 function AccommodationGuard({ children }: { children: ReactNode }) {
-  const { currentUser, businessProfile, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   if (isLoadingAuth) return null
-  if (currentUser?.account_type === 'business' && businessProfile === null) return null
+  if (currentUser?.account_type === 'business' && isLoadingBusinessProfile) return null
   if (currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
     return <Navigate to="/accommodation" replace />
   }
@@ -64,9 +64,10 @@ function AccommodationGuard({ children }: { children: ReactNode }) {
 
 
 function StudentAccommodationGuard({ children }: { children: ReactNode }) {
-  const { currentUser, businessProfile, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   if (isLoadingAuth) return null
   if (currentUser?.account_type === 'business') {
+    if (isLoadingBusinessProfile) return null
     if (businessProfile?.is_accommodation) return <Navigate to="/accommodation" replace />
     return <Navigate to="/feed" replace />
   }
