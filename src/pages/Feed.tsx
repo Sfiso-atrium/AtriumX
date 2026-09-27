@@ -40,13 +40,15 @@ const { activeCategory, setActiveCategory, showToast, currentUser, setAuthPrompt
   const navigate = useNavigate()
   const location = useLocation()
   const requestedUniversity = new URLSearchParams(location.search).get('university')
-  const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>(() => {
-    const saved = localStorage.getItem('feed_last_tab')
-    return saved === 'business' ? 'business' : 'marketplace'
-  })
+  const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
   useEffect(() => { localStorage.setItem('feed_last_tab', feedTab) }, [feedTab])
   useEffect(() => {
-    if (currentUser?.account_type === 'business') setFeedTab('marketplace')
+    // Start each account in the audience appropriate to its role.
+    if (currentUser?.account_type === 'business') {
+      setFeedTab('business')
+    } else if (currentUser?.account_type === 'student') {
+      setFeedTab('marketplace')
+    }
   }, [currentUser?.account_type])
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
