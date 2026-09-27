@@ -128,6 +128,13 @@ export default function BottomNav() {
   }
 
 
+  // The Post button is a blue circle only when it truly sits in the middle
+  // of the bar (odd-length tab lists: 5 for students, 3 when logged out).
+  // In the 4-tab business layout it's off-centre, so it stays a plain dark
+  // icon like the others instead of standing out in blue.
+  const actionIndex = tabs.findIndex(t => t.action)
+  const actionIsCentered = tabs.length % 2 === 1 && actionIndex === (tabs.length - 1) / 2
+
   return (
     <>
       {chooserOpen && <PostTypeModal onClose={() => setChooserOpen(false)} />}
@@ -156,7 +163,9 @@ export default function BottomNav() {
                 <div
                   className={
                     tab.action
-                      ? 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border border-slate-border text-slate-deep flex items-center justify-center shadow-[0_6px_16px_rgba(15,23,42,0.12)] hover:bg-slate-card hover:scale-105 active:scale-95 transition-all duration-200'
+                      ? actionIsCentered
+                        ? 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-[0_6px_16px_rgba(37,99,235,0.35)] hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 transition-all duration-200'
+                        : 'relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border border-slate-border text-cream flex items-center justify-center shadow-[0_6px_16px_rgba(15,23,42,0.12)] hover:bg-slate-card hover:scale-105 active:scale-95 transition-all duration-200'
                       : `relative w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center transition-all duration-200 ${
                           active
                             ? 'bg-[#2563EB] text-white shadow-[0_6px_16px_rgba(37,99,235,0.30)]'
@@ -167,7 +176,7 @@ export default function BottomNav() {
                   <Icon
                     size={tab.action ? 26 : tab.label === 'My Space' ? 24 : 22}
                     filled={active}
-                    className={`${tab.action ? 'text-slate-deep' : active ? 'text-white' : 'text-cream-muted'} transform-gpu transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group-hover:-translate-y-[2px] group-hover:scale-110 ${tab.action ? 'group-hover:rotate-90' : 'group-hover:rotate-[-6deg]'} group-active:scale-90 group-active:translate-y-[1px]`}
+                    className={`${tab.action ? (actionIsCentered ? 'text-white' : 'text-cream') : active ? 'text-white' : 'text-cream-muted'} transform-gpu transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group-hover:-translate-y-[2px] group-hover:scale-110 ${tab.action ? 'group-hover:rotate-90' : 'group-hover:rotate-[-6deg]'} group-active:scale-90 group-active:translate-y-[1px]`}
                   />
                   {tab.badge ? (
                     <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
