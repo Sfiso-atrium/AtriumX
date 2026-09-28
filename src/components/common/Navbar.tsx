@@ -18,7 +18,7 @@ import {
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 import { pushSupported, subscribeToPush, unsubscribeFromPush } from '../../services/push'
-import { getBusinessProfile, BusinessProfile } from '../../services/dataService'
+import { getBusinessProfile, BusinessProfile, getEffectiveBusinessPlan, PLAN_TIERS } from '../../services/dataService'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -92,6 +92,13 @@ export default function Navbar() {
     navigate(path)
   }
 
+  const effectiveBusinessPlan = getEffectiveBusinessPlan(currentUser)
+  const businessUniversityLimit = 'maxUniversities' in PLAN_TIERS[effectiveBusinessPlan]
+    ? PLAN_TIERS[effectiveBusinessPlan].maxUniversities
+    : 1
+  const visibleBusinessUniversities = (businessProfile?.universities ?? []).slice(0, businessUniversityLimit)
+
+
   return (
     <>
       <nav className="sticky top-0 z-40 bg-slate-deep border-b border-slate-border">
@@ -153,14 +160,14 @@ export default function Navbar() {
                         <p className="text-cream-muted text-xs mb-3">Your listings can reach these universities.</p>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-cream text-xs font-semibold">
-                            {(businessProfile?.universities?.length ?? 0)} / {(currentUser.plan === 'campus_partner' ? 3 : currentUser.plan === 'featured' ? 2 : 1)} universities
+                            {visibleBusinessUniversities.length} / {businessUniversityLimit} universities
                           </span>
-                          {currentUser.plan !== 'campus_partner' && (businessProfile?.universities?.length ?? 0) >= (currentUser.plan === 'featured' ? 2 : 1) && (
+                          {effectiveBusinessPlan !== 'campus_partner' && visibleBusinessUniversities.length >= businessUniversityLimit && (
                             <span className="text-cream-muted text-[10px]">Plan limit reached</span>
                           )}
                         </div>
                         <div className="flex flex-col gap-2">
-                          {(businessProfile?.universities ?? []).map(university => (
+                          {visibleBusinessUniversities.map(university => (
                             <button
                               key={university}
                               type="button"
@@ -173,11 +180,11 @@ export default function Navbar() {
                               {university}
                             </button>
                           ))}
-                          {(businessProfile?.universities?.length ?? 0) === 0 && (
+                          {visibleBusinessUniversities.length === 0 && (
                             <p className="text-cream-muted text-xs">No university has been selected yet.</p>
                           )}
                         </div>
-                        {currentUser.plan !== 'campus_partner' && (
+                        {effectiveBusinessPlan !== 'campus_partner' && (
                           <button
                             onClick={() => { setUniversityMenuOpen(false); navigate('/business/plan-select', { state: { forcePlans: true } }) }}
                             className="mt-3 w-full bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
