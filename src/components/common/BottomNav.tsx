@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
-import { Plus, UserRound } from 'lucide-react'
+import { CalendarDays, Plus, UserRound } from 'lucide-react'
 import { PostTypeModal } from './PostTypeChooser'
 import HomeIcon from './icons/HomeIcon'
 import ChatIcon from './icons/ChatIcon'
@@ -29,6 +29,10 @@ function DiscoverIcon({ size = 22, className }: { size?: number; className?: str
 
 function PostIcon({ size = 24, className }: { size?: number; className?: string }) {
   return <Plus size={size} className={className} strokeWidth={2.6} />
+}
+
+function EventNavIcon({ size = 22, className }: { size?: number; className?: string }) {
+  return <CalendarDays size={size} className={className} />
 }
 
 function ProfileIcon({ size = 20, className, filled }: { size?: number; className?: string; filled?: boolean }) {
@@ -96,7 +100,8 @@ export default function BottomNav() {
       if (businessProfile?.is_accommodation) {
         tabs = [
           { label: 'Accommodation', icon: HomeIcon, path: '/accommodation', onClick: () => navigate('/accommodation') },
-          { label: 'Post', icon: PostIcon, path: '/accommodation/plan-select', onClick: () => navigate('/accommodation/plan-select'), action: true },
+          { label: 'Events', icon: EventNavIcon, path: '/events', onClick: () => navigate('/events') },
+          { label: 'Post', icon: PostIcon, path: '/accommodation/plan-select', onClick: () => setChooserOpen(true), action: true },
           { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
           { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
         ]

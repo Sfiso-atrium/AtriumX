@@ -14,10 +14,10 @@ import { useApp } from '../../context/AppContext'
 
 export function PostTypeModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, businessProfile } = useApp()
 
   const listingPath = currentUser?.account_type === 'business'
-    ? '/business/plan-select'
+    ? (businessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select')
     : '/plan-select'
 
   const go = (path: string) => { onClose(); navigate(path) }
@@ -55,7 +55,7 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
             </span>
             <div>
               <p className="text-cream font-bold text-sm">A listing</p>
-              <p className="text-cream-muted text-xs mt-1 leading-5">Something you're selling</p>
+              <p className="text-cream-muted text-xs mt-1 leading-5">{businessProfile?.is_accommodation ? 'Your accommodation property' : "Something you're selling"}</p>
             </div>
           </button>
 
@@ -97,10 +97,10 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
 // the one you can switch to.
 export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' | 'wanted' }) {
   const navigate = useNavigate()
-  const { currentUser } = useApp()
+  const { currentUser, businessProfile } = useApp()
 
   const listingPath = currentUser?.account_type === 'business'
-    ? '/business/plan-select'
+    ? (businessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select')
     : '/plan-select'
 
   const tab = (active: boolean) =>
