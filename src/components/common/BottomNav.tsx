@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
-import { Compass, Plus, UserRound } from 'lucide-react'
+import { Plus, UserRound } from 'lucide-react'
 import { PostTypeModal } from './PostTypeChooser'
 import HomeIcon from './icons/HomeIcon'
 import ChatIcon from './icons/ChatIcon'
@@ -34,9 +34,6 @@ function ProfileIcon({ size = 20, className, filled }: { size?: number; classNam
   return <UserRound size={size} className={className} fill={filled ? 'currentColor' : 'none'} />
 }
 
-function EventsIcon({ size = 20, className }: { size?: number; className?: string }) {
-  return <Compass size={size} className={className} />
-}
 
 type NavTab = {
   label: string
@@ -123,7 +120,7 @@ export default function BottomNav() {
     tabs = [
       { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
       { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => handleProtected('/plan-select'), action: true },
-      { label: 'Events', icon: EventsIcon, path: '/events', onClick: () => navigate('/events') },
+      { label: 'Accommodation', icon: HomeIcon, path: '/accommodations', onClick: () => navigate('/accommodations') },
     ]
   }
 
