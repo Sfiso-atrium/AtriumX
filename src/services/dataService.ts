@@ -52,6 +52,10 @@ has_pending_edit: boolean
   business_address?: string | null
   business_website?: string | null
   universities: string[]
+  plan_enabled?: boolean
+  plan_visible?: boolean
+  current_max_listings?: number
+  hidden_photo_count?: number
 }
 
 
@@ -93,6 +97,8 @@ export interface AccommodationListing {
   report_warning_sent_at?: string | null
   report_edit_deadline_at?: string | null
   report_required_field?: string | null
+  hidden_photo_count?: number
+  video_hidden?: boolean
 }
 
 export interface AccommodationReview {
@@ -613,6 +619,29 @@ export async function updateProfile(
   return { user: updated, error: null }
 }
 
+async function withListingPlanDisplay(listings: Listing[], publicOnly = false): Promise<Listing[]> {
+  if (!listings.length) return []
+  const { data, error } = await supabase.rpc('get_listing_plan_display', {
+    p_listing_ids: listings.map(listing => listing.id),
+  })
+  if (error) { console.error('Could not load listing plan access:', error.message); return [] }
+  const access = new Map<string, any>((data || []).map((row: any) => [row.listing_id, row]))
+  return listings.flatMap(listing => {
+    const row = access.get(listing.id)
+    if (!row || (publicOnly && !row.plan_visible)) return []
+    return [{ ...listing, plan_enabled: row.plan_enabled, plan_visible: row.plan_visible,
+      current_max_listings: row.max_listings, hidden_photo_count: row.hidden_photo_count,
+      plan_tier: row.effective_plan ?? listing.plan_tier,
+      image_urls: row.image_urls ?? [], video_url: row.video_url,
+      universities: row.universities ?? listing.universities }]
+  })
+}
+
+export async function selectPlanListings(listingIds: string[]): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('select_plan_listings', { p_listing_ids: listingIds })
+  return { error: error?.message ?? null }
+}
+
 export async function getUserListings(userId: string): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
@@ -620,7 +649,7 @@ export async function getUserListings(userId: string): Promise<Listing[]> {
     .eq('seller_id', userId)
     .order('created_at', { ascending: false })
   if (error || !data) return []
-  return data as Listing[]
+  return withListingPlanDisplay(data as Listing[])
 }
 
 // ── RESIDENCES ─────────────────────────────────────────────────────────────
@@ -715,7 +744,7 @@ export async function getListings(filters: {
     .map(listing => ({ ...listing, seller: sellerMap[listing.seller_id] }))
 
   const PLAN_RANK: Record<string, number> = { unmissable: 4, loud: 3, visible: 2, ghost: 1 }
-  const sorted = [...scoped].sort(
+  const sorted = (await withListingPlanDisplay(scoped as Listing[], true)).sort(
     (a, b) => (PLAN_RANK[b.plan_tier] || 0) - (PLAN_RANK[a.plan_tier] || 0)
   )
 
@@ -779,7 +808,9 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   }))
 
   const BUSINESS_PLAN_RANK: Record<string, number> = { campus_partner: 3, featured: 2, noticeboard: 1 }
-  const sorted = withAddress.sort(
+  const selectedUniversity = currentUser?.account_type === 'student' ? currentUser.university : university
+  const sorted = (await withListingPlanDisplay(withAddress as Listing[], true))
+    .filter(listing => !selectedUniversity || listing.universities.includes(selectedUniversity)).sort(
     (a, b) => (BUSINESS_PLAN_RANK[b.plan_tier] || 0) - (BUSINESS_PLAN_RANK[a.plan_tier] || 0)
   )
 
@@ -814,7 +845,7 @@ export async function getListingById(id: string, viewerId?: string): Promise<Lis
     }
   }
 
-  return { ...data, seller } as Listing
+  return (await withListingPlanDisplay([{ ...data, seller } as Listing], viewerId !== data.seller_id))[0] ?? null
 }
 
 export async function createListing(payload: {
@@ -1211,6 +1242,22 @@ async function getBusinessWebsites(sellerIds: string[]): Promise<Record<string, 
   return map
 }
 
+async function withAccommodationPlanDisplay(listings: AccommodationListing[]): Promise<AccommodationListing[]> {
+  if (!listings.length) return []
+  const { data, error } = await supabase.rpc('get_accommodation_plan_display', {
+    p_listing_ids: listings.map(listing => listing.id),
+  })
+  if (error) { console.error('Could not load accommodation plan access:', error.message); return [] }
+  const access = new Map<string, any>((data || []).map((row: any) => [row.listing_id, row]))
+  return listings.flatMap(listing => {
+    const row = access.get(listing.id)
+    if (!row) return []
+    return [{ ...listing, plan_tier: row.effective_plan,
+      image_urls: row.image_urls ?? [], video_url: row.video_url,
+      hidden_photo_count: row.hidden_photo_count, video_hidden: row.video_hidden }]
+  })
+}
+
 export async function getAccommodationListings(university?: string | null): Promise<AccommodationListing[]> {
   let query = supabase
     .from('accommodation_listings')
@@ -1229,7 +1276,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     current.sum += r.stars
     stats.set(r.accommodation_listing_id, current)
   })
-  return (data as any[]).map(item => ({
+  return withAccommodationPlanDisplay((data as any[]).map(item => ({
     ...item,
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
@@ -1241,7 +1288,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
-  })) as AccommodationListing[]
+  })) as AccommodationListing[])
 }
 
 // The owner's own properties — used on the Profile page's accommodation
@@ -1265,7 +1312,7 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
     current.sum += r.stars
     stats.set(r.accommodation_listing_id, current)
   })
-  return (data as any[]).map(item => ({
+  return withAccommodationPlanDisplay((data as any[]).map(item => ({
     ...item,
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
@@ -1277,7 +1324,7 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
     room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
-  })) as AccommodationListing[]
+  })) as AccommodationListing[])
 }
 
 export async function getAccommodationListingById(id: string, viewerId?: string): Promise<AccommodationListing | null> {
@@ -1295,7 +1342,7 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
   const total = reviews?.length || 0
   const sum = reviews?.reduce((n, r) => n + r.stars, 0) || 0
   const { data: business } = await supabase.from('business_profiles_public').select('website').eq('id', listing.seller_id).maybeSingle()
-  return {
+  return (await withAccommodationPlanDisplay([{
     ...listing,
     seller: seller || undefined,
     amenities: listing.amenities || [],
@@ -1308,7 +1355,7 @@ export async function getAccommodationListingById(id: string, viewerId?: string)
     room_pricing: listing.room_pricing || [],
     avg_rating: total ? sum / total : 0,
     total_reviews: total
-  } as AccommodationListing
+  } as AccommodationListing]))[0] ?? null
 }
 
 export type AccommodationReportField =
