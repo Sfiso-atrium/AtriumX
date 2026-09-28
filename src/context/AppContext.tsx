@@ -27,6 +27,7 @@ interface AppContextType {
   redirectAfterLogin: string | null
   setRedirectAfterLogin: (path: string | null) => void
   isLoadingAuth: boolean
+  isLoadingBusinessProfile: boolean
   partner: Partner | null
   businessProfile: BusinessProfile | null
   refreshBusinessProfile: () => Promise<void>
@@ -43,6 +44,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
+  const [isLoadingBusinessProfile, setIsLoadingBusinessProfile] = useState(false)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
 
@@ -51,22 +53,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (user) {
       getUnreadMessageCount(user.id).then(setUnreadMessageCount)
       getPartnerStatus(user.id).then(setPartner)
-      if (user.account_type === 'business') getBusinessProfile(user.id).then(setBusinessProfile)
-      else setBusinessProfile(null)
+      if (user.account_type === 'business') {
+        setIsLoadingBusinessProfile(true)
+        getBusinessProfile(user.id)
+          .then(setBusinessProfile)
+          .catch(() => setBusinessProfile(null))
+          .finally(() => setIsLoadingBusinessProfile(false))
+      } else {
+        setBusinessProfile(null)
+        setIsLoadingBusinessProfile(false)
+      }
     } else {
       setUnreadMessageCount(0)
       setPartner(null)
       setBusinessProfile(null)
+      setIsLoadingBusinessProfile(false)
     }
   }, [])
 
   const refreshBusinessProfile = useCallback(async () => {
     if (!currentUser || currentUser.account_type !== 'business') {
       setBusinessProfile(null)
+      setIsLoadingBusinessProfile(false)
       return
     }
-    const profile = await getBusinessProfile(currentUser.id)
-    setBusinessProfile(profile)
+    setIsLoadingBusinessProfile(true)
+    try {
+      const profile = await getBusinessProfile(currentUser.id)
+      setBusinessProfile(profile)
+    } finally {
+      setIsLoadingBusinessProfile(false)
+    }
   }, [currentUser])
 
 
@@ -130,6 +147,7 @@ useEffect(() => {
       authPromptOpen, setAuthPromptOpen,
       redirectAfterLogin, setRedirectAfterLogin,
       isLoadingAuth,
+      isLoadingBusinessProfile,
       partner,
       businessProfile,
       refreshBusinessProfile,
