@@ -21,15 +21,19 @@ export default function RetailerSignup() {
     ? 'Campus Partner'
     : null
 
-  const [mode, setMode] = useState<'login' | 'register'>('register')
+  const isAccommodation = searchParams.get('accommodation') === '1'
+  const initialMode = searchParams.get('mode') === 'login' ? 'login' : 'register'
+  const accountLabel = isAccommodation ? 'Accommodation' : 'Business'
+  const accountLower = isAccommodation ? 'accommodation' : 'business'
+
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [businessName, setBusinessName] = useState('')
-  const [businessType, setBusinessType] = useState('')
-  const [customType, setCustomType] = useState('')
+  const [businessType, setBusinessType] = useState(isAccommodation ? 'Other' : '')
+  const [customType, setCustomType] = useState(isAccommodation ? 'Student accommodation' : '')
   const [contactNumber, setContactNumber] = useState('')
   const [physicalAddress, setPhysicalAddress] = useState('')
   const [website, setWebsite] = useState('')
   const [university, setUniversity] = useState('')
-  const [isAccommodation, setIsAccommodation] = useState<boolean | null>(() => searchParams.get('accommodation') === '1' ? true : null)
   const [universitySearch, setUniversitySearch] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -71,27 +75,29 @@ export default function RetailerSignup() {
       return
     }
 
-    if (!businessName.trim()) return setError('Business name is required.')
-    if (isAccommodation === null) return setError('Please tell us whether this business is an accommodation provider.')
+    if (!businessName.trim()) return setError(`${accountLabel} name is required.`)
     if (!university) return setError('Please select your university.')
-    if (!businessType) return setError('Select a business type.')
-    if (businessType === 'Other' && !customType.trim()) return setError('Please specify your business type.')
-if (!contactNumber.trim()) return setError('Contact number is required.')
+    if (!isAccommodation && !businessType) return setError('Select a business type.')
+    if (!isAccommodation && businessType === 'Other' && !customType.trim()) return setError('Please specify your business type.')
+    if (!contactNumber.trim()) return setError('Contact number is required.')
     if (!physicalAddress.trim() && !website.trim()) {
-      return setError('Add a physical address or a website — at least one so students can find you outside the app.')
+      return setError(`Add a physical address or a website — at least one so students can find this ${accountLower} outside the app.`)
     }
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     if (!emailValid) return setError('Enter a valid email address.')
     if (password.length < 8) return setError('Password must be at least 8 characters.')
     if (password !== confirmPassword) return setError('Passwords do not match.')
-    if (!confirmedBusiness) return setError('Please confirm you are authorised to register this business on AtriumX.')
+    if (!confirmedBusiness) return setError(`Please confirm you are authorised to register this ${accountLower} on AtriumX.`)
     if (!acceptedPrivacy) return setError('Please accept the Privacy Policy to create an account.')
+
+    const effectiveBusinessType = isAccommodation ? 'Other' : businessType
+    const effectiveCustomType = isAccommodation ? 'Student accommodation' : businessType === 'Other' ? customType.trim() : undefined
 
     setLoading(true)
     const refCode = searchParams.get('ref') || undefined
     const { user, error: err } = await registerBusinessWithEmail(
-      email, password, businessName.trim(), businessType,
-      businessType === 'Other' ? customType.trim() : undefined,
+      email, password, businessName.trim(), effectiveBusinessType,
+      effectiveCustomType,
       contactNumber.trim(),
       physicalAddress.trim() || undefined,
       website.trim() || undefined,
@@ -113,15 +119,17 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
       <Navbar />
       <div className="max-w-lg mx-auto px-4 pt-8 pb-24">
         <h1 className="font-serif text-3xl text-cream mb-1">
-          {mode === 'login' ? 'Welcome back' : 'Register Your Business'}
+          {mode === 'login' ? 'Welcome back' : `Register Your ${accountLabel}`}
         </h1>
-<p className="text-cream-muted text-sm mb-8">
+        <p className="text-cream-muted text-sm mb-8">
           {mode === 'login'
-            ? 'Sign in to your business account'
+            ? `Sign in to your ${accountLower} account`
+            : isAccommodation
+            ? 'Create your accommodation account and start listing your space for students near your chosen university.'
             : 'Create your free business account and reach your chosen university right away. Upgrade later to reach more universities.'}
         </p>
 
-        {mode === 'register' && requestedPackageLabel && (
+        {mode === 'register' && requestedPackageLabel && !isAccommodation && (
           <div className="bg-gold/10 border border-gold/30 rounded-xl px-4 py-3 mb-6">
             <p className="text-cream text-sm leading-snug">
               Every business starts free on Noticeboard. You can upgrade to {requestedPackageLabel} from the app when you post your first listing.
@@ -132,39 +140,24 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
         <div className="flex flex-col gap-4">
           {mode === 'register' && (
             <>
-              <input type="text" placeholder="Business Name" value={businessName}
+              <input type="text" placeholder={isAccommodation ? 'Accommodation name' : 'Business name'} value={businessName}
                 onChange={e => setBusinessName(e.target.value)} className={inputClass} />
 
-              <select value={businessType}
-                onChange={e => setBusinessType(e.target.value)} className={inputClass}>
-                <option value="" disabled>Select business type</option>
-                {BUSINESS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              {!isAccommodation && (
+                <>
+                  <select value={businessType}
+                    onChange={e => setBusinessType(e.target.value)} className={inputClass}>
+                    <option value="" disabled>Select business type</option>
+                    {BUSINESS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
 
-              {businessType === 'Other' && (
-                <input type="text" placeholder="Specify your business type"
-                  value={customType} onChange={e => setCustomType(e.target.value)}
-                  className={inputClass} />
+                  {businessType === 'Other' && (
+                    <input type="text" placeholder="Specify your business type"
+                      value={customType} onChange={e => setCustomType(e.target.value)}
+                      className={inputClass} />
+                  )}
+                </>
               )}
-
-              <div>
-                <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Accommodation provider</label>
-                <p className="text-cream-muted text-xs mb-2">Tell us whether this business offers student accommodation. You can only change this during account creation.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[{ value: true, label: 'Yes, accommodation' }, { value: false, label: 'No, other business' }].map(option => (
-                    <button
-                      key={option.label}
-                      type="button"
-                      onClick={() => setIsAccommodation(option.value)}
-                      className={`px-3 py-3 rounded-xl border text-sm font-semibold transition-colors ${
-                        isAccommodation === option.value ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream-muted hover:border-teal-light'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div>
                 <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">University</label>
@@ -204,14 +197,14 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
                 onChange={e => setContactNumber(e.target.value)} className={inputClass} />
 
               <div>
-                <input type="text" placeholder="Physical Address (e.g. Shop 4, Campus Square)" value={physicalAddress}
+                <input type="text" placeholder={isAccommodation ? 'Property address' : 'Physical address (e.g. Shop 4, Campus Square)'} value={physicalAddress}
                   onChange={e => setPhysicalAddress(e.target.value)} className={inputClass} />
                 <p className="text-cream-muted text-xs mt-1 px-1">
                   Add a physical address or a website below — at least one, so students can find you outside the app.
                 </p>
               </div>
 
-              <input type="url" placeholder="Website (e.g. https://yourbusiness.co.za)" value={website}
+              <input type="url" placeholder={isAccommodation ? 'Website (optional)' : 'Website (e.g. https://yourbusiness.co.za)'} value={website}
                 onChange={e => setWebsite(e.target.value)} className={inputClass} />
             </>
           )}
@@ -234,7 +227,7 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
                     onChange={e => setConfirmedBusiness(e.target.checked)}
                     className="mt-0.5 accent-sapphire-light"
                   />
-                  <span>I confirm that I am authorised to register this business on AtriumX.</span>
+                  <span>I confirm that I am authorised to register this {accountLower} on AtriumX.</span>
                 </label>
                 <label className="flex items-start gap-2.5 text-cream-muted text-xs leading-relaxed cursor-pointer">
                   <input
@@ -265,7 +258,7 @@ if (!contactNumber.trim()) return setError('Contact number is required.')
             onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
             className="text-sapphire-light text-sm text-center underline mt-1"
           >
-            {mode === 'login' ? "Don't have a business account? Register" : 'Already registered? Sign in'}
+            {mode === 'login' ? `Don't have a ${accountLower} account? Register` : 'Already registered? Sign in'}
           </button>
         </div>
       </div>

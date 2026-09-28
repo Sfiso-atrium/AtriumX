@@ -1,128 +1,55 @@
-// src/pages/RetailerLanding.tsx - visually improved to match reference, logic unchanged
-import { useNavigate } from 'react-router-dom'
-import { ClipboardCheck, ShieldCheck, Rocket } from 'lucide-react'
-import Navbar from '../components/common/Navbar'
-
-// Campus illustration - the SVG we generated with university building on left
-function CampusIllustration() {
-  return (
-    <div className="w-full max-w-[720px] mx-auto mt-8 px-4">
-      <svg viewBox="0 0 900 260" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
-        {/* light blue blobs */}
-        <path d="M20 60 Q 80 10, 180 40 T 320 80 T 380 140 T 200 210 Q 80 200, 30 150 Z" fill="#DBEAFE" opacity="0.6"/>
-        <path d="M380 70 Q 480 30, 580 70 T 680 160 T 550 230 Q 460 210, 380 160 Z" fill="#DBEAFE" opacity="0.5"/>
-        <path d="M700 50 Q 820 20, 880 90 T 860 210 Q 760 230, 700 180 Z" fill="#DBEAFE" opacity="0.5"/>
-        
-        {/* Left: University Building with dome */}
-        <g transform="translate(30,20)">
-          <rect x="0" y="110" width="280" height="110" fill="none" stroke="#1e3a8a" strokeWidth="2.2" rx="2"/>
-          <rect x="10" y="120" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <line x1="17" y1="120" x2="17" y2="158" stroke="#1e3a8a" strokeWidth="1.5"/><line x1="33" y1="120" x2="33" y2="158" stroke="#1e3a8a" strokeWidth="1.5"/><line x1="10" y1="139" x2="40" y2="139" stroke="#1e3a8a" strokeWidth="1.5"/>
-          <rect x="50" y="120" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <line x1="57" y1="120" x2="57" y2="158" stroke="#1e3a8a" strokeWidth="1.5"/><line x1="73" y1="120" x2="73" y2="158" stroke="#1e3a8a" strokeWidth="1.5"/><line x1="50" y1="139" x2="80" y2="139" stroke="#1e3a8a" strokeWidth="1.5"/>
-          <rect x="200" y="120" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="240" y="120" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="10" y="172" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="50" y="172" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="200" y="172" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="240" y="172" width="30" height="38" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          {/* center portico */}
-          <rect x="95" y="90" width="90" height="100" fill="none" stroke="#1e3a8a" strokeWidth="2.2"/>
-          <rect x="105" y="102" width="18" height="28" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <rect x="157" y="102" width="18" height="28" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <rect x="105" y="152" width="18" height="28" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <rect x="157" y="152" width="18" height="28" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <rect x="125" y="152" width="30" height="30" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          {/* columns */}
-          <rect x="98" y="90" width="8" height="90" fill="white" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="132" y="90" width="8" height="90" fill="white" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <rect x="170" y="90" width="8" height="90" fill="white" stroke="#1e3a8a" strokeWidth="1.8"/>
-          {/* pediment */}
-          <path d="M85 90 L140 60 L195 90 Z" fill="none" stroke="#1e3a8a" strokeWidth="2.2"/>
-          {/* dome */}
-          <path d="M110 60 Q140 10, 170 60" fill="none" stroke="#1e3a8a" strokeWidth="2"/>
-          <path d="M115 60 L115 40 Q140 20, 165 40 L165 60" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <circle cx="140" cy="15" r="3" fill="#1e3a8a"/>
-          {/* steps */}
-          <rect x="105" y="185" width="70" height="6" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-          <rect x="100" y="191" width="80" height="6" fill="none" stroke="#1e3a8a" strokeWidth="1.6"/>
-        </g>
-        
-        {/* Middle trees */}
-        <g transform="translate(400,110)">
-          <path d="M0 0 Q10 -20, 0 -40 Q-10 -20, 0 0" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <path d="M30 -10 Q45 -35, 30 -60 Q15 -35, 30 -10" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-        </g>
-        
-        {/* Graduation cap */}
-        <g transform="translate(490,20)">
-          <path d="M0 20 L50 0 L100 20 L50 40 Z" fill="none" stroke="#1e3a8a" strokeWidth="2.2"/>
-          <path d="M50 40 L50 55 Q50 65, 60 65" fill="none" stroke="#1e3a8a" strokeWidth="1.8"/>
-          <line x1="100" y1="20" x2="100" y2="45" stroke="#1e3a8a" strokeWidth="1.8" strokeDasharray="3 3"/>
-        </g>
-        
-        {/* dotted path */}
-        <path d="M180 200 C 260 210, 320 180, 400 130 S 540 60, 620 110 S 750 150, 820 140" fill="none" stroke="#1e3a8a" strokeWidth="1.6" strokeDasharray="6 6"/>
-        
-        {/* dots decoration */}
-        <circle cx="320" cy="40" r="4" fill="#2563EB" opacity="0.6"/>
-        <circle cx="460" cy="50" r="3" fill="#2563EB" opacity="0.4"/>
-        <circle cx="580" cy="90" r="2.5" fill="#1e3a8a"/>
-      </svg>
-    </div>
-  )
-}
+import { ArrowRight, Building2, CheckCircle2, GraduationCap, Home, ImagePlus, MapPin, MessageCircle, ShieldCheck, Store, Users } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 function StepCard({ number, title, body, icon: Icon }: { number: string; title: string; body: string; icon: any }) {
   return (
-    <div className="bg-[#F0F7FF] border border-[#DBEAFE] rounded-2xl p-6 flex-1 text-center relative">
-      <span className="absolute top-4 right-4 bg-[#DBEAFE] text-[#1e40af] text-[11px] font-bold px-2.5 py-1 rounded-full">
-        {number}
-      </span>
-      <div className="w-14 h-14 rounded-full bg-[#DBEAFE] flex items-center justify-center mx-auto mb-4">
-        <Icon size={26} className="text-[#1e40af]" strokeWidth={1.5} />
+    <div className="rounded-2xl border border-[#E3EAF4] bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EFF6FF] text-[#2563EB]">
+          <Icon size={21} strokeWidth={1.8} />
+        </div>
+        <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-bold text-[#2563EB]">{number}</span>
       </div>
-      <h3 className="text-[#0F172A] font-bold text-[15px] mb-2">{title}</h3>
-      <p className="text-[#475569] text-[12px] leading-[1.5]">{body}</p>
+      <h3 className="text-[16px] font-bold text-[#0F172A]">{title}</h3>
+      <p className="mt-2 text-[13px] leading-relaxed text-[#64748B]">{body}</p>
     </div>
   )
 }
 
-function PricingCard({
-  name, price, period, features, highlighted, packageId, onSelect,
-}: {
-  name: string; price: string; period: string; features: string[]
-  highlighted?: boolean; packageId: string; onSelect: (id: string) => void
-}) {
+function InfoCard({ title, body, icon: Icon }: { title: string; body: string; icon: any }) {
   return (
-    <div className={`rounded-2xl p-6 flex flex-col gap-4 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] border ${highlighted ? 'border-[#2563EB] ring-2 ring-[#BFDBFE]' : 'border-slate-200'}`}>
-      {highlighted && (
-        <span className="text-[10px] font-bold text-white bg-[#2563EB] px-3 py-1 rounded-full w-fit mx-auto -mt-2">
-          MOST POPULAR
-        </span>
-      )}
-      <div>
-        <h3 className="text-[#0F172A] font-bold text-[16px]">{name}</h3>
-        <div className="flex items-baseline gap-1.5 mt-1.5">
-          <span className="text-[#2563EB] font-bold text-[28px] leading-none">{price}</span>
-          <span className="text-[#64748B] text-[13px] font-medium">{period}</span>
-        </div>
+    <div className="rounded-2xl border border-[#E8EEF7] bg-[#F8FBFF] p-5">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#2563EB] shadow-sm">
+        <Icon size={22} strokeWidth={1.8} />
       </div>
-      <ul className="flex flex-col gap-2.5">
-        {features.map(f => (
-          <li key={f} className="flex items-start gap-2">
-            <span className="w-4 h-4 rounded-full bg-[#2563EB] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
-            <span className="text-[#334155] text-[12px] leading-snug">{f}</span>
+      <h3 className="text-[16px] font-bold text-[#0F172A]">{title}</h3>
+      <p className="mt-2 text-[13px] leading-relaxed text-[#64748B]">{body}</p>
+    </div>
+  )
+}
+
+function PricingCard({ name, price, period, features, highlighted, onSelect }: { name: string; price: string; period: string; features: string[]; highlighted?: boolean; onSelect: () => void }) {
+  return (
+    <div className={`rounded-2xl border bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${highlighted ? 'border-[#2563EB] ring-2 ring-[#DBEAFE]' : 'border-[#E3EAF4]'}`}>
+      {highlighted && <span className="mb-4 inline-flex rounded-full bg-[#2563EB] px-3 py-1 text-[10px] font-bold text-white">POPULAR</span>}
+      <h3 className="text-[18px] font-bold text-[#0F172A]">{name}</h3>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="text-[31px] font-bold leading-none text-[#2563EB]">{price}</span>
+        <span className="text-[13px] font-medium text-[#64748B]">{period}</span>
+      </div>
+      <ul className="mt-5 space-y-2.5">
+        {features.map(feature => (
+          <li key={feature} className="flex items-start gap-2.5 text-[13px] text-[#475569]">
+            <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#2563EB]" />
+            <span>{feature}</span>
           </li>
         ))}
       </ul>
       <button
-        onClick={() => onSelect(packageId)}
-        className="w-full py-3 rounded-xl font-bold text-[13px] transition-colors mt-auto bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
+        onClick={onSelect}
+        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 py-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
       >
-        Get Started
+        Get started <ArrowRight size={15} />
       </button>
     </div>
   )
@@ -130,104 +57,220 @@ function PricingCard({
 
 export default function RetailerLanding() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isAccommodation = searchParams.get('accommodation') === '1'
 
-  const handlePackageSelect = (pkg: string) => {
-    navigate(`/retailer/signup?package=${pkg}`)
-  }
+  const hero = isAccommodation
+    ? {
+        eyebrow: 'STUDENT ACCOMMODATION • JOHANNESBURG',
+        title: 'Show your student accommodation to the right students.',
+        body: 'AtriumX helps accommodation providers present rooms, pricing and location clearly to students who are already looking for a place near campus.',
+        cta: 'List your accommodation',
+        image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1400&q=85',
+        imageAlt: 'Student accommodation room',
+        bubble: 'A better fit for\nstudent housing',
+      }
+    : {
+        eyebrow: 'CAMPUS ADVERTISING • JOHANNESBURG',
+        title: 'Put your business in front of students on campus.',
+        body: 'AtriumX helps local businesses reach students where they already browse listings, discover services and stay connected to campus life.',
+        cta: 'Create a business account',
+        image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1400&q=85',
+        imageAlt: 'Students on campus',
+        bubble: 'Be seen by students\nnear campus',
+      }
+
+  const infoCards = isAccommodation
+    ? [
+        { icon: Users, title: 'Reach students near campus', body: 'Connect with students who are actively looking for rooms, flats and residences close to where they study.' },
+        { icon: ImagePlus, title: 'Show your property clearly', body: 'Present your rooms, amenities, rent and location in a clean format that is easy to compare.' },
+        { icon: ShieldCheck, title: 'Build trust early', body: 'Clear details and a consistent listing format help students enquire with confidence.' },
+      ]
+    : [
+        { icon: GraduationCap, title: 'Reach a focused audience', body: 'Put your business in front of students who live, study and spend time on or near campus.' },
+        { icon: Store, title: 'Show what you offer', body: 'Promote products and services in the same app students already use to browse campus listings.' },
+        { icon: MessageCircle, title: 'Turn views into enquiries', body: 'Make it easier for students to discover your business and get in touch when they are interested.' },
+      ]
+
+  const steps = isAccommodation
+    ? [
+        { number: '01', title: 'Create your account', body: 'Set up your accommodation account with your property details and your main university.', icon: Building2 },
+        { number: '02', title: 'Add your listing', body: 'Upload photos, set your price and include the details students usually want to know.', icon: Home },
+        { number: '03', title: 'Start receiving enquiries', body: 'Once your listing is live, students can view it and contact you through AtriumX.', icon: MessageCircle },
+      ]
+    : [
+        { number: '01', title: 'Create your account', body: 'Register your business in a few minutes and choose the university you want to start with.', icon: Store },
+        { number: '02', title: 'Choose a plan', body: 'Start free on Noticeboard or upgrade when you need more visibility and more active listings.', icon: CheckCircle2 },
+        { number: '03', title: 'Post and get discovered', body: 'Publish your listing and let students find your products or services from the Businesses tab.', icon: Users },
+      ]
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div className="min-h-screen bg-[#F7FAFF] text-[#0F172A]">
+      <header className="sticky top-0 z-30 border-b border-[#E6EDF7] bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-[70px] max-w-[1260px] items-center justify-between px-5 sm:px-8 lg:px-10">
+          <button onClick={() => navigate('/')} className="flex items-center" aria-label="AtriumX home">
+            <div className="flex items-baseline gap-[1px]">
+              <img src="/logo.png" alt="" className="-mr-[7px] h-8 w-8 object-contain" />
+              <span className="text-[23px] font-extrabold tracking-[-0.025em] text-[#1565F9]">triumX</span>
+            </div>
+          </button>
 
-      {/* HERO - matches reference */}
-      <section className="px-6 pt-10 pb-6 text-center max-w-3xl mx-auto bg-white">
-        <p className="text-[#2563EB] text-[11px] font-bold tracking-[0.14em] uppercase mb-4">
-          CAMPUS ADVERTISING • JOHANNESBURG
-        </p>
-        <h1 className="font-serif text-[32px] sm:text-[38px] text-[#0F172A] leading-[1.1] font-bold mb-3 tracking-tight">
-          Reach students where they live.
-        </h1>
-        <p className="text-[#475569] text-[13px] sm:text-[14px] leading-relaxed max-w-[560px] mx-auto mb-7">
-          Atrium puts your business in front of hundreds of students across campus, in the same app they already use to buy and sell with each other.
-        </p>
-        <button
-          onClick={() => handlePackageSelect('featured')}
-          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-6 py-3 rounded-xl transition-colors text-[14px] inline-flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
-        >
-          Apply for a Slot <span>→</span>
-        </button>
-
-        <CampusIllustration />
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="px-6 py-10 max-w-5xl mx-auto bg-white">
-        <h2 className="text-[#0F172A] font-bold text-[22px] text-center mb-8">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <StepCard icon={ClipboardCheck} number="01" title="Apply" body="Register your business for free — every account starts on the Noticeboard plan, so there's no cost or card needed to get listed." />
-          <StepCard icon={ShieldCheck} number="02" title="We Review" body="Our team reviews your business account, usually within 48 hours, before you're able to post." />
-          <StepCard icon={Rocket} number="03" title="Go Live" body="Post your first listing and, once it's approved, it appears in the Business tab of the Atrium feed for every student to see." />
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => navigate(`/retailer/signup?mode=login${isAccommodation ? '&accommodation=1' : ''}`)}
+              className="rounded-full border border-[#1565F9] bg-white px-4 py-2 text-[13px] font-semibold text-[#1565F9] hover:bg-[#EFF6FF]"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+              className="hidden rounded-full bg-[#1565F9] px-5 py-2 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.20)] hover:opacity-90 sm:inline-flex"
+            >
+              Create account
+            </button>
+          </div>
         </div>
-      </section>
+      </header>
 
-      {/* PRICING - blue background like reference */}
-      <section id="pricing" className="px-6 py-14 bg-[#2563EB]">
-        <h2 className="text-white font-bold text-[22px] text-center mb-2">Simple, Transparent Pricing</h2>
-        <p className="text-[#DBEAFE] text-[13px] text-center mb-10">No contracts. No surprises. Cancel anytime.</p>
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          <PricingCard
-            name="Noticeboard" price="Free" period="/ 7 days" packageId="noticeboard"
-            onSelect={handlePackageSelect}
-            features={[
-              'Text-only listing (no photos)',
-              '1 active listing at a time',
-              "Can't message students directly",
-              '7-day active window',
-            ]}
-          />
-          <PricingCard
-            name="Featured" price="R199" period="/ 30 days" packageId="featured" highlighted
-            onSelect={handlePackageSelect}
-            features={[
-              '1 photo per listing',
-              'Up to 2 active listings',
-              'Unlimited messaging with students',
-              '"Sponsored" badge on your listings',
-              '30-day active window',
-            ]}
-          />
-          <PricingCard
-            name="Campus Partner" price="R349" period="/ 30 days" packageId="campus_partner"
-            onSelect={handlePackageSelect}
-            features={[
-              'Up to 3 photos per listing',
-              'Up to 3 active listings',
-              'Unlimited messaging with students',
-              'Reply to student reviews',
-              '"Campus Partner" badge on your listings',
-              '30-day active window',
-            ]}
-          />
-        </div>
-      </section>
+      <main className="mx-auto max-w-[1260px] px-5 pb-12 pt-7 sm:px-8 lg:px-10">
+        <section className="overflow-hidden rounded-[28px] border border-[#E4ECF7] bg-white px-6 py-8 shadow-[0_12px_34px_rgba(15,23,42,0.05)] sm:px-8 sm:py-10 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-10 lg:px-10 lg:py-12">
+          <div>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">{hero.eyebrow}</p>
+            <h1 className="max-w-[560px] font-serif text-[38px] font-bold leading-[0.97] tracking-[-0.04em] text-[#07152F] sm:text-[50px] lg:text-[58px]">
+              {hero.title}
+            </h1>
+            <p className="mt-5 max-w-[560px] text-[15px] leading-[1.7] text-[#52637B] sm:text-[16px]">
+              {hero.body}
+            </p>
 
-      {/* FOOTER CTA */}
-      <section className="px-6 py-12 text-center bg-[#F8FAFF] border-t border-[#EAF0F8]">
-        <h2 className="text-[#0F172A] font-bold text-[18px] mb-2">Ready to reach students?</h2>
-        <p className="text-[#64748B] text-[13px] mb-6">
-          Questions first? Email us at{' '}
-          <span className="text-[#2563EB] font-bold">students@atriumx.co.za</span>
-        </p>
-        <button
-          onClick={() => handlePackageSelect('featured')}
-          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-7 py-3 rounded-xl transition-colors text-[14px] inline-flex items-center gap-2"
-        >
-          Apply Now <span>→</span>
-        </button>
-        <p className="text-[#94A3B8] text-[11px] mt-10">
-          © 2024 AtriumX • Johannesburg • Privacy Policy • Terms of Service
-        </p>
-      </section>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+                className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-full bg-[#1565F9] px-7 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(21,101,249,0.20)] hover:opacity-90"
+              >
+                {hero.cta} <ArrowRight size={16} />
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2.5 text-[13px] text-[#52637B] sm:flex-row sm:flex-wrap sm:gap-x-5">
+              {(isAccommodation
+                ? ['Free to get started', 'Show rooms clearly', 'Reach students near campus']
+                : ['Free to get started', 'Reach real students', 'List products or services']
+              ).map(item => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-[#1565F9]" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative mt-8 lg:mt-0">
+            <div className="absolute inset-x-0 bottom-4 top-6 rounded-[32px] bg-[#EDF5FF]" />
+            <div className="relative overflow-hidden rounded-[30px] border border-[#E4ECF7] bg-white p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+              <img src={hero.image} alt={hero.imageAlt} className="h-[260px] w-full rounded-[24px] object-cover sm:h-[340px]" />
+              <div className="absolute right-5 top-5 max-w-[180px] rounded-[18px] bg-white/96 px-4 py-3 text-[13px] font-semibold leading-snug text-[#0F172A] shadow-[0_12px_24px_rgba(15,23,42,0.10)]">
+                {hero.bubble.split('\n').map((line, idx) => <div key={idx}>{line}</div>)}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-10">
+          <div className="grid gap-4 md:grid-cols-3">
+            {infoCards.map(card => <InfoCard key={card.title} {...card} />)}
+          </div>
+        </section>
+
+        {!isAccommodation && (
+          <section className="rounded-[28px] bg-[#1565F9] px-6 py-10 text-white sm:px-8 lg:px-10">
+            <div className="mb-8 text-center">
+              <h2 className="text-[30px] font-bold tracking-[-0.03em]">Business plans</h2>
+              <p className="mt-2 text-[14px] text-white/80">Start free or choose more reach and visibility when you need it.</p>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3">
+              <PricingCard
+                name="Noticeboard"
+                price="Free"
+                period="/ 7 days"
+                onSelect={() => navigate('/retailer/signup')}
+                features={['1 university reach', 'Text-only listing', '1 active listing', '7-day visibility']}
+              />
+              <PricingCard
+                name="Featured"
+                price="R199"
+                period="/ 30 days"
+                highlighted
+                onSelect={() => navigate('/retailer/signup?package=featured')}
+                features={['Reach up to 2 universities', '1 photo per listing', 'Up to 2 active listings', 'Reply to student messages', 'Sponsored badge']}
+              />
+              <PricingCard
+                name="Campus Partner"
+                price="R349"
+                period="/ 30 days"
+                onSelect={() => navigate('/retailer/signup?package=campus_partner')}
+                features={['Reach up to 3 universities', 'Up to 3 photos per listing', 'Up to 3 active listings', 'Reply to reviews', 'Campus Partner badge']}
+              />
+            </div>
+          </section>
+        )}
+
+        <section className="py-10">
+          <div className="mb-6 text-center">
+            <h2 className="text-[31px] font-bold tracking-[-0.03em] text-[#07152F]">How it works</h2>
+            <p className="mt-2 text-[14px] text-[#64748B]">
+              {isAccommodation
+                ? 'List your space in a few simple steps.'
+                : 'Get your business in front of students in a few simple steps.'}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {steps.map(step => <StepCard key={step.number} {...step} />)}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[28px] border border-[#DCE8F8] bg-gradient-to-r from-[#EDF5FF] to-[#F8FBFF] px-6 py-8 sm:px-8 lg:flex lg:items-center lg:justify-between lg:px-10">
+          <div className="max-w-[560px]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">{isAccommodation ? 'START LISTING' : 'START REACHING STUDENTS'}</p>
+            <h2 className="mt-3 font-serif text-[34px] font-bold leading-[1.02] tracking-[-0.035em] text-[#07152F] sm:text-[42px]">
+              {isAccommodation ? 'Make it easier for students to discover your rooms.' : 'Make it easier for students to discover your business.'}
+            </h2>
+            <p className="mt-4 text-[15px] leading-[1.7] text-[#52637B]">
+              {isAccommodation
+                ? 'Give students the details they need, from price and location to photos and amenities, in one clear listing.'
+                : 'Show students what you offer, where to find you and how to get in touch — all in one place.'}
+            </p>
+            <button
+              onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1565F9] px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.18)] hover:opacity-90"
+            >
+              {isAccommodation ? 'Create accommodation account' : 'Create business account'} <ArrowRight size={16} />
+            </button>
+          </div>
+
+          <div className="mt-8 w-full max-w-[360px] rounded-[24px] border border-[#E3EAF4] bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.08)] lg:mt-0">
+            <div className="overflow-hidden rounded-[18px]">
+              <img
+                src={isAccommodation ? 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=85' : 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1200&q=85'}
+                alt={isAccommodation ? 'Accommodation preview' : 'Business preview'}
+                className="h-[180px] w-full object-cover"
+              />
+            </div>
+            <div className="mt-4">
+              <span className="inline-flex rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[10px] font-semibold text-[#2563EB]">
+                {isAccommodation ? 'Featured accommodation' : 'Featured business'}
+              </span>
+              <h3 className="mt-3 text-[18px] font-bold text-[#0F172A]">
+                {isAccommodation ? 'Campus View Residence' : 'Inkukhu Student Deals'}
+              </h3>
+              <div className="mt-2 space-y-2 text-[13px] text-[#64748B]">
+                <p className="flex items-center gap-2"><MapPin size={14} /> {isAccommodation ? 'Auckland Park, Johannesburg' : 'Braamfontein, Johannesburg'}</p>
+                <p>{isAccommodation ? 'From R4 800 / month • Wi-Fi • Laundry' : 'Electronics • Clothing • Student offers'}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   )
 }
