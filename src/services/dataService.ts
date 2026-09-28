@@ -99,6 +99,9 @@ export interface AccommodationListing {
   report_required_field?: string | null
   hidden_photo_count?: number
   video_hidden?: boolean
+  active_universities?: string[]
+  max_universities?: number
+  reach_paused?: boolean
 }
 
 export interface AccommodationReview {
@@ -649,7 +652,12 @@ export async function getUserListings(userId: string): Promise<Listing[]> {
     .eq('seller_id', userId)
     .order('created_at', { ascending: false })
   if (error || !data) return []
-  return withListingPlanDisplay(data as Listing[])
+  const { data: authData, error: authError } = await supabase.auth.getSession()
+  if (authError) return []
+  const viewerId = authData.session?.user.id
+  if (viewerId === userId) return withListingPlanDisplay(data as Listing[])
+  const visibleData = viewerId ? await filterNormalMarketplaceListings(data) : data.filter(listing => listing.status === 'active')
+  return withListingPlanDisplay(visibleData as Listing[], true)
 }
 
 // ── RESIDENCES ─────────────────────────────────────────────────────────────
@@ -683,7 +691,8 @@ async function getPublicListingSellerMap(sellerIds: string[]): Promise<Record<st
   return map
 }
 
-async function filterAdminMarketplaceListings<T extends { id: string }>(listings: T[]): Promise<T[]> {
+async function filterNormalMarketplaceListings<T extends { id: string }>(listings: T[]): Promise<T[]> {
+  if (!listings.length) return []
   const { data, error } = await supabase.rpc('get_normal_marketplace_listing_ids', {
     p_listing_ids: listings.map(listing => listing.id),
   })
@@ -722,7 +731,7 @@ export async function getListings(filters: {
   // Admins can read every listing for moderation. Apply the normal role scope
   // when they use the ordinary marketplace, using the same database rule as RLS.
   const visibleData = filters.currentUser?.is_admin && data.length
-    ? await filterAdminMarketplaceListings(data)
+    ? await filterNormalMarketplaceListings(data)
     : data
 
   const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
@@ -776,7 +785,7 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   if (!data) return []
 
   const visibleData = currentUser?.is_admin && data.length
-    ? await filterAdminMarketplaceListings(data)
+    ? await filterNormalMarketplaceListings(data)
     : data
 
   const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
@@ -818,6 +827,9 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
 }
 
 export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
+  const { data: authData, error: authError } = await supabase.auth.getSession()
+  if (authError) throw new Error(authError.message)
+  viewerId = authData.session?.user.id
   const { data, error } = await supabase
     .from('listings')
     .select('*')
@@ -826,6 +838,11 @@ export async function getListingById(id: string, viewerId?: string): Promise<Lis
 
   if (error) throw new Error(error.message)
   if (!data) return null
+
+  if (viewerId && viewerId !== data.seller_id && !(await filterNormalMarketplaceListings([data])).length) return null
+
+  const displayed = (await withListingPlanDisplay([data as Listing], viewerId !== data.seller_id))[0]
+  if (!displayed) return null
 
   let seller: Profile | undefined
   try {
@@ -845,7 +862,7 @@ export async function getListingById(id: string, viewerId?: string): Promise<Lis
     }
   }
 
-  return (await withListingPlanDisplay([{ ...data, seller } as Listing], viewerId !== data.seller_id))[0] ?? null
+  return { ...displayed, seller }
 }
 
 export async function createListing(payload: {
@@ -1254,8 +1271,18 @@ async function withAccommodationPlanDisplay(listings: AccommodationListing[]): P
     if (!row) return []
     return [{ ...listing, plan_tier: row.effective_plan,
       image_urls: row.image_urls ?? [], video_url: row.video_url,
-      hidden_photo_count: row.hidden_photo_count, video_hidden: row.video_hidden }]
+      hidden_photo_count: row.hidden_photo_count, video_hidden: row.video_hidden,
+      universities: row.universities ?? listing.universities,
+      active_universities: row.active_universities ?? [],
+      max_universities: row.max_universities, reach_paused: row.reach_paused }]
   })
+}
+
+export async function selectAccommodationUniversities(listingId: string, universities: string[]): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('select_accommodation_universities', {
+    p_listing_id: listingId, p_universities: universities,
+  })
+  return { error: error?.message ?? null }
 }
 
 export async function getAccommodationListings(university?: string | null): Promise<AccommodationListing[]> {
@@ -1276,7 +1303,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     current.sum += r.stars
     stats.set(r.accommodation_listing_id, current)
   })
-  return withAccommodationPlanDisplay((data as any[]).map(item => ({
+  return (await withAccommodationPlanDisplay((data as any[]).map(item => ({
     ...item,
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
@@ -1288,7 +1315,8 @@ export async function getAccommodationListings(university?: string | null): Prom
     room_pricing: item.room_pricing || [],
     avg_rating: stats.get(item.id)?.total ? stats.get(item.id)!.sum / stats.get(item.id)!.total : 0,
     total_reviews: stats.get(item.id)?.total || 0,
-  })) as AccommodationListing[])
+  })) as AccommodationListing[])).filter(item => !item.reach_paused
+    && (!university || item.active_universities?.includes(university)))
 }
 
 // The owner's own properties — used on the Profile page's accommodation
@@ -2098,9 +2126,10 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
     .eq('id', id)
     .single()
   if (error || !data) return null
+  if (typeof data.is_accommodation !== 'boolean') return null
   const accommodationExpires = data.accommodation_plan_expires_at ? new Date(data.accommodation_plan_expires_at).getTime() : null
   const effectiveAccommodationPlan = accommodationExpires && accommodationExpires < Date.now() ? 'accommodation_free' : (data.accommodation_plan ?? 'accommodation_free')
-  return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: effectiveAccommodationPlan, accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
+  return { ...data, universities: data.universities ?? [], accommodation_plan: effectiveAccommodationPlan, accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
 }
 
 export async function setBusinessUniversityAccess(universities: string[]): Promise<{ error: string | null }> {
