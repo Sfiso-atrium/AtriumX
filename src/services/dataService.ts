@@ -770,16 +770,32 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
 export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
   const { data, error } = await supabase
     .from('listings')
-    .select('*, seller:profiles_public(*)')
+    .select('*')
     .eq('id', id)
-    .single()
-  if (error || !data) return null
+    .maybeSingle()
 
-  if (!viewerId || viewerId !== data.seller_id) {
-    await supabase.rpc('increment_listing_view_count', { listing_id: id })
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  let seller: Profile | undefined
+  try {
+    const sellerMap = await getPublicListingSellerMap([data.seller_id])
+    seller = sellerMap[data.seller_id]
+  } catch (sellerError) {
+    console.error(
+      'Failed to load listing seller profile:',
+      sellerError instanceof Error ? sellerError.message : sellerError
+    )
   }
 
-  return data as Listing
+  if (!viewerId || viewerId !== data.seller_id) {
+    const { error: viewCountError } = await supabase.rpc('increment_listing_view_count', { listing_id: id })
+    if (viewCountError) {
+      console.error('Failed to increment listing view count:', viewCountError.message)
+    }
+  }
+
+  return { ...data, seller } as Listing
 }
 
 export async function createListing(payload: {
