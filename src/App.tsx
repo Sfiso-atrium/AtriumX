@@ -56,6 +56,16 @@ function AccommodationGuard({ children, allowAccommodation = false }: { children
   const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   if (isLoadingAuth) return null
   if (currentUser?.account_type === 'business' && isLoadingBusinessProfile) return null
+  if (currentUser?.account_type === 'business' && !businessProfile) {
+    return (
+      <div className="min-h-screen bg-slate-deep flex items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <p className="text-cream font-bold text-lg">Business account details unavailable</p>
+          <p className="text-cream-muted text-sm mt-2">Refresh the page. If this continues, contact AtriumX support so your account can be checked.</p>
+        </div>
+      </div>
+    )
+  }
   if (!allowAccommodation && currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
     return <Navigate to="/accommodation" replace />
   }
