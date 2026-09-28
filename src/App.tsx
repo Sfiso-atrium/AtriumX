@@ -52,11 +52,11 @@ function ModalLayer() {
 }
 
 
-function AccommodationGuard({ children }: { children: ReactNode }) {
+function AccommodationGuard({ children, allowAccommodation = false }: { children: ReactNode; allowAccommodation?: boolean }) {
   const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   if (isLoadingAuth) return null
   if (currentUser?.account_type === 'business' && isLoadingBusinessProfile) return null
-  if (currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
+  if (!allowAccommodation && currentUser?.account_type === 'business' && businessProfile?.is_accommodation) {
     return <Navigate to="/accommodation" replace />
   }
   return <>{children}</>
@@ -119,9 +119,9 @@ export default function App() {
           <Route path="/listing/:id" element={<AccommodationGuard><ListingDetail /></AccommodationGuard>} />
           <Route path="/plan-select" element={<PlanSelect />} />
           <Route path="/payment/:outcome" element={<PaymentResult />} />
-          <Route path="/events" element={<AccommodationGuard><EventsPage /></AccommodationGuard>} />
-          <Route path="/event/:id" element={<AccommodationGuard><EventDetails /></AccommodationGuard>} />
-          <Route path="/post-event" element={<AccommodationGuard><PostEvent /></AccommodationGuard>} />
+          <Route path="/events" element={<AccommodationGuard allowAccommodation><EventsPage /></AccommodationGuard>} />
+          <Route path="/event/:id" element={<AccommodationGuard allowAccommodation><EventDetails /></AccommodationGuard>} />
+          <Route path="/post-event" element={<AccommodationGuard allowAccommodation><PostEvent /></AccommodationGuard>} />
           <Route path="/post" element={<StudentOnlyGuard><PostListing /></StudentOnlyGuard>} />
           <Route path="/post-wanted" element={<StudentOnlyGuard><PostWanted /></StudentOnlyGuard>} />
           <Route path="/profile/edit" element={<EditProfile />} />
