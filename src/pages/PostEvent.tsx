@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { createEvent, uploadEventPoster, EVENT_CATEGORIES, getBusinessProfile, getEffectiveBusinessPlan, PLAN_TIERS, setBusinessUniversityAccess } from '../services/dataService'
+import { createEvent, uploadEventPoster, EVENT_CATEGORIES, getBusinessProfile } from '../services/dataService'
 import { PostTypeSwitcher } from '../components/common/PostTypeChooser'
 import ImageCropModal from '../components/common/ImageCropModal'
 import Navbar from '../components/common/Navbar'
@@ -19,7 +19,7 @@ const input =
 
 export default function PostEvent() {
   const navigate = useNavigate()
-  const { currentUser, showToast, refreshBusinessProfile } = useApp()
+  const { currentUser, showToast } = useApp()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
@@ -34,13 +34,11 @@ export default function PostEvent() {
   const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
   const [loadingBusinessUniversities, setLoadingBusinessUniversities] = useState(false)
-  const [businessUniversitiesNeedReduction, setBusinessUniversitiesNeedReduction] = useState(false)
 
   useEffect(() => {
     if (currentUser?.account_type !== 'business') {
       setBusinessUniversities([])
       setSelectedUniversities(currentUser?.university ? [currentUser.university] : [])
-      setBusinessUniversitiesNeedReduction(false)
       setLoadingBusinessUniversities(false)
       return
     }
@@ -51,15 +49,11 @@ export default function PostEvent() {
       .then(profile => {
         if (!mounted) return
         const universities = profile?.universities ?? []
-        const effectivePlan = getEffectiveBusinessPlan(currentUser)
-        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
-        const needsReduction = universities.length > maxUniversities
         setBusinessUniversities(universities)
-        setBusinessUniversitiesNeedReduction(needsReduction)
         const requestedUniversity = new URLSearchParams(window.location.search).get('university')
-        const initial = !needsReduction && requestedUniversity && universities.includes(requestedUniversity)
+        const initial = requestedUniversity && universities.includes(requestedUniversity)
           ? requestedUniversity
-          : (!needsReduction ? universities[0] : undefined)
+          : universities[0]
         setSelectedUniversities(initial ? [initial] : [])
         setLoadingBusinessUniversities(false)
       })
@@ -67,7 +61,6 @@ export default function PostEvent() {
         if (!mounted) return
         setBusinessUniversities([])
         setSelectedUniversities([])
-        setBusinessUniversitiesNeedReduction(false)
         setLoadingBusinessUniversities(false)
       })
 
@@ -136,17 +129,6 @@ export default function PostEvent() {
     )
 
     setSaving(true)
-
-    if (currentUser.account_type === 'business' && businessUniversitiesNeedReduction) {
-      const { error: accessError } = await setBusinessUniversityAccess(eventUniversities)
-      if (accessError) {
-        setSaving(false)
-        return showToast(accessError, 'error')
-      }
-      await refreshBusinessProfile()
-      setBusinessUniversities(eventUniversities)
-      setBusinessUniversitiesNeedReduction(false)
-    }
 
     const { error } = await createEvent({
       hostId: currentUser.id,
@@ -247,25 +229,14 @@ export default function PostEvent() {
                   <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {businessUniversitiesNeedReduction && (
-                      <p className="text-red-400 text-xs">
-                        Your plan now allows fewer universities. Choose the universities you want to keep before posting this event.
-                      </p>
-                    )}
                     {businessUniversities.map(university => {
                       const selected = selectedUniversities.includes(university)
-                      const effectivePlan = getEffectiveBusinessPlan(currentUser)
-                      const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
                       return (
                         <button
                           key={university}
                           type="button"
                           onClick={() => setSelectedUniversities(prev => {
                             if (selected) return prev.filter(u => u !== university)
-                            if (prev.length >= maxUniversities) {
-                              showToast(`Your current plan allows up to ${maxUniversities} universities.`, 'error')
-                              return prev
-                            }
                             return [...prev, university]
                           })}
                           className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
