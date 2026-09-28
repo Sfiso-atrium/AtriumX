@@ -60,11 +60,23 @@ export default function Entrance() {
   return (
     <div className="min-h-screen bg-[#F7FAFF] text-[#0F172A]">
       <header className="sticky top-0 z-40 border-b border-[#E6EDF7] bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[66px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          <button onClick={() => navigate('/')} className="flex items-center" aria-label="AtriumX home">
-            <div className="flex items-baseline gap-[1px]">
-              <img src="/logo.png" alt="" className="h-8 w-8 object-contain -mr-[7px]" />
-              <span className="text-[23px] font-extrabold tracking-[-0.025em] text-[#1565F9]">triumX</span>
+        <div className="flex h-[66px] w-full items-center justify-between px-4 sm:px-6">
+          <button onClick={() => navigate('/')} className="flex items-center min-w-0 group" aria-label="AtriumX home">
+            <div className="flex items-baseline gap-[1px] h-[18.2px] sm:h-[20.47px]">
+              <img src="/logo.png" alt="AtriumX" className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0 -mt-[13.81px] sm:-mt-[15.53px] -mr-[8.09px] sm:-mr-[9.1px] translate-y-[7.35px] sm:translate-y-[8.27px]" />
+              <span
+                className="text-[22px] sm:text-[24px] font-extrabold text-teal-primary whitespace-nowrap leading-none tracking-tight"
+                style={{ letterSpacing: '-0.01em' }}
+              >
+                <span className="inline-flex" style={{ gap: '0.5px' }}>
+                  <span>t</span>
+                  <span>r</span>
+                  <span>i</span>
+                  <span>u</span>
+                  <span>m</span>
+                  <span className="ml-[0.5px]">X</span>
+                </span>
+              </span>
             </div>
           </button>
 
