@@ -90,7 +90,11 @@ export default function Profile() {
             </div>
             <div className="flex-1">
               <h1 className="text-cream font-bold text-xl transition-transform duration-300 group-hover/card:translate-x-0.5">{profile.full_name}</h1>
-              <p className="text-cream-muted text-sm">{profile.residence || 'Campus'}</p>
+              <p className="text-cream-muted text-sm">
+                {profile.account_type === 'business' && isOwn
+                  ? (ownBusiness ? (ownBusiness.universities.length ? ownBusiness.universities.join(', ') : 'No university selected') : 'Loading university access...')
+                  : profile.residence || 'Campus'}
+              </p>
               {profile.avg_rating > 0 && (
                 <button
                   onClick={() => setShowReviews(true)}
