@@ -48,6 +48,7 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [partnerSearch, setPartnerSearch] = useState('')
   const [partnerSearchResults, setPartnerSearchResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
   const [warningReport, setWarningReport] = useState<AccommodationReport | null>(null)
 
@@ -56,7 +57,8 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getAllListingsAdmin(), getEditedListings(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
+setLoadError(false)
+    Promise.all([getAllListingsAdmin(), getEditedListings(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
       .then(([all, edited, chatReps, partnerList, suggestionList, accommodationReps]) => {
         setAllListings(all)
         setEditedListings(edited)
@@ -78,7 +80,8 @@ Promise.all([getAllListingsAdmin(), getEditedListings(), getChatReports(), getAl
         }
       })
       .catch(() => {
-        showToast('Failed to load listings.', 'error')
+        setLoadError(true)
+        showToast('Failed to load admin data.', 'error')
         setLoading(false)
       })
   }, [currentUser, isLoadingAuth, navigate, showToast])
@@ -167,6 +170,12 @@ const handleClearReports = async (id: string) => {
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="min-h-screen bg-slate-deep flex items-center justify-center px-6 text-center">
+      <p className="text-cream-muted">Could not load admin data. Refresh the page and try again.</p>
     </div>
   )
 

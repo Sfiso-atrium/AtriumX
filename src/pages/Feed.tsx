@@ -82,6 +82,7 @@ const [bizSearch, setBizSearch] = useState('')
   const [wantedPostsLoading, setWantedPostsLoading] = useState(true)
 
 const [fetchError, setFetchError] = useState(false)
+  const [businessFetchError, setBusinessFetchError] = useState(false)
 
   useEffect(() => {
     if (currentUser?.account_type !== 'business') {
@@ -121,6 +122,7 @@ const [fetchError, setFetchError] = useState(false)
     setDbLoading(true)
     setBusinessLoading(true)
     setFetchError(false)
+    setBusinessFetchError(false)
 
     getListings({ currentUser, university: marketplaceUniversity })
       .then(data => {
@@ -142,7 +144,10 @@ const [fetchError, setFetchError] = useState(false)
         setBusinessListings(data)
         setBusinessLoading(false)
       })
-      .catch(() => setBusinessLoading(false))
+      .catch(() => {
+        setBusinessLoading(false)
+        setBusinessFetchError(true)
+      })
   }, [currentUser, marketplaceUniversity, businessUniversitiesLoading])
 
   const sortByPlanPriority = (items: Listing[], business = false) => {
@@ -340,7 +345,9 @@ const filteredBusiness = useMemo(() => {
           )}
 
           <div className="px-4 pt-3 pb-2">
-            <p className="text-cream-muted text-xs">{dbLoading ? 'Loading...' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}</p>
+            <p className="text-cream-muted text-xs">
+              {dbLoading ? 'Loading...' : fetchError ? 'Could not load listings' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}
+            </p>
           </div>
 
           {featuredListings.length > 0 && (
@@ -503,20 +510,22 @@ const filteredBusiness = useMemo(() => {
             )}
             <div className="px-4 pb-2">
               <p className="text-cream-muted text-xs">
-                {businessLoading ? 'Loading...' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
+                {businessLoading ? 'Loading...' : businessFetchError ? 'Could not load businesses' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
               </p>
             </div>
 
             {filteredBusiness.length === 0 ? (
               <EmptyState
                 message={
-                  businessLoading
+                  businessFetchError
+                    ? 'Could not load businesses. Check your connection and try again.'
+                    : businessLoading
                     ? 'Loading businesses...'
                     : businessListings.length === 0
                     ? 'No businesses listed yet. Know one that should be here?'
                     : 'No businesses match your search.'
                 }
-                actionLabel={businessLoading || businessListings.length > 0 ? undefined : 'Copy Application Link'}
+                actionLabel={businessLoading || businessFetchError || businessListings.length > 0 ? undefined : 'Copy Application Link'}
                 onAction={handleCopyApplicationLink}
               />
             ) : (
