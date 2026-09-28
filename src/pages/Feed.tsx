@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Search, X, HandHelping, MessageCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getWantedPosts, startWantedConversation, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PlanKey } from '../services/dataService'
+import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getWantedPosts, startWantedConversation, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PLAN_TIERS, PlanKey, getEffectiveBusinessPlan } from '../services/dataService'
 import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
@@ -95,7 +95,9 @@ const [fetchError, setFetchError] = useState(false)
     getBusinessProfile(currentUser.id)
       .then(profile => {
         if (!mounted) return
-        setBusinessUniversities(profile?.universities ?? [])
+        const effectivePlan = getEffectiveBusinessPlan(currentUser)
+        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
+        setBusinessUniversities((profile?.universities ?? []).slice(0, maxUniversities))
         setBusinessUniversitiesLoading(false)
       })
       .catch(() => {

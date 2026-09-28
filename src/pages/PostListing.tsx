@@ -87,12 +87,12 @@ if (isLoadingAuth || !plan || !currentUser) return null
         <span className="text-3xl">✓</span>
       </div>
  <h2 className="text-cream font-bold text-2xl mb-2">
-        {editListing ? 'Listing Updated' : 'Listing Submitted'}
+        {editListing ? 'Listing Updated' : 'Listing Posted'}
       </h2>
       <p className="text-cream-muted text-sm max-w-sm mb-6">
         {editListing
           ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
-          : 'Your listing is under review. Once our team approves it, it will appear on the feed for students in your residence to see.'}
+          : 'Your listing is live now and can appear in the marketplace for students at your university.'}
       </p>
       <button
         onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}

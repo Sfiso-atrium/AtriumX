@@ -9,6 +9,8 @@ import {
   getAllEvents,
   cancelEvent,
   getBusinessProfile,
+  getEffectiveBusinessPlan,
+  PLAN_TIERS,
   CampusEvent,
   EVENT_CATEGORIES,
   incrementEventLikes,
@@ -241,7 +243,9 @@ export default function EventsPage() {
     getBusinessProfile(currentUser.id)
       .then(profile => {
         if (!mounted) return
-        setBusinessUniversities(profile?.universities ?? [])
+        const effectivePlan = getEffectiveBusinessPlan(currentUser)
+        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
+        setBusinessUniversities((profile?.universities ?? []).slice(0, maxUniversities))
         setBusinessUniversitiesLoading(false)
       })
       .catch(() => {

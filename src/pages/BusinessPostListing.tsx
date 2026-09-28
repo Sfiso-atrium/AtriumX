@@ -4,7 +4,7 @@ import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   createListing, updateListing, uploadListingImage, getUserListings, getBusinessProfile,
-  PLAN_TIERS, PlanKey, BusinessProfile, Listing
+  getEffectiveBusinessPlan, PLAN_TIERS, PlanKey, BusinessProfile, Listing
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
@@ -14,9 +14,9 @@ import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universi
 export default function BusinessPostListing() {
   const navigate = useNavigate()
   const location = useLocation()
-const { currentUser, isLoadingAuth, showToast } = useApp()
+const { currentUser, isLoadingAuth, showToast, refreshBusinessProfile } = useApp()
   const { plan: statePlan, editListing } = (location.state as { plan?: PlanKey; editListing?: Listing } | null) || {}
-  const plan = (editListing?.plan_tier as PlanKey | undefined) || statePlan || (currentUser?.plan as PlanKey | undefined)
+  const plan = statePlan || (currentUser?.account_type === 'business' ? getEffectiveBusinessPlan(currentUser) : undefined)
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
   const [atLimit, setAtLimit] = useState(false)
@@ -51,10 +51,16 @@ useEffect(() => {
 
     Promise.all([getBusinessProfile(currentUser.id), getUserListings(currentUser.id)]).then(([biz, listings]) => {
       setBusiness(biz)
-      if (editListing) {
-        setSelectedUniversities(editListing.universities?.length ? editListing.universities : (biz?.universities ?? []))
-      } else if (biz?.universities?.length) {
-        setSelectedUniversities([biz.universities[0]])
+      const universityLimit = 'maxUniversities' in PLAN_TIERS[plan] ? PLAN_TIERS[plan].maxUniversities : 1
+      const savedUniversities = biz?.universities ?? []
+      if (savedUniversities.length > universityLimit) {
+        // A paid plan has expired or been reduced. Do not guess which
+        // universities the business wants to keep; make them choose.
+        setSelectedUniversities([])
+      } else if (editListing) {
+        setSelectedUniversities(editListing.universities?.length ? editListing.universities : savedUniversities)
+      } else if (savedUniversities.length) {
+        setSelectedUniversities([savedUniversities[0]])
       }
       setCheckingBusiness(false)
 
@@ -77,12 +83,12 @@ if (submitted) return (
         <span className="text-3xl">✓</span>
       </div>
       <h2 className="text-cream font-bold text-2xl mb-2">
-        {editListing ? 'Listing Updated' : 'Listing Submitted'}
+        {editListing ? 'Listing Updated' : 'Listing Posted'}
       </h2>
       <p className="text-cream-muted text-sm max-w-sm mb-6">
         {editListing
           ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
-          : 'Your listing has been submitted and will appear on the Business tab once it is approved.'}
+          : 'Your listing is live now on the Business marketplace for the universities you selected.'}
       </p>
       <button
         onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
@@ -159,6 +165,7 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const maxUniversities = 'maxUniversities' in PLAN_TIERS[plan] ? PLAN_TIERS[plan].maxUniversities : 1
   const accountUniversities = business?.universities ?? []
+  const needsUniversityReduction = accountUniversities.length > maxUniversities
   const canAddUniversity = accountUniversities.length < maxUniversities
   const universityQuery = universitySearch.trim().toLowerCase()
   const universityPool = canAddUniversity ? SOUTH_AFRICAN_UNIVERSITIES : accountUniversities
@@ -212,8 +219,9 @@ const sharedFields = {
 
     if (editListing) {
       const { error: err } = await updateListing(editListing.id, sharedFields)
+      if (err) { setLoading(false); setError(err); return }
+      await refreshBusinessProfile()
       setLoading(false)
-      if (err) { setError(err); return }
       setSubmitted(true)
       return
     }
@@ -223,8 +231,9 @@ const sharedFields = {
       ...sharedFields,
       planTier: plan,
     })
+    if (err) { setLoading(false); setError(err); return }
+    await refreshBusinessProfile()
     setLoading(false)
-    if (err) { setError(err); return }
     setSubmitted(true)
   }
 
@@ -354,8 +363,10 @@ const sharedFields = {
               <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                 Universities <span className="text-red-400">*</span>
               </label>
-              <p className="text-cream-muted text-xs mb-3">
-                {accountUniversities.length < maxUniversities
+              <p className={needsUniversityReduction ? "text-red-400 text-xs mb-3" : "text-cream-muted text-xs mb-3"}>
+                {needsUniversityReduction
+                  ? `Your current plan now allows ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Choose the universit${maxUniversities !== 1 ? 'ies' : 'y'} you want to keep before posting.`
+                  : accountUniversities.length < maxUniversities
                   ? `Choose up to ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. New university access can only be added while your plan has room.`
                   : `This account already has access to its ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Future listings can only use these universities.`}
               </p>

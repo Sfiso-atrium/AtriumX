@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GraduationCap, Briefcase, ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
+import { loginWithEmail, registerWithEmail, joinStudyGroup, getBusinessProfile } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
@@ -58,7 +58,12 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || (user.account_type === 'business' ? '/feed' : '/space')
+        let defaultDest = '/space'
+        if (user.account_type === 'business') {
+          const businessProfile = await getBusinessProfile(user.id)
+          defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
+        }
+        const dest = redirectAfterLogin || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -80,7 +85,14 @@ if (user) {
           navigate(`/group/${joinGroupId}`)
           return
         }
-        const dest = redirectAfterLogin || (user.is_admin ? '/admin' : user.account_type === 'business' ? '/feed' : '/space')
+        let defaultDest = '/space'
+        if (user.is_admin) {
+          defaultDest = '/admin'
+        } else if (user.account_type === 'business') {
+          const businessProfile = await getBusinessProfile(user.id)
+          defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
+        }
+        const dest = redirectAfterLogin || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }

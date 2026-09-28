@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheck as CheckCircle, Circle as XCircle, Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2 } from 'lucide-react'
+import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Listing,
@@ -10,14 +10,11 @@ import {
   Profile,
   Partner,
   Suggestion,
-  getPendingListings,
   getAllListingsAdmin,
   getEditedListings,
   getReportsForListings,
   getAccommodationReportsForAdmin,
   getChatReports,
-  approveListingById,
-  rejectListingById,
   suspendListingById,
   clearReports,
   acknowledgeListingEdit,
@@ -32,14 +29,13 @@ import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 
-type Tab = 'pending' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
-type StatusFilter = 'all' | 'pending' | 'active' | 'sold' | 'expired' | 'suspended'
+type Tab = 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
+type StatusFilter = 'all' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
   const navigate = useNavigate()
   const { currentUser, showToast, isLoadingAuth } = useApp()
-  const [tab, setTab] = useState<Tab>('pending')
-const [pendingListings, setPendingListings] = useState<Listing[]>([])
+  const [tab, setTab] = useState<Tab>('all')
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [editedListings, setEditedListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -60,9 +56,8 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
     if (!currentUser) { navigate('/student'); return }
     if (!currentUser.is_admin) { navigate('/feed'); return }
 
-Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
-      .then(([pending, all, edited, chatReps, partnerList, suggestionList, accommodationReps]) => {
-        setPendingListings(pending)
+Promise.all([getAllListingsAdmin(), getEditedListings(), getChatReports(), getAllPartnersAdmin(), getSuggestionsAdmin(), getAccommodationReportsForAdmin()])
+      .then(([all, edited, chatReps, partnerList, suggestionList, accommodationReps]) => {
         setAllListings(all)
         setEditedListings(edited)
         setChatReports(chatReps)
@@ -97,24 +92,6 @@ Promise.all([getPendingListings(), getAllListingsAdmin(), getEditedListings(), g
     showToast('Conversation ended.', 'success')
   }
 
-  const handleApprove = async (id: string) => {
-    setActionId(id)
-    const { error } = await approveListingById(id)
-    setActionId(null)
-    if (error) { showToast(error, 'error'); return }
-    setPendingListings(prev => prev.filter(l => l.id !== id))
-    showToast('Listing approved.', 'success')
-  }
-
-  const handleReject = async (id: string) => {
-    setActionId(id)
-    const { error } = await rejectListingById(id)
-    setActionId(null)
-    if (error) { showToast(error, 'error'); return }
-    setPendingListings(prev => prev.filter(l => l.id !== id))
-    showToast('Listing rejected.', 'success')
-  }
-
 const handleClearReports = async (id: string) => {
     setActionId(id)
     const { error } = await clearReports(id)
@@ -138,12 +115,8 @@ const handleClearReports = async (id: string) => {
     showToast('Marked as reviewed.', 'success')
   }
 
-  // Suspending an already-active listing is distinct from rejecting a
-  // pending one — per spec 4.10, suspend does NOT notify the seller, while
-  // reject does. suspendListingById() (added in Batch 1) has no
-  // notification insert, unlike rejectListingById(). The old code called
-  // rejectListingById() here, which meant every "Suspend" click on an
-  // active listing incorrectly fired a "listing_rejected" notification.
+  // Listings are live immediately now. Admin moderation still works by
+  // suspending a listing from the All Listings tab when necessary.
   const handleSuspend = async (id: string) => {
     setActionId(id)
     const { error } = await suspendListingById(id)
@@ -198,7 +171,6 @@ const handleClearReports = async (id: string) => {
   )
 
 const activeList =
-    tab === 'pending' ? pendingListings :
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
     tab === 'partners' || tab === 'suggestions' ? [] :
@@ -213,16 +185,6 @@ const activeList =
         <p className="text-cream-muted text-sm mb-6">Manage listings and reports.</p>
 
         <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setTab('pending')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'pending'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Pending ({pendingListings.length})
-          </button>
           <button
             onClick={() => setTab('all')}
             className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
@@ -286,7 +248,7 @@ const activeList =
         </div>
         {tab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">
-            {(['all', 'pending', 'active', 'sold', 'expired', 'suspended'] as StatusFilter[]).map(s => (
+            {(['all', 'active', 'sold', 'expired', 'suspended'] as StatusFilter[]).map(s => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -317,8 +279,7 @@ const activeList =
 {tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
-              {tab === 'pending' ? 'No pending listings.' :
-                tab === 'edited' ? 'No listings have unreviewed edits.' :
+              {tab === 'edited' ? 'No listings have unreviewed edits.' :
                 tab === 'all' ? 'No listings match this filter.' : 'No reported listings.'}
             </p>
           </div>
@@ -374,26 +335,6 @@ const activeList =
                   </p>
 
                   <div className="flex gap-2 flex-wrap">
-                    {tab === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(listing.id)}
-                          disabled={busy}
-                          className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                        >
-                          <CheckCircle size={13} />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(listing.id)}
-                          disabled={busy}
-                          className="flex items-center gap-1.5 border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                        >
-                          <XCircle size={13} />
-                          Reject
-                        </button>
-                      </>
-                    )}
                     {tab === 'reports' && (
                       <button
                         onClick={() => handleClearReports(listing.id)}

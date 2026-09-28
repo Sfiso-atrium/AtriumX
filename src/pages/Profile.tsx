@@ -66,7 +66,6 @@ export default function Profile() {
 
   const activeListings = listings.filter(l => l.status === 'active')
   const soldListings = listings.filter(l => l.status === 'sold')
-  const pendingListings = listings.filter(l => l.status === 'pending')
   const isOwn = currentUser?.id === userId
 
   return (
@@ -194,11 +193,6 @@ export default function Profile() {
             )
           })()}
 
-          {isOwn && pendingListings.length > 0 && (
-            <p className="text-gold text-sm mb-4 transition-all duration-300 hover:translate-x-1 hover:scale-[1.01]">
-              {pendingListings.length} listing{pendingListings.length !== 1 ? 's' : ''} awaiting admin approval
-            </p>
-          )}
           {isOwn && (
             <div className="grid grid-cols-2 gap-2 mb-6">
               <button
@@ -229,9 +223,7 @@ export default function Profile() {
           {activeListings.length === 0 ? (
             <p className="group/empty text-cream-muted text-sm mb-6 transition-all duration-300 hover:translate-x-1 hover:text-cream cursor-default">
               <span className="inline-block transition-transform duration-300 group-hover/empty:translate-x-0.5">
-                {isOwn && pendingListings.length > 0
-                  ? 'Your listings are awaiting approval and will appear here once approved.'
-                  : 'No active listings.'}
+                No active listings.
               </span>
             </p>
           ) : (
