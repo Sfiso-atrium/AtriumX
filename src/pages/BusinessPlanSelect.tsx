@@ -21,7 +21,7 @@ const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
     'Up to 2 active listings',
     'Reply to student messages',
     '"Sponsored" badge on your listings',
-    '14-day visibility',
+    '30-day visibility',
   ],
   campus_partner: [
     'Reach up to 3 universities',
@@ -217,14 +217,7 @@ export default function BusinessPlanSelect() {
                       )}
                     </div>
 <div className="text-right">
-                      {tier.priceNum > 0 ? (
-                        <>
-                          <span className="text-cream-muted text-xs line-through mr-1.5">{tier.price}</span>
-                          <span className="text-gold font-bold text-xl">Free</span>
-                        </>
-                      ) : (
-                        <span className="text-gold font-bold text-xl">{tier.price}</span>
-                      )}
+                      <span className="text-gold font-bold text-xl">{tier.price}</span>
                       <span className="text-cream-muted text-xs ml-1 block md:inline">/ {tier.days}d</span>
                     </div>
                   </div>

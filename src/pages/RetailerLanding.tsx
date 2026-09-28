@@ -186,18 +186,18 @@ export default function RetailerLanding() {
             ]}
           />
           <PricingCard
-            name="Featured" price="R350" period="/ 14 days" packageId="featured" highlighted
+            name="Featured" price="R199" period="/ 30 days" packageId="featured" highlighted
             onSelect={handlePackageSelect}
             features={[
               '1 photo per listing',
               'Up to 2 active listings',
               'Unlimited messaging with students',
               '"Sponsored" badge on your listings',
-              '14-day active window',
+              '30-day active window',
             ]}
           />
           <PricingCard
-            name="Campus Partner" price="R800" period="/ 30 days" packageId="campus_partner"
+            name="Campus Partner" price="R349" period="/ 30 days" packageId="campus_partner"
             onSelect={handlePackageSelect}
             features={[
               'Up to 3 photos per listing',
