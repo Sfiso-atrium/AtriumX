@@ -18,6 +18,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null)
   const [business, setBusiness] = useState<PublicBusinessProfile | null>(null)
   const [ownBusiness, setOwnBusiness] = useState<BusinessProfile | null>(null)
+  const [loadingOwnBusiness, setLoadingOwnBusiness] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
   const [ratings, setRatings] = useState<Rating[]>([])
   // The accommodation account's own property — shown only to them, on their
@@ -33,6 +34,10 @@ export default function Profile() {
 
   useEffect(() => {
     if (!userId) return
+    setOwnBusiness(null)
+    setBusiness(null)
+    setAccommodationListings([])
+    setLoadingOwnBusiness(currentUser?.id === userId)
   Promise.all([getPublicProfile(userId), getUserListings(userId), getSellerRatings(userId)]).then(
     ([p, l, r]) => {
         setProfile(p)
@@ -49,7 +54,7 @@ export default function Profile() {
               if (b?.is_accommodation) {
                 getAccommodationListingsBySeller(userId).then(setAccommodationListings)
               }
-            })
+            }).finally(() => setLoadingOwnBusiness(false))
           }
         }
       }
@@ -114,7 +119,7 @@ export default function Profile() {
               <h1 className="text-cream font-bold text-xl transition-transform duration-300 group-hover/card:translate-x-0.5">{profile.full_name}</h1>
               <p className="text-cream-muted text-sm">
                 {profile.account_type === 'business' && isOwn
-                  ? (ownBusiness ? (ownBusiness.universities.length ? ownBusiness.universities.join(', ') : 'No university selected') : 'Loading university access...')
+                  ? (ownBusiness ? (ownBusiness.universities.length ? ownBusiness.universities.join(', ') : 'No university selected') : loadingOwnBusiness ? 'Loading university access...' : 'Business account details unavailable')
                   : profile.residence || 'Campus'}
               </p>
               {profile.avg_rating > 0 && (
@@ -197,9 +202,10 @@ export default function Profile() {
                 <div className="grid sm:grid-cols-3 gap-3 mt-5">
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Current plan</p><p className="text-cream font-bold mt-1">{ACCOMMODATION_PLANS[plan].label}</p></div>
                   <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Accommodation listings</p><p className="text-cream font-bold mt-1">{Math.min(accommodationListings.length, maxProperties)} / {maxProperties}</p></div>
-                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Universities</p><p className="text-cream font-bold mt-1">{ownBusiness.universities.length} / {maxUniversities}</p></div>
+                  <div className="bg-slate-deep rounded-2xl p-4"><p className="text-cream-muted text-xs">Active universities</p><p className="text-cream font-bold mt-1">{accommodationListings[0]?.active_universities?.length ?? 0} / {maxUniversities}</p></div>
                 </div>
                 {atLimit && <p className="text-cream-muted text-xs mt-4">Your accommodation account uses one listing for the whole provider. Add all buildings and room pricing to that listing.</p>}
+                {accommodationListings.some(listing => listing.reach_paused) && <p className="text-cream-muted text-sm mt-3">Your listing is paused because its saved university reach exceeds your current plan. Open it to choose which universities remain active.</p>}
                 {accommodationListings.length === 0 && (
                   <div className="border border-dashed border-slate-border rounded-2xl py-10 text-center mt-5">
                     <Building2 size={30} className="mx-auto text-cream-muted mb-3" />

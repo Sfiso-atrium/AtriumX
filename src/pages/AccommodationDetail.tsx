@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, Plus, Send, Star, Tag } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
+import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, selectAccommodationUniversities, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
 import AccommodationReportModal from '../components/student/AccommodationReportModal'
 import AccommodationReportEditModal from '../components/student/AccommodationReportEditModal'
 
@@ -22,6 +22,12 @@ export default function AccommodationDetail() {
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [showReportEditModal, setShowReportEditModal] = useState(false)
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
+  const [savingUniversities, setSavingUniversities] = useState(false)
+
+  useEffect(() => {
+    setSelectedUniversities(listing?.active_universities ?? [])
+  }, [listing])
 
   useEffect(() => {
     if (!id || isLoadingAuth) return
@@ -42,6 +48,23 @@ export default function AccommodationDetail() {
 
   if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   if (!listing) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Accommodation not found.</div>
+
+  const maxUniversities = listing.max_universities ?? 1
+  const needsUniversitySelection = isOwner && (listing.universities.length > maxUniversities
+    || (listing.active_universities?.length ?? 0) < listing.universities.length)
+  const saveUniversities = async () => {
+    setSavingUniversities(true)
+    try {
+      const { error } = await selectAccommodationUniversities(listing.id, selectedUniversities)
+      if (error) { showToast(error, 'error'); return }
+      setListing(await getAccommodationListingById(listing.id, currentUser?.id))
+      showToast('University selection saved.', 'success')
+    } catch {
+      showToast('Could not save your selection. Please try again.', 'error')
+    } finally {
+      setSavingUniversities(false)
+    }
+  }
 
   const handleReportClick = () => {
     if (!currentUser) { setAuthPromptOpen(true); return }
@@ -90,6 +113,27 @@ export default function AccommodationDetail() {
         {!isOwner && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {needsUniversitySelection && (
+          <section className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-4">
+            <h2 className="text-cream font-bold text-sm">Choose your active universities</h2>
+            <p className="text-cream-muted text-sm mt-2">Your current plan supports up to {maxUniversities} universities. All saved universities are kept. {listing.reach_paused ? 'Public visibility is paused until you save a selection.' : 'Only your selected universities are active.'}</p>
+            <div className="flex flex-col gap-2 my-4">
+              {listing.universities.map(university => (
+                <label key={university} className="flex items-center gap-2 text-cream text-sm">
+                  <input type="checkbox" checked={selectedUniversities.includes(university)}
+                    disabled={savingUniversities || (!selectedUniversities.includes(university) && selectedUniversities.length >= maxUniversities)}
+                    onChange={event => setSelectedUniversities(previous => event.target.checked
+                      ? [...previous, university] : previous.filter(value => value !== university))} />
+                  {university}
+                </label>
+              ))}
+            </div>
+            <button onClick={saveUniversities} disabled={savingUniversities || !selectedUniversities.length}
+              className="bg-teal-primary text-white text-sm font-bold px-4 py-2 rounded-xl disabled:opacity-50">
+              {savingUniversities ? 'Saving...' : 'Save selection'}
+            </button>
+          </section>
+        )}
         {isOwner && ((listing.hidden_photo_count ?? 0) > 0 || listing.video_hidden) && (
           <p className="text-cream-muted text-sm mb-4">Owner view: your saved photos and video are kept. Media beyond your current plan is hidden from other users and becomes available again on a plan that supports it.</p>
         )}
