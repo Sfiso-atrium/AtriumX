@@ -5,6 +5,7 @@ import { Plus, UserRound } from 'lucide-react'
 import { PostTypeModal } from './PostTypeChooser'
 import HomeIcon from './icons/HomeIcon'
 import ChatIcon from './icons/ChatIcon'
+import BuildingIcon from './icons/BuildingIcon'
 import { useApp } from '../../context/AppContext'
 
 // `filled` = solid glyph, used when the icon sits on the blue active tile
@@ -120,7 +121,7 @@ export default function BottomNav() {
     tabs = [
       { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
       { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => handleProtected('/plan-select'), action: true },
-      { label: 'Accommodation', icon: HomeIcon, path: '/accommodations', onClick: () => navigate('/accommodations') },
+      { label: 'Accommodation', icon: BuildingIcon, path: '/accommodations', onClick: () => navigate('/accommodations') },
     ]
   }
 
