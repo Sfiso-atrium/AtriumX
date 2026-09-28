@@ -636,6 +636,24 @@ export async function getResidences(): Promise<string[]> {
 
 // ── LISTINGS ───────────────────────────────────────────────────────────────
 
+async function getPublicListingSellerMap(sellerIds: string[]): Promise<Record<string, Profile>> {
+  const ids = [...new Set(sellerIds)]
+  if (ids.length === 0) return {}
+
+  const { data, error } = await supabase
+    .from('profiles_public')
+    .select('*')
+    .in('id', ids)
+
+  if (error) throw new Error(error.message)
+
+  const map: Record<string, Profile> = {}
+  ;(data || []).forEach(profile => {
+    map[profile.id] = profile as unknown as Profile
+  })
+  return map
+}
+
 export async function getListings(filters: {
   category?: string
   search?: string
@@ -647,19 +665,9 @@ export async function getListings(filters: {
 
   let query = supabase
     .from('listings')
-.select('*, seller:profiles_public!inner(*)')
+    .select('*')
     .eq('status', 'active')
-    .eq('seller.account_type', 'student')
     .order('created_at', { ascending: false })
-
-  // The marketplace is always scoped to one university at a time.
-  // Students are fixed to their own university; businesses use the
-  // university selected from their university-access menu.
-  if (filters.currentUser?.account_type === 'student' && filters.currentUser.university) {
-    query = query.eq('seller.university', filters.currentUser.university)
-  } else if (filters.currentUser?.account_type === 'business' && filters.university) {
-    query = query.eq('seller.university', filters.university)
-  }
 
   if (filters.category && filters.category !== 'all') {
     query = query.eq('category', filters.category)
@@ -669,11 +677,30 @@ export async function getListings(filters: {
     query = query.ilike('title', `%${filters.search}%`)
   }
 
-const { data, error } = await query
-  if (error || !data) return []
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+  if (!data) return []
+
+  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
+  const scoped = data
+    .filter(listing => {
+      const seller = sellerMap[listing.seller_id]
+      if (!seller || seller.account_type !== 'student') return false
+
+      if (filters.currentUser?.account_type === 'student') {
+        return seller.university === filters.currentUser.university
+      }
+
+      if (filters.currentUser?.account_type === 'business') {
+        return seller.university === filters.university
+      }
+
+      return true
+    })
+    .map(listing => ({ ...listing, seller: sellerMap[listing.seller_id] }))
 
   const PLAN_RANK: Record<string, number> = { unmissable: 4, loud: 3, visible: 2, ghost: 1 }
-  const sorted = [...data].sort(
+  const sorted = [...scoped].sort(
     (a, b) => (PLAN_RANK[b.plan_tier] || 0) - (PLAN_RANK[a.plan_tier] || 0)
   )
 
@@ -689,12 +716,11 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
 
   let query = supabase
     .from('listings')
-    .select('*, seller:profiles_public!inner(*)')
+    .select('*')
     .eq('status', 'active')
-    .eq('seller.account_type', 'business')
     .order('created_at', { ascending: false })
 
-  // The marketplace is always scoped to one university at a time.
+  // Business listings carry their university reach on the listing itself.
   if (currentUser?.account_type === 'student' && currentUser.university) {
     query = query.contains('universities', [currentUser.university])
   } else if (currentUser?.account_type === 'business' && university) {
@@ -702,21 +728,30 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   }
 
   const { data, error } = await query
-  if (error || !data) return []
+  if (error) throw new Error(error.message)
+  if (!data) return []
 
-  const sellerIds = [...new Set(data.map((l: any) => l.seller_id))]
+  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
+  const businessData = data
+    .filter(listing => sellerMap[listing.seller_id]?.account_type === 'business')
+    .map(listing => ({ ...listing, seller: sellerMap[listing.seller_id] }))
+
+  const sellerIds = [...new Set(businessData.map((l: any) => l.seller_id))]
   const addressMap: Record<string, { address: string | null; website: string | null }> = {}
   if (sellerIds.length > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: businessProfileError } = await supabase
       .from('business_profiles_public')
       .select('id, physical_address, website')
       .in('id', sellerIds)
-    profiles?.forEach(p => {
-      addressMap[p.id] = { address: p.physical_address, website: p.website }
+
+    if (businessProfileError) throw new Error(businessProfileError.message)
+
+    profiles?.forEach(profile => {
+      addressMap[profile.id] = { address: profile.physical_address, website: profile.website }
     })
   }
 
-  const withAddress = data.map((l: any) => ({
+  const withAddress = businessData.map((l: any) => ({
     ...l,
     business_address: addressMap[l.seller_id]?.address ?? null,
     business_website: addressMap[l.seller_id]?.website ?? null,
@@ -729,6 +764,7 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
 
   return sorted as Listing[]
 }
+
 export async function getListingById(id: string, viewerId?: string): Promise<Listing | null> {
   const { data, error } = await supabase
     .from('listings')
@@ -1752,20 +1788,34 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 export async function getAllListingsAdmin(): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
-    .select('*, seller:profiles(*)')
+    .select('*')
     .order('created_at', { ascending: false })
-  if (error || !data) return []
-  return data as Listing[]
+
+  if (error) throw new Error(error.message)
+  if (!data) return []
+
+  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
+  return data.map(listing => ({
+    ...listing,
+    seller: sellerMap[listing.seller_id],
+  })) as Listing[]
 }
 
 export async function getEditedListings(): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
-    .select('*, seller:profiles(*)')
+    .select('*')
     .eq('has_pending_edit', true)
     .order('edited_at', { ascending: false })
-  if (error || !data) return []
-  return data as Listing[]
+
+  if (error) throw new Error(error.message)
+  if (!data) return []
+
+  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
+  return data.map(listing => ({
+    ...listing,
+    seller: sellerMap[listing.seller_id],
+  })) as Listing[]
 }
 
 // Admin has looked at the edit — clears the flag without touching status,
