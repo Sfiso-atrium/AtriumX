@@ -744,11 +744,13 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
       .select('id, physical_address, website')
       .in('id', sellerIds)
 
-    if (businessProfileError) throw new Error(businessProfileError.message)
-
-    profiles?.forEach(profile => {
-      addressMap[profile.id] = { address: profile.physical_address, website: profile.website }
-    })
+    if (businessProfileError) {
+      console.error('Failed to load business profile details:', businessProfileError.message)
+    } else {
+      profiles?.forEach(profile => {
+        addressMap[profile.id] = { address: profile.physical_address, website: profile.website }
+      })
+    }
   }
 
   const withAddress = businessData.map((l: any) => ({
