@@ -256,6 +256,15 @@ export function isPaidPlan(key: PlanKey): boolean {
   return PAID_PLANS.includes(key)
 }
 
+export function getEffectiveBusinessPlan(profile: Profile | null | undefined): PlanKey {
+  if (!profile || profile.account_type !== 'business') return 'noticeboard'
+  if (profile.plan === 'featured' || profile.plan === 'campus_partner') {
+    if (profile.plan_expires_at && new Date(profile.plan_expires_at) > new Date()) return profile.plan
+    return 'noticeboard'
+  }
+  return 'noticeboard'
+}
+
 // ── PAYMENTS (PayFast) ─────────────────────────────────────────────────────
 
 export interface PaymentRecord {
@@ -793,7 +802,7 @@ export async function createListing(payload: {
       is_negotiable: payload.isNegotiable,
       plan_tier: payload.planTier,
       variants: payload.variants,
-      status: 'pending',
+      status: 'active',
       expires_at: expiresAt,
       universities: [],
     })
@@ -1740,16 +1749,6 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 
 // ── ADMIN ──────────────────────────────────────────────────────────────────
 
-export async function getPendingListings(): Promise<Listing[]> {
-  const { data, error } = await supabase
-    .from('listings')
-    .select('*, seller:profiles(*)')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-  if (error || !data) return []
-  return data as Listing[]
-}
-
 export async function getAllListingsAdmin(): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
@@ -1779,24 +1778,8 @@ export async function acknowledgeListingEdit(id: string): Promise<{ error: strin
   return { error: error ? error.message : null }
 }
 
-// Approve (pending → active) and reject (pending → suspended) both notify
-// the seller with the correct fixed notification type. Routed through
-// SECURITY DEFINER RPCs (migration 012) that check is_admin internally —
-// the old direct update+insert pattern silently dropped the notification
-// insert because it failed notifications RLS.
-export async function approveListingById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('approve_listing', { p_listing_id: id })
-  return { error: error ? error.message : null }
-}
-
-export async function rejectListingById(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('reject_listing', { p_listing_id: id })
-  return { error: error ? error.message : null }
-}
-
-// Suspending an already-active listing (from the "All Listings" tab) does
-// NOT notify the seller per spec 4.10 — distinct from rejecting a pending
-// listing, which does.
+// Admin moderation remains available after automatic publishing: an admin
+// can suspend an active listing from the All Listings tab.
 export async function suspendListingById(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('suspend_listing', { p_listing_id: id })
   return { error: error ? error.message : null }
@@ -1984,6 +1967,13 @@ export async function getBusinessProfile(id: string): Promise<BusinessProfile | 
   const accommodationExpires = data.accommodation_plan_expires_at ? new Date(data.accommodation_plan_expires_at).getTime() : null
   const effectiveAccommodationPlan = accommodationExpires && accommodationExpires < Date.now() ? 'accommodation_free' : (data.accommodation_plan ?? 'accommodation_free')
   return { ...data, universities: data.universities ?? [], is_accommodation: data.is_accommodation ?? false, accommodation_plan: effectiveAccommodationPlan, accommodation_plan_expires_at: data.accommodation_plan_expires_at ?? null } as BusinessProfile
+}
+
+export async function setBusinessUniversityAccess(universities: string[]): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('set_business_university_access', {
+    p_universities: universities,
+  })
+  return { error: error ? error.message : null }
 }
 
 // Business accounts can't write to business_profiles directly (migration 050),
