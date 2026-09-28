@@ -9,8 +9,6 @@ import {
   getAllEvents,
   cancelEvent,
   getBusinessProfile,
-  getEffectiveBusinessPlan,
-  PLAN_TIERS,
   CampusEvent,
   EVENT_CATEGORIES,
   incrementEventLikes,
@@ -224,9 +222,8 @@ export default function EventsPage() {
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Businesses can reach several universities. When the navbar/feed carries
-  // the currently selected university in the URL, this page shows that
-  // university's events; without a selection it retains the full access set.
+  // Event access follows the account's university list, independently of its
+  // paid listing reach.
   const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
   const [businessUniversitiesLoading, setBusinessUniversitiesLoading] = useState(false)
   const requestedUniversity = new URLSearchParams(location.search).get('university')
@@ -243,9 +240,7 @@ export default function EventsPage() {
     getBusinessProfile(currentUser.id)
       .then(profile => {
         if (!mounted) return
-        const effectivePlan = getEffectiveBusinessPlan(currentUser)
-        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
-        setBusinessUniversities((profile?.universities ?? []).slice(0, maxUniversities))
+        setBusinessUniversities(profile?.universities ?? [])
         setBusinessUniversitiesLoading(false)
       })
       .catch(() => {
