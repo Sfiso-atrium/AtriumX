@@ -3,7 +3,6 @@ import { Search, X, HandHelping, MessageCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Listing, getListings, getBusinessListings, getBusinessProfile, getResidences, getWantedPosts, startWantedConversation, WantedPost, PLAN_ORDER, BUSINESS_PLAN_ORDER, PLAN_TIERS, PlanKey, getEffectiveBusinessPlan } from '../services/dataService'
-import { BUSINESS_TYPES } from './RetailerSignup'
 import Navbar from '../components/common/Navbar'
 import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/CategoryChips'
 import ListingCard from '../components/common/ListingCard'
@@ -12,7 +11,13 @@ import LegalFooter from '../components/common/LegalFooter'
 const APPLICATION_LINK = 'https://atriumx.co.za/retailer'
 const BUSINESS_CATEGORIES = [
   { id: 'all', label: 'All' },
-  ...BUSINESS_TYPES.map(t => ({ id: t, label: t })),
+  { id: 'restaurant', label: 'Restaurant' },
+  { id: 'clothing', label: 'Clothing' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'tutoring', label: 'Tutoring' },
+  { id: 'printing', label: 'Printing' },
+  { id: 'salon', label: 'Salon' },
+  { id: 'other', label: 'Other' },
 ]
 function EmptyState({ message, actionLabel, onAction }: { message: string; actionLabel?: string; onAction?: () => void }) {
   return (
@@ -161,12 +166,7 @@ const [fetchError, setFetchError] = useState(false)
     })
   }
 
-  const marketplaceListings = useMemo(() =>
-    currentUser?.account_type === 'business'
-      ? [...listings, ...businessListings]
-      : listings,
-    [currentUser, listings, businessListings]
-  )
+  const marketplaceListings = useMemo(() => listings, [listings])
 
   const filtered = useMemo(() => {
     const matches = marketplaceListings.filter(listing => {
@@ -187,7 +187,7 @@ const [fetchError, setFetchError] = useState(false)
 
 const filteredBusiness = useMemo(() => {
     const matches = businessListings.filter(listing => {
-      const matchCat = bizCategory === 'all' || listing.category === bizCategory
+      const matchCat = bizCategory === 'all' || (listing.category ?? '').trim().toLowerCase() === bizCategory
       const q = bizSearch.trim().toLowerCase()
       const matchSearch = !q ||
         listing.title.toLowerCase().includes(q) ||
@@ -201,6 +201,26 @@ const filteredBusiness = useMemo(() => {
     })
     return sortByPlanPriority(matches, true)
   }, [businessListings, bizCategory, bizSearch, bizMinPrice, bizMaxPrice, bizNegotiableOnly])
+
+  const campusPartnerBusinessListings = useMemo(() =>
+    filteredBusiness.filter(listing => listing.plan_tier === 'campus_partner'),
+    [filteredBusiness]
+  )
+
+  const featuredBusinessListings = useMemo(() =>
+    filteredBusiness.filter(listing => listing.plan_tier === 'featured'),
+    [filteredBusiness]
+  )
+
+  const noticeboardBusinessListings = useMemo(() =>
+    filteredBusiness.filter(listing => listing.plan_tier === 'noticeboard'),
+    [filteredBusiness]
+  )
+
+  const otherBusinessListings = useMemo(() =>
+    filteredBusiness.filter(listing => !['campus_partner', 'featured', 'noticeboard'].includes(listing.plan_tier)),
+    [filteredBusiness]
+  )
 
   const featuredListings = useMemo(() =>
     filtered.filter(listing => listing.plan_tier === 'unmissable' || listing.plan_tier === 'campus_partner'),
@@ -302,7 +322,7 @@ const filteredBusiness = useMemo(() => {
                 onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
                 className="bg-transparent text-cream focus:outline-none cursor-pointer"
               >
-                <option value="marketplace">{currentUser?.account_type === 'business' ? 'All listings' : 'Students'}</option>
+                <option value="marketplace">Students</option>
                 <option value="business">Businesses</option>
               </select>
             </label>
@@ -529,11 +549,63 @@ const filteredBusiness = useMemo(() => {
                 onAction={handleCopyApplicationLink}
               />
             ) : (
-              <div className="px-4 pb-24 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-                {filteredBusiness.map(listing => (
-                  <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
-                ))}
-              </div>
+              <>
+                {campusPartnerBusinessListings.length > 0 && (
+                  <section className="pb-5">
+                    <div className="px-4 pb-2 flex items-center justify-between">
+                      <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Campus Partner listings</h2>
+                      <span className="text-cream-muted text-[11px]">Scroll</span>
+                    </div>
+                    <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+                      {campusPartnerBusinessListings.map(listing => (
+                        <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {featuredBusinessListings.length > 0 && (
+                  <section className="pb-5">
+                    <div className="px-4 pb-2 flex items-center justify-between">
+                      <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Featured listings</h2>
+                      <span className="text-cream-muted text-[11px]">Scroll</span>
+                    </div>
+                    <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+                      {featuredBusinessListings.map(listing => (
+                        <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {noticeboardBusinessListings.length > 0 && (
+                  <section className="pb-5">
+                    <div className="px-4 pb-2 flex items-center justify-between">
+                      <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Noticeboard listings</h2>
+                      <span className="text-cream-muted text-[11px]">Scroll</span>
+                    </div>
+                    <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+                      {noticeboardBusinessListings.map(listing => (
+                        <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {otherBusinessListings.length > 0 && (
+                  <section className="pb-24">
+                    <div className="px-4 pb-2 flex items-center justify-between">
+                      <h2 className="text-cream font-extrabold text-2xl sm:text-[26px]">Other business listings</h2>
+                      <span className="text-cream-muted text-[11px]">Scroll</span>
+                    </div>
+                    <div className="px-4 flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+                      {otherBusinessListings.map(listing => (
+                        <div key={listing.id} className="w-[285px] sm:w-[315px] flex-shrink-0 snap-start"><ListingCard listing={listing} /></div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
             </>
           )}
