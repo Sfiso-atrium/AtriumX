@@ -654,6 +654,15 @@ async function getPublicListingSellerMap(sellerIds: string[]): Promise<Record<st
   return map
 }
 
+async function filterAdminMarketplaceListings<T extends { id: string }>(listings: T[]): Promise<T[]> {
+  const { data, error } = await supabase.rpc('get_normal_marketplace_listing_ids', {
+    p_listing_ids: listings.map(listing => listing.id),
+  })
+  if (error) throw new Error(error.message)
+  const allowedIds = new Set<string>(data ?? [])
+  return listings.filter(listing => allowedIds.has(listing.id))
+}
+
 export async function getListings(filters: {
   category?: string
   search?: string
@@ -681,8 +690,14 @@ export async function getListings(filters: {
   if (error) throw new Error(error.message)
   if (!data) return []
 
-  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
-  const scoped = data
+  // Admins can read every listing for moderation. Apply the normal role scope
+  // when they use the ordinary marketplace, using the same database rule as RLS.
+  const visibleData = filters.currentUser?.is_admin && data.length
+    ? await filterAdminMarketplaceListings(data)
+    : data
+
+  const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
+  const scoped = visibleData
     .filter(listing => {
       const seller = sellerMap[listing.seller_id]
       if (!seller || seller.account_type !== 'student') return false
@@ -731,8 +746,12 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   if (error) throw new Error(error.message)
   if (!data) return []
 
-  const sellerMap = await getPublicListingSellerMap(data.map(listing => listing.seller_id))
-  const businessData = data
+  const visibleData = currentUser?.is_admin && data.length
+    ? await filterAdminMarketplaceListings(data)
+    : data
+
+  const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
+  const businessData = visibleData
     .filter(listing => sellerMap[listing.seller_id]?.account_type === 'business')
     .map(listing => ({ ...listing, seller: sellerMap[listing.seller_id] }))
 
