@@ -45,8 +45,8 @@ const PLAN_PRICES: Record<string, { amount: number; days: number; label: string;
   visible:        { amount: 29,  days: 7,  label: 'Visible' },
   loud:           { amount: 79,  days: 14, label: 'Loud' },
   unmissable:     { amount: 149, days: 30, label: 'Unmissable' },
-  featured:       { amount: 350, days: 14, label: 'Featured' },
-  campus_partner: { amount: 800, days: 30, label: 'Campus Partner' },
+  featured:       { amount: 199, days: 30, label: 'Featured' },
+  campus_partner: { amount: 349, days: 30, label: 'Campus Partner' },
   accommodation_featured: { amount: 199, days: 30, label: 'Accommodation Featured', accommodation: true },
   accommodation_premium: { amount: 399, days: 30, label: 'Accommodation Premium', accommodation: true },
 }
