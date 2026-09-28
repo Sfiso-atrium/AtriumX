@@ -68,7 +68,7 @@ useEffect(() => {
       // (or count toward) the active-listing limit — same reasoning as
       // the student PostListing flow.
       if (!editListing) {
-        const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+        const active = listings.filter(l => l.plan_enabled !== false && (l.status === 'active' || l.status === 'pending')).length
         const max = PLAN_TIERS[plan].maxListings
         if (active >= max) setAtLimit(true)
       }

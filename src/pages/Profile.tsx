@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext'
 import {
   Profile as ProfileType, Listing, Rating, BusinessProfile, PublicBusinessProfile, AccommodationListing, AccommodationPlanKey,
   ACCOMMODATION_PLANS, getPublicProfile, getUserListings, getSellerRatings, getBusinessProfile, getPublicBusinessProfile,
-  getAccommodationListingsBySeller, logout,
+  getAccommodationListingsBySeller, selectPlanListings, logout,
 } from '../services/dataService'
 import ListingCard from '../components/common/ListingCard'
 import AccommodationCard from '../components/common/AccommodationCard'
@@ -14,7 +14,7 @@ import BottomNav from '../components/common/BottomNav'
 export default function Profile() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
-  const { currentUser, setCurrentUser } = useApp()
+  const { currentUser, setCurrentUser, showToast } = useApp()
   const [profile, setProfile] = useState<ProfileType | null>(null)
   const [business, setBusiness] = useState<PublicBusinessProfile | null>(null)
   const [ownBusiness, setOwnBusiness] = useState<BusinessProfile | null>(null)
@@ -28,6 +28,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [showSold, setShowSold] = useState(false)
   const [showReviews, setShowReviews] = useState(false)
+  const [selectedPlanListings, setSelectedPlanListings] = useState<string[]>([])
+  const [savingPlanSelection, setSavingPlanSelection] = useState(false)
 
   useEffect(() => {
     if (!userId) return
@@ -35,6 +37,8 @@ export default function Profile() {
     ([p, l, r]) => {
         setProfile(p)
         setListings(l)
+        const enabled = l.filter(item => (item.status === 'active' || item.status === 'pending') && item.plan_enabled !== false)
+        setSelectedPlanListings(enabled.length <= (enabled[0]?.current_max_listings ?? 1) ? enabled.map(item => item.id) : [])
         setRatings(r)
         setLoading(false)
         if (p?.account_type === 'business') {
@@ -67,6 +71,24 @@ export default function Profile() {
   const activeListings = listings.filter(l => l.status === 'active')
   const soldListings = listings.filter(l => l.status === 'sold')
   const isOwn = currentUser?.id === userId
+  const selectableListings = listings.filter(l => l.status === 'active' || l.status === 'pending')
+  const maxListingSlots = selectableListings[0]?.current_max_listings ?? 1
+  const needsPlanSelection = isOwn && (selectableListings.length > maxListingSlots || selectableListings.some(l => l.plan_enabled === false))
+
+  const savePlanSelection = async () => {
+    if (!userId || savingPlanSelection) return
+    setSavingPlanSelection(true)
+    try {
+      const { error } = await selectPlanListings(selectedPlanListings)
+      if (error) { showToast(error, 'error'); return }
+      setListings(await getUserListings(userId))
+      showToast('Listing selection saved.', 'success')
+    } catch {
+      showToast('Could not save your selection. Please try again.', 'error')
+    } finally {
+      setSavingPlanSelection(false)
+    }
+  }
 
   return (
     <>
@@ -216,12 +238,32 @@ export default function Profile() {
 
           {!business?.is_accommodation && (
             <>
+          {needsPlanSelection && (
+            <div className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-5">
+              <h3 className="text-cream font-bold">Choose which listings to show</h3>
+              <p className="text-cream-muted text-sm mt-2 mb-3">Your current plan allows up to {maxListingSlots} active listing{maxListingSlots === 1 ? '' : 's'}. If your selection exceeds this limit after expiry, your listings are paused until you choose. All listing content is kept.</p>
+              <div className="flex flex-col gap-2">
+                {selectableListings.map(item => (
+                  <label key={item.id} className="flex items-center gap-3 text-cream text-sm">
+                    <input type="checkbox" checked={selectedPlanListings.includes(item.id)}
+                      disabled={savingPlanSelection || (!selectedPlanListings.includes(item.id) && selectedPlanListings.length >= maxListingSlots)}
+                      onChange={e => setSelectedPlanListings(previous => e.target.checked ? [...previous, item.id] : previous.filter(id => id !== item.id))} />
+                    {item.title}
+                  </label>
+                ))}
+              </div>
+              <button type="button" onClick={savePlanSelection} disabled={savingPlanSelection}
+                className="mt-4 bg-teal-primary text-white font-bold text-sm px-4 py-2 rounded-xl disabled:opacity-40">
+                {savingPlanSelection ? 'Saving...' : 'Save selection'}
+              </button>
+            </div>
+          )}
           <div className="group/section flex items-end justify-between gap-3 mb-3 transition-all duration-200 hover:translate-x-0.5">
             <div>
               <p className="text-cream-muted text-xs uppercase tracking-wide">Your AtriumX</p>
               <h2 className="text-cream font-bold text-lg">My Listings</h2>
             </div>
-            <span className="text-cream-muted text-xs transition-transform duration-300 group-hover/section:scale-110">{activeListings.length} active</span>
+            <span className="text-cream-muted text-xs transition-transform duration-300 group-hover/section:scale-110">{activeListings.filter(l => l.plan_visible !== false).length} active</span>
           </div>
 
           {activeListings.length === 0 ? (
@@ -234,6 +276,8 @@ export default function Profile() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {activeListings.map(l => (
                 <div key={l.id} className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg will-change-transform">
+                  {isOwn && l.plan_visible === false && <p className="text-cream-muted text-xs mb-2">Paused under your current plan. Use the selection above to show this listing.</p>}
+                  {isOwn && (l.hidden_photo_count ?? 0) > 0 && <p className="text-cream-muted text-xs mb-2">Owner view: {l.hidden_photo_count} saved photo{l.hidden_photo_count === 1 ? ' is' : 's are'} hidden from other users under your current plan.</p>}
                   <ListingCard listing={l} seller={profile} isOwner={isOwn} />
                 </div>
               ))}

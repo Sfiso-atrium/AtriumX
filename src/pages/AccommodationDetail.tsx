@@ -90,6 +90,9 @@ export default function AccommodationDetail() {
         {!isOwner && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {isOwner && ((listing.hidden_photo_count ?? 0) > 0 || listing.video_hidden) && (
+          <p className="text-cream-muted text-sm mb-4">Owner view: your saved photos and video are kept. Media beyond your current plan is hidden from other users and becomes available again on a plan that supports it.</p>
+        )}
         {hasActiveReportDeadline && (
           <div className="mb-4 bg-red-500/5 border border-red-500/20 rounded-2xl p-4">
             <div className="flex items-start justify-between gap-4">

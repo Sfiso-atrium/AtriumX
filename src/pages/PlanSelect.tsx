@@ -79,7 +79,7 @@ useEffect(() => {
       // Never posted before — always let them see what's on offer.
       if (listings.length === 0) { setView('grid'); return }
 
-      const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+      const active = listings.filter(l => l.plan_enabled !== false && (l.status === 'active' || l.status === 'pending')).length
       const max = PLAN_TIERS[plan].maxListings
       const planActive = plan !== 'ghost'
         ? !!currentUser.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()

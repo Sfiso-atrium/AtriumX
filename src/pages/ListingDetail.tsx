@@ -281,6 +281,15 @@ const expiry = timeLeft(listing.expires_at)
           )}
         </div>
 <div className="max-w-5xl mx-auto pb-24 md:px-6 lg:px-8 md:pt-6">
+          {isSeller && (listing.status === 'active' || listing.status === 'pending') && listing.plan_visible === false && (
+            <div className="bg-slate-card border border-slate-border rounded-xl p-4 mb-4 text-sm text-cream-muted">
+              This listing is paused under your current plan. Your content is saved.
+              <button onClick={() => navigate(`/profile/${listing.seller_id}`)} className="text-teal-light font-bold ml-2">Choose listings to show</button>
+            </div>
+          )}
+          {isSeller && (listing.hidden_photo_count ?? 0) > 0 && (
+            <p className="text-cream-muted text-sm mb-4">Owner view: {listing.hidden_photo_count} saved photo{listing.hidden_photo_count === 1 ? ' is' : 's are'} hidden from other users by your current plan. Upgrading makes the extra photos available again.</p>
+          )}
           {/* Hero placeholder: image/video, title, and badges live together */}
           <div className="w-full bg-slate-card border border-slate-border rounded-2xl overflow-hidden md:flex md:gap-6 md:items-stretch">
 {listing.video_url ? (

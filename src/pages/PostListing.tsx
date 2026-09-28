@@ -56,7 +56,7 @@ useEffect(() => {
       // (or count toward) the active-listing limit.
       if (!editListing) {
         getUserListings(currentUser.id).then(listings => {
-          const active = listings.filter(l => l.status === 'active' || l.status === 'pending').length
+          const active = listings.filter(l => l.plan_enabled !== false && (l.status === 'active' || l.status === 'pending')).length
           const max = PLAN_TIERS[plan].maxListings
           if (active >= max) setAtLimit(true)
         })
