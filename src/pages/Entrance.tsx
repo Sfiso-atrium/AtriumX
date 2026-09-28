@@ -100,8 +100,8 @@ export default function Entrance() {
       </header>
 
       <main className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
-        <section className="relative grid min-h-[520px] overflow-hidden rounded-b-[36px] bg-white lg:grid-cols-[0.88fr_1.12fr]">
-          <div className="relative z-10 flex flex-col justify-center px-2 py-14 sm:px-8 lg:px-10 lg:py-16 xl:px-14">
+        <section className="relative grid overflow-hidden rounded-b-[36px] bg-white lg:min-h-[520px] lg:grid-cols-[0.88fr_1.12fr]">
+          <div className="relative z-10 flex flex-col justify-center px-2 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16 xl:px-14">
             <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">A brighter campus together</p>
             <h1 className="max-w-[560px] font-serif text-[44px] font-bold leading-[0.94] tracking-[-0.045em] text-[#07152F] sm:text-[58px] lg:text-[64px] xl:text-[70px]">
               Campus life,
@@ -135,21 +135,21 @@ export default function Entrance() {
             </button>
           </div>
 
-          <div className="relative min-h-[350px] overflow-hidden lg:min-h-full">
-            <div className="absolute -left-16 top-12 h-[390px] w-[390px] rounded-full bg-[#EDF5FF] lg:h-[520px] lg:w-[520px]" />
+          <div className="relative mx-2 mb-8 h-[220px] overflow-hidden rounded-[28px] sm:mx-8 sm:h-[280px] lg:m-0 lg:h-auto lg:min-h-full lg:rounded-none">
+            <div className="absolute -left-16 top-12 hidden h-[520px] w-[520px] rounded-full bg-[#EDF5FF] lg:block" />
             <img
               src="https://images.unsplash.com/photo-1562774053-701939374585?w=1600&q=88"
               alt="University campus"
-              className="absolute inset-0 h-full w-full object-cover [clip-path:ellipse(78%_76%_at_72%_46%)]"
+              className="absolute inset-0 h-full w-full object-cover lg:[clip-path:ellipse(78%_76%_at_72%_46%)]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/10 to-transparent" />
+            <div className="absolute inset-0 hidden bg-gradient-to-r from-white via-white/10 to-transparent lg:block" />
             <div className="absolute right-7 top-[36%] hidden max-w-[150px] rotate-[-5deg] text-center font-serif text-[21px] italic leading-tight text-[#1565F9] xl:block">
               A stronger campus, together.
             </div>
           </div>
         </section>
 
-        <section className="relative z-20 -mt-10 grid gap-3 md:grid-cols-3 lg:px-4">
+        <section className="relative z-20 grid gap-3 md:grid-cols-3 lg:-mt-10 lg:px-4">
           {[
             {
               icon: GraduationCap,
@@ -224,9 +224,9 @@ export default function Entrance() {
             </button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible">
             {exploreCards.map((card) => (
-              <article key={card.title} className="overflow-hidden rounded-[18px] border border-[#E3EAF4] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+              <article key={card.title} className="w-[82vw] max-w-[320px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#E3EAF4] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)] md:w-auto md:max-w-none">
                 <div className="relative h-[190px] overflow-hidden">
                   <img src={card.image} alt={card.title} className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.025]" />
                   <button aria-label={`Save ${card.title}`} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#334155] shadow-sm">

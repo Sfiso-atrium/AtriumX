@@ -7,6 +7,7 @@ import BottomNav from '../components/common/BottomNav'
 import AccommodationCard from '../components/common/AccommodationCard'
 
 const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommodation_featured', 'accommodation_free']
+const GUEST_UNIVERSITY = 'University of the Witwatersrand'
 
 export default function AccommodationMarketplace() {
   const { currentUser } = useApp()
@@ -15,7 +16,7 @@ export default function AccommodationMarketplace() {
 
   useEffect(() => {
     if (currentUser?.account_type === 'business') return
-    getAccommodationListings(currentUser?.university ?? null).then(data => {
+    getAccommodationListings(currentUser?.university ?? GUEST_UNIVERSITY).then(data => {
       setListings(data)
       setLoading(false)
     })

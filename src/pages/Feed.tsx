@@ -9,6 +9,7 @@ import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 const APPLICATION_LINK = 'https://atriumx.co.za/retailer'
+const GUEST_UNIVERSITY = 'University of the Witwatersrand'
 const BUSINESS_CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'restaurant', label: 'Restaurant' },
@@ -131,7 +132,7 @@ const [fetchError, setFetchError] = useState(false)
 
     getListings({ currentUser, university: marketplaceUniversity })
       .then(data => {
-        setListings(data)
+        setListings(currentUser ? data : data.filter(listing => listing.seller?.university === GUEST_UNIVERSITY))
         setDbLoading(false)
       })
       .catch(() => {
@@ -146,7 +147,7 @@ const [fetchError, setFetchError] = useState(false)
       .catch(() => setWantedPostsLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
       .then(data => {
-        setBusinessListings(data)
+        setBusinessListings(currentUser ? data : data.filter(listing => (listing.universities ?? []).includes(GUEST_UNIVERSITY)))
         setBusinessLoading(false)
       })
       .catch(() => {
