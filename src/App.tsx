@@ -118,8 +118,8 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />
-          <Route path="/business/post" element={<BusinessPostListing />} />
-          <Route path="/business/plan-select" element={<BusinessPlanSelect />} />
+          <Route path="/business/post" element={<AccommodationGuard><BusinessPostListing /></AccommodationGuard>} />
+          <Route path="/business/plan-select" element={<AccommodationGuard><BusinessPlanSelect /></AccommodationGuard>} />
           <Route path="/accommodation" element={<AccommodationHome />} />
           <Route path="/accommodation/plan-select" element={<AccommodationPlanSelect />} />
           <Route path="/accommodation/post" element={<AccommodationPostListing />} />
