@@ -74,6 +74,20 @@ function StudentAccommodationGuard({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+
+function StudentOnlyGuard({ children }: { children: ReactNode }) {
+  const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
+  if (isLoadingAuth) return null
+  if (!currentUser) return <Navigate to="/student" replace />
+  if (currentUser.account_type === 'student') return <>{children}</>
+  if (currentUser.account_type === 'business') {
+    if (isLoadingBusinessProfile) return null
+    if (businessProfile?.is_accommodation) return <Navigate to="/accommodation" replace />
+    return <Navigate to="/feed" replace />
+  }
+  return <Navigate to="/" replace />
+}
+
 function NotFound() {
   const navigate = useNavigate()
   return (
@@ -108,13 +122,13 @@ export default function App() {
           <Route path="/events" element={<AccommodationGuard><EventsPage /></AccommodationGuard>} />
           <Route path="/event/:id" element={<AccommodationGuard><EventDetails /></AccommodationGuard>} />
           <Route path="/post-event" element={<AccommodationGuard><PostEvent /></AccommodationGuard>} />
-<Route path="/post" element={<AccommodationGuard><PostListing /></AccommodationGuard>} />
-          <Route path="/post-wanted" element={<AccommodationGuard><PostWanted /></AccommodationGuard>} />
+          <Route path="/post" element={<StudentOnlyGuard><PostListing /></StudentOnlyGuard>} />
+          <Route path="/post-wanted" element={<StudentOnlyGuard><PostWanted /></StudentOnlyGuard>} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/space" element={<MySpace />} />
+          <Route path="/space" element={<StudentOnlyGuard><MySpace /></StudentOnlyGuard>} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />
@@ -126,12 +140,12 @@ export default function App() {
           <Route path="/accommodation/:id" element={<AccommodationDetail />} />
           <Route path="/accommodations" element={<StudentAccommodationGuard><AccommodationMarketplace /></StudentAccommodationGuard>} />
           <Route path="/partner" element={<PartnerDashboard />} />
-          <Route path="/group/:groupId" element={<StudyGroupChat />} />
-          <Route path="/groups" element={<StudyGroupsList />} />
-          <Route path="/focus" element={<FocusMode />} />
-          <Route path="/toolkit" element={<ToolkitPage />} />
-          <Route path="/qr" element={<QRToolPage />} />
-          <Route path="/notebook" element={<NotebookPage />} />
+          <Route path="/group/:groupId" element={<StudentOnlyGuard><StudyGroupChat /></StudentOnlyGuard>} />
+          <Route path="/groups" element={<StudentOnlyGuard><StudyGroupsList /></StudentOnlyGuard>} />
+          <Route path="/focus" element={<StudentOnlyGuard><FocusMode /></StudentOnlyGuard>} />
+          <Route path="/toolkit" element={<StudentOnlyGuard><ToolkitPage /></StudentOnlyGuard>} />
+          <Route path="/qr" element={<StudentOnlyGuard><QRToolPage /></StudentOnlyGuard>} />
+          <Route path="/notebook" element={<StudentOnlyGuard><NotebookPage /></StudentOnlyGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 
