@@ -103,7 +103,7 @@ const [fetchError, setFetchError] = useState(false)
       .then(profile => {
         if (!mounted) return
         const effectivePlan = getEffectiveBusinessPlan(currentUser)
-        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] ? PLAN_TIERS[effectivePlan].maxUniversities : 1
+        const maxUniversities = 'maxUniversities' in PLAN_TIERS[effectivePlan] && typeof PLAN_TIERS[effectivePlan].maxUniversities === 'number' ? PLAN_TIERS[effectivePlan].maxUniversities : 1
         setBusinessUniversities((profile?.universities ?? []).slice(0, maxUniversities))
         setBusinessUniversitiesLoading(false)
       })

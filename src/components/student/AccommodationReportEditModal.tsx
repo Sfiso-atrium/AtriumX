@@ -42,6 +42,7 @@ export default function AccommodationReportEditModal({ listing, field, onClose, 
       setError('Enter the information you want to save.')
       return
     }
+    if (!listing.seller_id) { setError('This submission must be linked to a provider account first.'); return }
     setSaving(true)
     let valueToSave = value
     if (field === 'image_urls') {

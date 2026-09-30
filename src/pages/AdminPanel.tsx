@@ -25,11 +25,12 @@ import {
   getSuggestionsAdmin,
   markSuggestionRead,
 } from '../services/dataService'
+import AccommodationSubmissionQueue from '../components/admin/AccommodationSubmissionQueue'
 import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 
-type Tab = 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
+type Tab = 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
@@ -182,7 +183,7 @@ const handleClearReports = async (id: string) => {
 const activeList =
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
-    tab === 'partners' || tab === 'suggestions' ? [] :
+    tab === 'partners' || tab === 'suggestions' || tab === 'accommodationSubmissions' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -193,7 +194,9 @@ const activeList =
         <h1 className="font-serif text-3xl text-cream mb-1">Admin Panel</h1>
         <p className="text-cream-muted text-sm mb-6">Manage listings and reports.</p>
 
-        <div className="flex gap-2 mb-6">
+        {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button onClick={() => setTab('accommodationSubmissions')} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-border text-cream">Accommodation submissions</button>
           <button
             onClick={() => setTab('all')}
             className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
@@ -285,7 +288,7 @@ const activeList =
             </div>
           )
         )}
-{tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
+{tab !== 'accommodationSubmissions' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'edited' ? 'No listings have unreviewed edits.' :

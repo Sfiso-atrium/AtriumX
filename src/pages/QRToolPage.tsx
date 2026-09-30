@@ -238,7 +238,6 @@ function ScanView() {
             </button>
             <button
               onClick={scanAgain}
-              className="px-4 py-2 rounded-full text-xs font-semibold border"
               className="px-4 py-2 rounded-full text-xs font-semibold border border-slate-border text-cream-muted"
             >
               Scan again

@@ -13,13 +13,14 @@ export default function AccommodationMarketplace() {
   const { currentUser } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     if (currentUser?.account_type === 'business') return
     getAccommodationListings(currentUser?.university ?? GUEST_UNIVERSITY).then(data => {
       setListings(data)
-      setLoading(false)
-    })
+      setLoadError(false)
+    }).catch(() => setLoadError(true)).finally(() => setLoading(false))
   }, [currentUser?.account_type, currentUser?.university])
 
   const grouped = useMemo(() => {
@@ -55,7 +56,7 @@ export default function AccommodationMarketplace() {
 
         {loading ? (
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
-        ) : listings.length === 0 ? (
+        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : listings.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
             <p className="text-cream font-semibold">No accommodation is listed for your university yet.</p>
             <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>

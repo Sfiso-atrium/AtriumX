@@ -203,7 +203,7 @@ export default function Entrance() {
         </section>
         <div className="mt-4 flex justify-center lg:mt-5">
           <button
-            onClick={() => navigate('/retailer?accommodation=1')}
+            onClick={() => navigate('/accommodation/post')}
             className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1565F9] hover:underline"
           >
             Accommodation provider? List your accommodation <ArrowRight size={14} />

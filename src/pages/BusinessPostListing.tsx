@@ -51,7 +51,7 @@ useEffect(() => {
 
     Promise.all([getBusinessProfile(currentUser.id), getUserListings(currentUser.id)]).then(([biz, listings]) => {
       setBusiness(biz)
-      const universityLimit = 'maxUniversities' in PLAN_TIERS[plan] ? PLAN_TIERS[plan].maxUniversities : 1
+      const universityLimit = 'maxUniversities' in PLAN_TIERS[plan] && typeof PLAN_TIERS[plan].maxUniversities === 'number' ? PLAN_TIERS[plan].maxUniversities : 1
       const savedUniversities = biz?.universities ?? []
       if (savedUniversities.length > universityLimit) {
         // A paid plan has expired or been reduced. Do not guess which
@@ -163,7 +163,7 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const removeImage = (idx: number) => setImageUrls(prev => prev.filter((_, i) => i !== idx))
 
-  const maxUniversities = 'maxUniversities' in PLAN_TIERS[plan] ? PLAN_TIERS[plan].maxUniversities : 1
+  const maxUniversities = 'maxUniversities' in PLAN_TIERS[plan] && typeof PLAN_TIERS[plan].maxUniversities === 'number' ? PLAN_TIERS[plan].maxUniversities : 1
   const accountUniversities = business?.universities ?? []
   const needsUniversityReduction = accountUniversities.length > maxUniversities
   const canAddUniversity = accountUniversities.length < maxUniversities
