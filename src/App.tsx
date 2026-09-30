@@ -1,3 +1,5 @@
+import AccommodationReviewPage from './pages/AccommodationReview'
+import ResidenceDetail from './pages/ResidenceDetail'
 import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
@@ -150,6 +152,8 @@ export default function App() {
           <Route path="/accommodation/post" element={<AccommodationPostListing />} />
           <Route path="/accommodation/claim" element={<AccommodationClaim />} />
           <Route path="/accommodation/:id" element={<AccommodationDetail />} />
+          <Route path="/accommodations/review" element={<AccommodationReviewPage />} />
+          <Route path="/accommodations/residence/:id" element={<ResidenceDetail />} />
           <Route path="/accommodations" element={<StudentAccommodationGuard><AccommodationMarketplace /></StudentAccommodationGuard>} />
           <Route path="/partner" element={<PartnerDashboard />} />
           <Route path="/group/:groupId" element={<StudentOnlyGuard><StudyGroupChat /></StudentOnlyGuard>} />

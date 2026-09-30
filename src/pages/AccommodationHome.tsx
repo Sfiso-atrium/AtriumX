@@ -1,3 +1,4 @@
+import ResidenceDirectory from '../components/common/ResidenceDirectory'
 import { Building2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -125,6 +126,7 @@ export default function AccommodationHome() {
             })}
           </div>
         )}
+        <ResidenceDirectory />
       </main>
       <BottomNav />
     </div>

@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
+import ResidenceDirectory from '../components/common/ResidenceDirectory'
 import { useEffect, useMemo, useState } from 'react'
 import { Building2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -7,17 +10,19 @@ import BottomNav from '../components/common/BottomNav'
 import AccommodationCard from '../components/common/AccommodationCard'
 
 const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommodation_featured', 'accommodation_free']
-const GUEST_UNIVERSITY = 'University of the Witwatersrand'
+
 
 export default function AccommodationMarketplace() {
   const { currentUser } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
+  const [nearUniversity, setNearUniversity] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     if (currentUser?.account_type === 'business') return
-    getAccommodationListings(currentUser?.university ?? GUEST_UNIVERSITY).then(data => {
+    setLoading(true)
+    getAccommodationListings(currentUser?.university ?? null).then(data => {
       setListings(data)
       setLoadError(false)
     }).catch(() => setLoadError(true)).finally(() => setLoading(false))
@@ -25,13 +30,13 @@ export default function AccommodationMarketplace() {
 
   const grouped = useMemo(() => {
     const map = new Map<string, AccommodationListing[]>()
-    listings.forEach(item => {
+    listings.filter(item => !nearUniversity || (item.active_universities ?? item.universities).includes(nearUniversity)).forEach(item => {
       const list = map.get(item.plan_tier) ?? []
       list.push(item)
       map.set(item.plan_tier, list)
     })
     return map
-  }, [listings])
+  }, [listings, nearUniversity])
 
   // Whichever section actually has properties in it — used below to tell
   // whether "More accommodation" is the only thing on the page, in which
@@ -49,16 +54,20 @@ export default function AccommodationMarketplace() {
           <div>
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Accommodation</p>
             <h1 className="font-serif text-3xl sm:text-4xl text-cream">Find your place</h1>
-            <p className="text-cream-muted text-sm mt-2">Student accommodation for your university, kept separate from the Marketplace.</p>
+            <p className="text-cream-muted text-sm mt-2">Browse accommodation and read students' experiences.</p>
           </div>
           <Building2 className="hidden sm:block text-teal-light" size={30} />
         </div>
 
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          {!currentUser && <label className="block text-cream text-sm">Accommodation near<select aria-label="Accommodation near" value={nearUniversity} onChange={e => setNearUniversity(e.target.value)} className="block mt-2 w-full sm:w-80 border border-slate-border rounded-xl bg-slate-card text-cream px-3 py-3"><option value="">All universities</option>{SOUTH_AFRICAN_UNIVERSITIES.map(u => <option key={u}>{u}</option>)}</select></label>}
+          <Link to="/accommodations/review" className="rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold">Write a review</Link>
+        </div>
         {loading ? (
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
-        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : listings.length === 0 ? (
+        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : sectionsWithItems.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
-            <p className="text-cream font-semibold">No accommodation is listed for your university yet.</p>
+            <p className="text-cream font-semibold">No accommodation matches this university yet.</p>
             <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>
           </div>
         ) : (
@@ -89,6 +98,7 @@ export default function AccommodationMarketplace() {
             })}
           </div>
         )}
+        <ResidenceDirectory university={currentUser?.university ?? nearUniversity} />
       </main>
       <BottomNav />
     </div>
