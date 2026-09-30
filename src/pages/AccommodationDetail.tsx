@@ -32,7 +32,7 @@ export default function AccommodationDetail() {
   useEffect(() => {
     if (!id || isLoadingAuth) return
     setLoading(true)
-    getAccommodationListingById(id, currentUser?.id).then(data => { setListing(data); setLoading(false) })
+    getAccommodationListingById(id, currentUser?.id).then(setListing).catch(() => showToast('Could not load accommodation. Please try again.', 'error')).finally(() => setLoading(false))
   }, [id, currentUser?.id, isLoadingAuth])
 
   useEffect(() => {
@@ -72,6 +72,7 @@ export default function AccommodationDetail() {
   }
 
   const handleChat = async () => {
+    if (!listing.seller_id) return
     if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return }
     if (currentUser.account_type !== 'student') { showToast('Accommodation chat is available to students.', 'info'); return }
     const { convId, error } = await startAccommodationConversation(listing.id, currentUser.id, listing.seller_id)
@@ -110,7 +111,7 @@ export default function AccommodationDetail() {
     <div className="min-h-screen bg-slate-deep pb-24">
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream"><ArrowLeft size={20} /></button>
-        {!isOwner && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
+        {!isOwner && !listing.guest_submission && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {needsUniversitySelection && (
@@ -222,15 +223,16 @@ export default function AccommodationDetail() {
           </div>
         )}
 
-        {!isOwner && currentUser?.account_type !== 'business' && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
+        {!listing.guest_submission && !isOwner && currentUser?.account_type !== 'business' && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
 
-        <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
+        {listing.guest_submission && <div className="mt-5 bg-slate-card border border-slate-border rounded-xl p-5 text-cream space-y-3"><h2 className="font-bold">Contact the property</h2><p className="text-cream-muted text-sm">This provider accepts enquiries by phone. In-app messaging and reviews become available once the provider links an account.</p><a className="text-teal-light underline" href={`tel:${listing.contact_number?.replace(/[^+0-9]/g,'')}`}>{listing.contact_number}</a></div>}
+        {!listing.guest_submission && <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
           <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="flex items-center gap-3"><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-amber-400 text-amber-400" /> {average ? average.toFixed(1) : '—'}</div>{!isOwner && (!currentUser || (currentUser.account_type === 'student' && !reviews.some(r => r.student_id === currentUser.id))) && <button onClick={() => { if (!currentUser) { setAuthPromptOpen(true); return } setShowReviewForm(v => !v) }} aria-label="Write a review" className="w-8 h-8 rounded-full bg-gold hover:bg-gold/90 text-slate-deep flex items-center justify-center transition-colors flex-shrink-0"><Plus size={16} strokeWidth={2.5} /></button>}</div></div>
           {showReviewForm && !isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-amber-400' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
           <div className="space-y-4">
             {reviews.length === 0 ? <p className="text-cream-muted text-sm">No reviews yet.</p> : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
           </div>
-        </section>
+        </section>}
       </main>
       {showReportModal && (
         <AccommodationReportModal

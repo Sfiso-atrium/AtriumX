@@ -93,7 +93,7 @@ export default function Navbar() {
   }
 
   const effectiveBusinessPlan = getEffectiveBusinessPlan(currentUser)
-  const businessUniversityLimit = 'maxUniversities' in PLAN_TIERS[effectiveBusinessPlan]
+  const businessUniversityLimit = 'maxUniversities' in PLAN_TIERS[effectiveBusinessPlan] && typeof PLAN_TIERS[effectiveBusinessPlan].maxUniversities === 'number'
     ? PLAN_TIERS[effectiveBusinessPlan].maxUniversities
     : 1
   const visibleBusinessUniversities = (businessProfile?.universities ?? []).slice(0, businessUniversityLimit)
@@ -347,7 +347,7 @@ export default function Navbar() {
               {discoverOpen && (
                 <div className="ml-8 mt-1 space-y-1 border-l border-slate-border pl-3">
                   <button onClick={() => go('/feed')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/feed' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>Marketplace</button>
-                  <button onClick={() => go(currentUser?.account_type === 'business' && location.search ? `/events${location.search}` : '/events')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>Events</button>
+                  <button onClick={() => go('/events')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${location.pathname === '/events' ? 'text-teal-primary bg-teal-faint' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>Events</button>
                 </div>
               )}
             </nav>

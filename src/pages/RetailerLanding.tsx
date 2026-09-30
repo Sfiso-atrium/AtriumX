@@ -135,7 +135,7 @@ export default function RetailerLanding() {
               Sign in
             </button>
             <button
-              onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
               className="hidden rounded-full bg-[#1565F9] px-5 py-2 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.20)] hover:opacity-90 sm:inline-flex"
             >
               Create account
@@ -157,7 +157,7 @@ export default function RetailerLanding() {
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+                onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
                 className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-full bg-[#1565F9] px-7 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(21,101,249,0.20)] hover:opacity-90"
               >
                 {hero.cta} <ArrowRight size={16} />
@@ -253,7 +253,7 @@ export default function RetailerLanding() {
                 : 'Show students what you offer, where to find you and how to get in touch — all in one place.'}
             </p>
             <button
-              onClick={() => navigate(`/retailer/signup${isAccommodation ? '?accommodation=1' : ''}`)}
+              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1565F9] px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.18)] hover:opacity-90"
             >
               {isAccommodation ? 'Create accommodation account' : 'Create business account'} <ArrowRight size={16} />

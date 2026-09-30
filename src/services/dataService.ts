@@ -1,3 +1,4 @@
+import { getGuestAccommodationListings } from './accommodationIntake'
 import { supabase } from './supabaseClient'
 import { compressImageForUpload, fileToBase64 } from './imageCache'
 
@@ -75,7 +76,9 @@ export interface AccommodationRoomPricing {
 
 export interface AccommodationListing {
   id: string
-  seller_id: string
+  seller_id: string | null
+  guest_submission?: boolean
+  contact_number?: string
   title: string
   monthly_rent: number | null
   address: string
@@ -1293,7 +1296,8 @@ export async function getAccommodationListings(university?: string | null): Prom
     .order('created_at', { ascending: false })
   if (university) query = query.contains('universities', [university])
   const { data, error } = await query
-  if (error || !data) return []
+  if (error || !data) throw new Error('Could not load accommodation.')
+  const guestListings = await getGuestAccommodationListings()
   const websites = await getBusinessWebsites((data as any[]).map(item => item.seller_id))
   const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
   const stats = new Map<string, { total: number; sum: number }>()
@@ -1303,7 +1307,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     current.sum += r.stars
     stats.set(r.accommodation_listing_id, current)
   })
-  return (await withAccommodationPlanDisplay((data as any[]).map(item => ({
+  const ownedListings = (await withAccommodationPlanDisplay((data as any[]).map(item => ({
     ...item,
     amenities: item.amenities || [],
     image_urls: item.image_urls || [],
@@ -1317,6 +1321,7 @@ export async function getAccommodationListings(university?: string | null): Prom
     total_reviews: stats.get(item.id)?.total || 0,
   })) as AccommodationListing[])).filter(item => !item.reach_paused
     && (!university || item.active_universities?.includes(university)))
+  return [...ownedListings, ...guestListings.filter(item => !university || item.universities.includes(university))]
 }
 
 // The owner's own properties — used on the Profile page's accommodation
@@ -1357,7 +1362,11 @@ export async function getAccommodationListingsBySeller(sellerId: string): Promis
 
 export async function getAccommodationListingById(id: string, viewerId?: string): Promise<AccommodationListing | null> {
   const { data, error } = await supabase.rpc('get_accommodation_listing_detail', { p_listing_id: id })
-  if (error || !data) return null
+  if (error || !data) {
+    const guest = (await getGuestAccommodationListings(id))[0]
+    if (guest?.redirect_listing_id) return getAccommodationListingById(guest.redirect_listing_id, viewerId)
+    return guest ?? null
+  }
 
   const listing = data as any
   const { data: seller } = await supabase

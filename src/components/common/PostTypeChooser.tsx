@@ -17,7 +17,7 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
   const { currentUser, businessProfile } = useApp()
 
   const listingPath = currentUser?.account_type === 'business'
-    ? (businessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select')
+    ? (businessProfile?.is_accommodation ? '/accommodation/post' : '/business/plan-select')
     : '/plan-select'
 
   const go = (path: string) => { onClose(); navigate(path) }
@@ -59,7 +59,7 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
             </div>
           </button>
 
-          <button
+          {!businessProfile?.is_accommodation && <button
             onClick={() => go('/post-event')}
             className="group flex flex-col items-start gap-4 p-4 rounded-2xl border border-slate-border hover:border-gold transition-colors text-left min-h-[126px]"
           >
@@ -70,7 +70,7 @@ export function PostTypeModal({ onClose }: { onClose: () => void }) {
               <p className="text-cream font-bold text-sm">An event</p>
               <p className="text-cream-muted text-xs mt-1 leading-5">Something happening on campus</p>
             </div>
-          </button>
+          </button>}
 
           {currentUser?.account_type !== 'business' && (
             <button
@@ -100,7 +100,7 @@ export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' | '
   const { currentUser, businessProfile } = useApp()
 
   const listingPath = currentUser?.account_type === 'business'
-    ? (businessProfile?.is_accommodation ? '/accommodation/plan-select' : '/business/plan-select')
+    ? (businessProfile?.is_accommodation ? '/accommodation/post' : '/business/plan-select')
     : '/plan-select'
 
   const tab = (active: boolean) =>
@@ -118,12 +118,12 @@ export function PostTypeSwitcher({ current }: { current: 'listing' | 'event' | '
       >
         <Tag size={13} /> Listing
       </button>
-      <button
+      {!businessProfile?.is_accommodation && <button
         onClick={() => current !== 'event' && navigate('/post-event')}
         className={tab(current === 'event')}
       >
         <CalendarDays size={13} /> Event
-      </button>
+      </button>}
       {currentUser?.account_type !== 'business' && (
         <button
           onClick={() => current !== 'wanted' && navigate('/post-wanted')}

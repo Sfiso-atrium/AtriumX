@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ImagePlus, Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, createAccommodationListing, getAccommodationListings, getBusinessProfile, roomTypeLabel, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
+import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, createAccommodationListing, getAccommodationListingsBySeller, getBusinessProfile, roomTypeLabel, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
+import { compressImageForUpload, fileToBase64 } from '../services/imageCache'
+import { getSubmissionReceipt, saveSubmissionReceipt, intakeRequest } from '../services/accommodationIntake'
 
 const AMENITY_OPTIONS = [
   'Gym', '24hr study room', 'Wi-Fi', 'Laundry', 'Security', 'CCTV', 'Parking', 'Pool', 'Backup power', 'Common area', 'Cleaning service', 'Shuttle'
@@ -14,7 +16,7 @@ type RoomDraft = { id: number; sharing: string; bursary: number | null; nsfas: n
 
 export default function AccommodationPostListing() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, showToast, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile, showToast, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   const [title, setTitle] = useState('')
   const [buildingCount, setBuildingCount] = useState('1')
   const [roomPricing, setRoomPricing] = useState<RoomDraft[]>([])
@@ -32,6 +34,18 @@ export default function AccommodationPostListing() {
   const [error, setError] = useState('')
   const [existingListings, setExistingListings] = useState<any[]>([])
 
+  const [receipt] = useState(getSubmissionReceipt)
+  const [submittedId, setSubmittedId] = useState<string | null>(receipt.id ?? null)
+  const [showAccountPopup, setShowAccountPopup] = useState(false)
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [website, setWebsite] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [honeypot, setHoneypot] = useState('')
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [showUpgrades, setShowUpgrades] = useState(false)
+  const isGuest = !currentUser
+
   const plan = (businessProfile?.accommodation_plan ?? 'accommodation_free') as AccommodationPlanKey
   const maxPhotos = plan === 'accommodation_free' ? 3 : plan === 'accommodation_featured' ? 12 : 30
   const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
@@ -43,11 +57,11 @@ export default function AccommodationPostListing() {
 
   useEffect(() => {
     if (!currentUser || !businessProfile?.is_accommodation) return
-    getAccommodationListings(null).then(items => setExistingListings(items.filter(item => item.seller_id === currentUser.id)))
+    getAccommodationListingsBySeller(currentUser.id).then(setExistingListings).catch(() => setError('Could not check your existing property. Please refresh before submitting.'))
   }, [currentUser?.id, businessProfile?.is_accommodation])
 
-  if (isLoadingAuth) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
-  if (!currentUser || currentUser.account_type !== 'business' || !businessProfile?.is_accommodation) return null
+  if (isLoadingAuth || (currentUser?.account_type === 'business' && isLoadingBusinessProfile)) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
+  if (currentUser && (currentUser.account_type !== 'business' || !businessProfile?.is_accommodation)) return <div className="min-h-screen bg-slate-deep"><Navbar /><main className="max-w-lg mx-auto px-4 py-12 text-cream space-y-4"><h1 className="font-serif text-2xl">Accommodation submission</h1><p>You are signed in to a different account type. Sign out to submit as a provider without an account, or sign in to your accommodation account.</p><button onClick={() => navigate(`/profile/${currentUser.id}`)} className="text-teal-light underline">Open my profile</button></main></div>
 
   const toggleAmenity = (amenity: string) => setSelectedAmenities(prev => prev.includes(amenity) ? prev.filter(item => item !== amenity) : [...prev, amenity])
 
@@ -100,22 +114,39 @@ export default function AccommodationPostListing() {
   }
 
   const handleImageFiles = async (files: FileList | null) => {
-    if (!files || !currentUser) return
-    const picked = Array.from(files).slice(0, Math.max(0, maxPhotos - images.length))
-    for (const file of picked) {
-      const { url, error: uploadError } = await uploadAccommodationImage(file, currentUser.id)
-      if (uploadError || !url) { showToast(uploadError || 'Could not upload image.', 'error'); continue }
-      setImages(prev => [...prev, url])
-    }
+    if (!files || uploadingImages) return
+    setUploadingImages(true)
+    try {
+      const picked = Array.from(files).slice(0, Math.max(0, maxPhotos - images.length))
+      for (const file of picked) {
+        if (isGuest) {
+          const compressed = await compressImageForUpload(file)
+          if (compressed.size > 512000 || !['image/jpeg','image/png','image/webp'].includes(compressed.type)) {
+            setError('Use a smaller JPG, PNG or WebP photo (under 500 KB after compression).'); continue
+          }
+          const base64 = await fileToBase64(compressed)
+          setImages(prev => [...prev, `data:${compressed.type};base64,${base64}`])
+        } else if (currentUser) {
+          const { url, error: uploadError } = await uploadAccommodationImage(file, currentUser.id)
+          if (uploadError || !url) { showToast(uploadError || 'Could not upload image.', 'error'); continue }
+          setImages(prev => [...prev, url])
+        }
+      }
+    } catch { setError('Could not read this photo. Please try another image.') }
+    finally { setUploadingImages(false) }
   }
 
   const handleSubmit = async () => {
+    if (busy || uploadingImages) return
     setError('')
     const buildings = Number(buildingCount)
     const amenities = [...selectedAmenities, ...otherAmenities.split(',').map(s => s.trim()).filter(Boolean)]
     if (hasExistingListing) return setError('Your accommodation account already has a listing. Add all buildings to that listing instead of creating another one.')
+    if (isGuest && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email address.')
+    if (isGuest && !phone.trim()) return setError('Contact number is required.')
+    if (isGuest && !consent) return setError('Please confirm you are authorised to submit these details.')
     if (!title.trim()) return setError('Property name is required.')
-    if (!Number.isInteger(buildings) || buildings < 1) return setError('Enter a valid number of buildings.')
+    if (!Number.isInteger(buildings) || buildings < 1 || buildings > 100) return setError('Enter a valid number of buildings.')
     if (!address.trim()) return setError('Property address is required.')
     if (!description.trim()) return setError('Description is required.')
     if (selectedUniversities.length === 0) return setError('Choose at least one university.')
@@ -131,6 +162,17 @@ export default function AccommodationPostListing() {
     const extraAddresses = plan === 'accommodation_free' ? [] : buildingAddresses.slice(0, Math.max(buildings - 1, 0)).map(item => item.trim())
 
     setBusy(true)
+    try {
+    if (isGuest) {
+      const result = await intakeRequest({action:'submit',receipt:receipt.receipt,email:email.trim(),phone:phone.trim(),website:website.trim(),consent,honeypot,
+        property:{title:title.trim(),building_count:buildings,address:address.trim(),description:description.trim(),amenities,universities:selectedUniversities,room_pricing:rooms},
+        photos:images.map(image=>({base64:image.split(',')[1]}))})
+      if (result.error) { setError(result.error); return }
+      if (!result.id) { setError('Could not confirm your submission. Please try again.'); return }
+      saveSubmissionReceipt({receipt:receipt.receipt,id:result.id})
+      setSubmittedId(result.id);setShowAccountPopup(true);return
+    }
+    if (!currentUser) return
     const { id, error: createError } = await createAccommodationListing({
       sellerId: currentUser.id,
       title: title.trim(),
@@ -145,14 +187,27 @@ export default function AccommodationPostListing() {
       buildingAddresses: extraAddresses,
       videoUrl,
     })
-    setBusy(false)
     if (createError) { setError(createError); return }
     if (id) {
       await getBusinessProfile(currentUser.id)
       showToast('Accommodation listed.', 'success')
       navigate(`/accommodation/${id}`, { replace: true })
     }
+    } catch { setError('Could not save your listing. Your form is kept; please try again.') }
+    finally { setBusy(false) }
   }
+
+  if (isGuest && submittedId) return <div className="min-h-screen bg-slate-deep"><Navbar /><main className="max-w-lg mx-auto px-4 py-12 text-cream space-y-5">
+    <h1 className="font-serif text-3xl">Submission received</h1><p className="text-cream-muted">Your accommodation details are saved for review. Your listing will appear after approval. An account and payment are optional.</p>
+    <p className="text-cream-muted text-xs">Reference: {submittedId}</p>
+    <button onClick={() => navigate('/accommodation/claim')} className="bg-teal-primary text-white px-4 py-3 rounded-xl">Manage this submission</button>
+    <button onClick={() => navigate('/')} className="block text-teal-light underline">Return home</button>
+    {showAccountPopup && <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"><section role="dialog" aria-modal="true" aria-labelledby="submission-account-title" className="bg-slate-card border border-slate-border rounded-2xl p-6 max-w-md space-y-4">
+      <h2 id="submission-account-title" className="text-cream text-xl font-bold">Manage your listing later?</h2><p className="text-cream-muted text-sm">Your submission is already saved. You can optionally create an accommodation account with the same email address, then link your listing after approval.</p>
+      <button onClick={() => navigate('/retailer/signup?accommodation=1&submission=1')} className="w-full bg-teal-primary text-white font-bold py-3 rounded-xl">Create account</button>
+      <button onClick={() => setShowAccountPopup(false)} className="w-full text-cream-muted py-2">Not now</button>
+    </section></div>}
+  </main></div>
 
   return (
     <div className="min-h-screen bg-slate-deep pb-24">
@@ -161,10 +216,19 @@ export default function AccommodationPostListing() {
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream text-sm flex items-center gap-2 mb-5"><ArrowLeft size={17} /> Back</button>
         <div className="flex items-end justify-between gap-4 mb-6">
           <div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Accommodation listing</p><h1 className="font-serif text-3xl text-cream">Add your property</h1><p className="text-cream-muted text-sm mt-2">One listing represents all of your buildings. Room pricing is optional and can be shown by room type.</p></div>
+          <button type="button" onClick={() => isGuest ? setShowUpgrades(v => !v) : navigate('/accommodation/plan-select')} className="text-teal-light text-sm underline">Upgrade (optional)</button>
           <span className="text-cream font-bold text-sm bg-slate-card border border-slate-border px-3 py-2 rounded-xl">{ACCOMMODATION_PLANS[plan].label}</span>
         </div>
 
+        {showUpgrades && <div className="bg-slate-card border border-slate-border rounded-xl p-4 mb-5 text-cream-muted text-sm">Free: 1 university and 3 photos. Featured: R199/month, 2 universities and 12 photos. Premium: R399/month, 3 universities, 30 photos and video. Submit free below; you can upgrade from your accommodation account later.</div>}
         <div className="space-y-5">
+          {isGuest && <section className="bg-slate-card border border-slate-border rounded-2xl p-5 space-y-4"><h2 className="text-cream font-bold">Provider contact details</h2><p className="text-cream-muted text-sm">Submit free without an account. We review the property before publishing it.</p>
+            <label className="block text-cream-muted text-sm">Email address (private)<input type="email" value={email} onChange={e=>setEmail(e.target.value)} maxLength={254} className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
+            <label className="block text-cream-muted text-sm">Contact number (shown after approval)<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} maxLength={30} className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
+            <label className="block text-cream-muted text-sm">Website (optional)<input value={website} onChange={e=>setWebsite(e.target.value)} maxLength={500} placeholder="https://" className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
+            <input value={honeypot} onChange={e=>setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+          </section>}
+
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
             <h2 className="text-cream font-bold text-base mb-4">Property details</h2>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -262,15 +326,17 @@ export default function AccommodationPostListing() {
           </section>
 
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4"><div><h2 className="text-cream font-bold text-base">Property photos</h2><p className="text-cream-muted text-xs mt-1">Up to {maxPhotos} photos on your plan.</p></div><label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold"><ImagePlus size={15} /> Add photos<input type="file" accept="image/*" multiple onChange={e => handleImageFiles(e.target.files)} className="hidden" /></label></div>
+            <div className="flex items-center justify-between mb-4"><div><h2 className="text-cream font-bold text-base">Property photos</h2><p className="text-cream-muted text-xs mt-1">Up to {maxPhotos} photos on your plan.</p></div><label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold"><ImagePlus size={15} /> Add photos<input type="file" accept="image/*" multiple onChange={e => handleImageFiles(e.target.files)} disabled={uploadingImages || busy} className="hidden" /></label></div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {images.map(url => <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep"><img src={url} alt="" className="w-full h-full object-cover" /><button onClick={() => setImages(prev => prev.filter(item => item !== url))} className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center"><X size={14} /></button></div>)}
               {images.length === 0 && <div className="col-span-full py-10 text-center text-cream-muted text-xs border border-dashed border-slate-border rounded-xl">No photos added yet.</div>}
             </div>
           </section>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button onClick={handleSubmit} disabled={busy || hasExistingListing} className="w-full bg-teal-primary hover:opacity-90 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl">{busy ? 'Publishing...' : hasExistingListing ? 'Accommodation listing already created' : 'Publish accommodation'}</button>
+          {isGuest && <label className="flex gap-3 text-cream-muted text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="mt-1"/><span>I am authorised to submit this property, and agree to have its details, photos and contact number published after review. My email stays private.</span></label>}
+          {uploadingImages && <p className="text-cream-muted text-sm">Preparing photos...</p>}
+          {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
+          <button onClick={handleSubmit} disabled={busy || uploadingImages || uploadingVideo || hasExistingListing} className="w-full bg-teal-primary hover:opacity-90 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl">{busy ? 'Saving...' : hasExistingListing ? 'Accommodation listing already created' : isGuest ? 'Submit for review — free' : 'Publish accommodation'}</button>
         </div>
       </main>
     </div>

@@ -23,6 +23,7 @@ export default function AccommodationHome() {
   const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     if (!currentUser?.id || !businessProfile?.is_accommodation) return
@@ -30,8 +31,8 @@ export default function AccommodationHome() {
     // an accommodation account browses the same market it's part of.
     getAccommodationListings(null).then(data => {
       setListings(data)
-      setLoading(false)
-    })
+      setLoadError(false)
+    }).catch(() => setLoadError(true)).finally(() => setLoading(false))
   }, [currentUser?.id, businessProfile?.is_accommodation])
 
   // This page previously just rendered nothing at all for anyone who wasn't
@@ -81,7 +82,7 @@ export default function AccommodationHome() {
 
         {loading ? (
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
-        ) : listings.length === 0 ? (
+        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : listings.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
             <Building2 size={36} className="mx-auto text-cream-muted mb-4" />
             <p className="text-cream font-semibold">No accommodation is listed yet.</p>

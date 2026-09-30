@@ -242,7 +242,7 @@ export default function Profile() {
             </div>
           )}
 
-          {!business?.is_accommodation && (
+          {!ownBusiness?.is_accommodation && (
             <>
           {needsPlanSelection && (
             <div className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-5">

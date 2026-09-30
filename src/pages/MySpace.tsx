@@ -1321,7 +1321,7 @@ function SchedulePopup({ userId, onClose }: { userId: string; onClose: () => voi
           {items.map(s => (
             <div key={s.id} className="bg-slate-deep border border-slate-border rounded-2xl p-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-cream font-bold text-sm truncate">{s.module_name}</p>
+                <p className="text-cream font-bold text-sm truncate">{s.module}</p>
                 <p className="text-cream-muted text-xs mt-0.5">{DAYS[s.day_of_week]} - {s.start_time} {s.room ? `• ${s.room}` : ''}</p>
               </div>
               <DeleteBtn onClick={() => handleDelete(s.id)} />
@@ -1349,7 +1349,7 @@ function TimetablePopup({ userId, onClose }: { userId: string; onClose: () => vo
   useEffect(() => { load() }, [userId])
   const handleAddCourse = async (dayIdx: number) => {
     if (!courseName.trim() || !minutes) { showToast('Add a course name and minutes.', 'error'); return }
-    const { error } = await createStudyCourse(userId, courseName.trim(), dayIdx, Number(minutes))
+    const { error } = await createStudyCourse(userId, dayIdx, courseName.trim(), Number(minutes))
     if (error) { showToast(error, 'error'); return }
     setCourseName(''); setMinutes(''); setOpenDayForm(null)
     load()
@@ -1507,7 +1507,7 @@ function WatchlistPopup({ userId, onClose }: { userId: string; onClose: () => vo
   useEffect(() => { load() }, [userId])
   const handleAdd = async () => {
     if (!keyword.trim()) { showToast('Add a keyword.', 'error'); return }
-    const { error } = await createWatchlist(userId, keyword.trim(), category, maxPrice ? Number(maxPrice) : undefined)
+    const { error } = await createWatchlist(userId, keyword.trim(), category, maxPrice)
     if (error) { showToast(error, 'error'); return }
     setKeyword(''); setCategory('all'); setMaxPrice(''); setShowAdd(false); load()
   }
