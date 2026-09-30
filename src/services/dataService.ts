@@ -1,3 +1,4 @@
+import { getResidenceForListing, getResidenceReviews, postResidenceReview } from './residenceReviews'
 import { getGuestAccommodationListings } from './accommodationIntake'
 import { supabase } from './supabaseClient'
 import { compressImageForUpload, fileToBase64 } from './imageCache'
@@ -109,7 +110,9 @@ export interface AccommodationListing {
 
 export interface AccommodationReview {
   id: string
-  accommodation_listing_id: string
+  residence_id: string
+  reviewer_name: string
+  accommodation_listing_id: string | null
   student_id: string
   stars: number
   comment: string | null
@@ -1460,15 +1463,17 @@ export async function updateAccommodationReportedField(
 }
 
 export async function getAccommodationReviews(accommodationListingId: string): Promise<AccommodationReview[]> {
-  const { data, error } = await supabase.from('accommodation_reviews').select('*, student:profiles_public!student_id(full_name, avatar_initials, avatar_color)').eq('accommodation_listing_id', accommodationListingId).order('created_at', { ascending: false })
-  if (error || !data) return []
-  return data as AccommodationReview[]
+  const residence = await getResidenceForListing(accommodationListingId)
+  return residence ? getResidenceReviews(residence.id) : []
 }
 
 export async function submitAccommodationReview(accommodationListingId: string, studentId: string, stars: number, comment: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('accommodation_reviews').insert({ accommodation_listing_id: accommodationListingId, student_id: studentId, stars, comment: comment.trim() || null })
-  if (error?.message.includes('duplicate key')) return { error: 'You have already reviewed this accommodation.' }
-  return { error: error ? error.message : null }
+  try {
+    const residence = await getResidenceForListing(accommodationListingId)
+    if (!residence) return {error:'Could not find this residence. Please refresh and try again.'}
+    await postResidenceReview({residenceId:residence.id,name:residence.name,university:residence.university,stars,comment})
+    return {error:null}
+  } catch(e) {return {error:e instanceof Error ? e.message : 'Could not post your review.'}}
 }
 
 export async function replyToAccommodationReview(reviewId: string, reply: string): Promise<{ error: string | null }> {

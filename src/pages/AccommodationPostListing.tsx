@@ -44,9 +44,9 @@ export default function AccommodationPostListing() {
   const [honeypot, setHoneypot] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [showUpgrades, setShowUpgrades] = useState(false)
-  const isGuest = !currentUser
+  const isGuest = !(currentUser?.account_type === 'business' && businessProfile?.is_accommodation)
 
-  const plan = (businessProfile?.accommodation_plan ?? 'accommodation_free') as AccommodationPlanKey
+  const plan = (isGuest ? 'accommodation_free' : (businessProfile?.accommodation_plan ?? 'accommodation_free')) as AccommodationPlanKey
   const maxPhotos = plan === 'accommodation_free' ? 3 : plan === 'accommodation_featured' ? 12 : 30
   const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
   const hasExistingListing = existingListings.length > 0
@@ -61,7 +61,6 @@ export default function AccommodationPostListing() {
   }, [currentUser?.id, businessProfile?.is_accommodation])
 
   if (isLoadingAuth || (currentUser?.account_type === 'business' && isLoadingBusinessProfile)) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
-  if (currentUser && (currentUser.account_type !== 'business' || !businessProfile?.is_accommodation)) return <div className="min-h-screen bg-slate-deep"><Navbar /><main className="max-w-lg mx-auto px-4 py-12 text-cream space-y-4"><h1 className="font-serif text-2xl">Accommodation submission</h1><p>You are signed in to a different account type. Sign out to submit as a provider without an account, or sign in to your accommodation account.</p><button onClick={() => navigate(`/profile/${currentUser.id}`)} className="text-teal-light underline">Open my profile</button></main></div>
 
   const toggleAmenity = (amenity: string) => setSelectedAmenities(prev => prev.includes(amenity) ? prev.filter(item => item !== amenity) : [...prev, amenity])
 
