@@ -873,6 +873,792 @@ export const FORMULAS: Formula[] = [
     ],
   },
 
+  // ─────────────── ADDITIONAL PHYSICS REFERENCE ───────────────
+  // Expanded from the chapter-summary quantitative tools in Mazur's
+  // Principles & Practice of Physics. These additions keep the existing
+  // Toolkit data model and UI unchanged; they only broaden the reference.
+  {
+    id: 'p-average-acceleration',
+    subject: 'physics', topic: 'Kinematics', name: 'Average Acceleration',
+    expression: 'ā = Δv / Δt',
+    variables: [
+      { symbol: 'ā', meaning: 'average acceleration', unit: 'm/s²' },
+      { symbol: 'Δv', meaning: 'change in velocity', unit: 'm/s' },
+      { symbol: 'Δt', meaning: 'time interval', unit: 's' },
+    ],
+  },
+  {
+    id: 'p-suvat-average-velocity',
+    subject: 'physics', topic: 'Kinematics', name: 'Constant-Acceleration Displacement',
+    expression: 's = ½(u + v)t',
+    variables: [
+      { symbol: 's', meaning: 'displacement', unit: 'm' },
+      { symbol: 'u', meaning: 'initial velocity', unit: 'm/s' },
+      { symbol: 'v', meaning: 'final velocity', unit: 'm/s' },
+      { symbol: 't', meaning: 'time interval', unit: 's' },
+    ],
+    notes: 'Valid for constant acceleration.',
+  },
+  {
+    id: 'p-vector-magnitude',
+    subject: 'physics', topic: 'Vectors & Motion in a Plane', name: 'Vector Magnitude from Components',
+    expression: '|A⃗| = √(Aₓ² + Aᵧ²)',
+    variables: [
+      { symbol: '|A⃗|', meaning: 'magnitude of the vector' },
+      { symbol: 'Aₓ, Aᵧ', meaning: 'x and y components of the vector' },
+    ],
+  },
+  {
+    id: 'p-vector-components',
+    subject: 'physics', topic: 'Vectors & Motion in a Plane', name: 'Vector Components',
+    expression: 'Aₓ = A cosθ,  Aᵧ = A sinθ',
+    variables: [
+      { symbol: 'A', meaning: 'magnitude of the vector' },
+      { symbol: 'Aₓ, Aᵧ', meaning: 'x and y components' },
+      { symbol: 'θ', meaning: 'angle measured from the positive x-axis' },
+    ],
+  },
+  {
+    id: 'p-dot-product',
+    subject: 'physics', topic: 'Vectors & Motion in a Plane', name: 'Scalar (Dot) Product',
+    expression: 'A⃗·B⃗ = AB cosθ',
+    variables: [
+      { symbol: 'A, B', meaning: 'magnitudes of the two vectors' },
+      { symbol: 'θ', meaning: 'angle between the vectors' },
+    ],
+  },
+  {
+    id: 'p-projectile-motion',
+    subject: 'physics', topic: 'Vectors & Motion in a Plane', name: 'Projectile Motion Components',
+    expression: 'x = x₀ + v₀ₓt,  y = y₀ + v₀ᵧt - ½gt²,  vᵧ = v₀ᵧ - gt',
+    variables: [
+      { symbol: 'x, y', meaning: 'position coordinates', unit: 'm' },
+      { symbol: 'x₀, y₀', meaning: 'initial position coordinates', unit: 'm' },
+      { symbol: 'v₀ₓ, v₀ᵧ', meaning: 'initial velocity components', unit: 'm/s' },
+      { symbol: 'g', meaning: 'gravitational acceleration near Earth', unit: 'm/s²' },
+      { symbol: 't', meaning: 'elapsed time', unit: 's' },
+    ],
+    notes: 'Assumes air resistance is negligible and +y is upward.',
+  },
+
+  {
+    id: 'p-force-momentum-rate',
+    subject: 'physics', topic: "Newton's Laws & Dynamics", name: 'Force as Rate of Change of Momentum',
+    expression: 'ΣF⃗ = dp⃗/dt',
+    variables: [
+      { symbol: 'ΣF⃗', meaning: 'net external force', unit: 'N' },
+      { symbol: 'p⃗', meaning: 'momentum', unit: 'kg·m/s' },
+      { symbol: 't', meaning: 'time', unit: 's' },
+    ],
+  },
+  {
+    id: 'p-hookes-law',
+    subject: 'physics', topic: "Newton's Laws & Dynamics", name: "Hooke's Law",
+    expression: 'Fₛ = -kx',
+    variables: [
+      { symbol: 'Fₛ', meaning: 'spring restoring force', unit: 'N' },
+      { symbol: 'k', meaning: 'spring constant', unit: 'N/m' },
+      { symbol: 'x', meaning: 'displacement from equilibrium', unit: 'm' },
+    ],
+    notes: 'The minus sign shows that the spring force points back toward equilibrium.',
+  },
+
+  {
+    id: 'p-angular-displacement',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Angular Displacement',
+    expression: 'θ = s/r',
+    variables: [
+      { symbol: 'θ', meaning: 'angular displacement', unit: 'rad' },
+      { symbol: 's', meaning: 'arc length', unit: 'm' },
+      { symbol: 'r', meaning: 'radius', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-angular-velocity',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Angular Velocity',
+    expression: 'ω = dθ/dt',
+    variables: [
+      { symbol: 'ω', meaning: 'angular velocity', unit: 'rad/s' },
+      { symbol: 'θ', meaning: 'angular position', unit: 'rad' },
+      { symbol: 't', meaning: 'time', unit: 's' },
+    ],
+  },
+  {
+    id: 'p-angular-acceleration',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Angular Acceleration',
+    expression: 'α = dω/dt',
+    variables: [
+      { symbol: 'α', meaning: 'angular acceleration', unit: 'rad/s²' },
+      { symbol: 'ω', meaning: 'angular velocity', unit: 'rad/s' },
+    ],
+  },
+  {
+    id: 'p-tangential-speed',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Tangential Speed',
+    expression: 'v = rω',
+    variables: [
+      { symbol: 'v', meaning: 'tangential speed', unit: 'm/s' },
+      { symbol: 'r', meaning: 'distance from the rotation axis', unit: 'm' },
+      { symbol: 'ω', meaning: 'angular velocity', unit: 'rad/s' },
+    ],
+  },
+  {
+    id: 'p-tangential-acceleration',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Tangential Acceleration',
+    expression: 'aₜ = rα',
+    variables: [
+      { symbol: 'aₜ', meaning: 'tangential acceleration', unit: 'm/s²' },
+      { symbol: 'r', meaning: 'distance from the rotation axis', unit: 'm' },
+      { symbol: 'α', meaning: 'angular acceleration', unit: 'rad/s²' },
+    ],
+  },
+  {
+    id: 'p-rotational-inertia-particle',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Rotational Inertia of a Point Mass',
+    expression: 'I = mr²',
+    variables: [
+      { symbol: 'I', meaning: 'rotational inertia (moment of inertia)', unit: 'kg·m²' },
+      { symbol: 'm', meaning: 'mass', unit: 'kg' },
+      { symbol: 'r', meaning: 'distance from the rotation axis', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-torque',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Torque',
+    expression: 'τ = rF sinθ',
+    variables: [
+      { symbol: 'τ', meaning: 'torque about the pivot', unit: 'N·m' },
+      { symbol: 'r', meaning: 'distance from pivot to point of application', unit: 'm' },
+      { symbol: 'F', meaning: 'force magnitude', unit: 'N' },
+      { symbol: 'θ', meaning: 'angle between r⃗ and F⃗' },
+    ],
+  },
+  {
+    id: 'p-rotational-dynamics',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Rotational Equation of Motion',
+    expression: 'Στ = Iα',
+    variables: [
+      { symbol: 'Στ', meaning: 'net external torque', unit: 'N·m' },
+      { symbol: 'I', meaning: 'rotational inertia', unit: 'kg·m²' },
+      { symbol: 'α', meaning: 'angular acceleration', unit: 'rad/s²' },
+    ],
+  },
+  {
+    id: 'p-rotational-kinetic-energy',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Rotational Kinetic Energy',
+    expression: 'Kᵣₒₜ = ½Iω²',
+    variables: [
+      { symbol: 'Kᵣₒₜ', meaning: 'rotational kinetic energy', unit: 'J' },
+      { symbol: 'I', meaning: 'rotational inertia', unit: 'kg·m²' },
+      { symbol: 'ω', meaning: 'angular velocity', unit: 'rad/s' },
+    ],
+  },
+  {
+    id: 'p-angular-momentum-particle',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Angular Momentum of a Particle',
+    expression: 'L⃗ = r⃗ × p⃗',
+    variables: [
+      { symbol: 'L⃗', meaning: 'angular momentum', unit: 'kg·m²/s' },
+      { symbol: 'r⃗', meaning: 'position vector from the chosen origin', unit: 'm' },
+      { symbol: 'p⃗', meaning: 'linear momentum', unit: 'kg·m/s' },
+    ],
+  },
+  {
+    id: 'p-angular-momentum-law',
+    subject: 'physics', topic: 'Rotation & Torque', name: 'Angular Momentum Law',
+    expression: 'Στ⃗ = dL⃗/dt',
+    variables: [
+      { symbol: 'Στ⃗', meaning: 'net external torque', unit: 'N·m' },
+      { symbol: 'L⃗', meaning: 'angular momentum', unit: 'kg·m²/s' },
+    ],
+  },
+
+  {
+    id: 'p-gravitational-potential-energy',
+    subject: 'physics', topic: 'Circular Motion & Gravitation', name: 'Gravitational Potential Energy (Universal)',
+    expression: 'U = -Gm₁m₂/r',
+    variables: [
+      { symbol: 'U', meaning: 'gravitational potential energy', unit: 'J' },
+      { symbol: 'G', meaning: 'gravitational constant (6.674 × 10⁻¹¹ N·m²/kg²)' },
+      { symbol: 'm₁, m₂', meaning: 'interacting masses', unit: 'kg' },
+      { symbol: 'r', meaning: 'distance between their centres', unit: 'm' },
+    ],
+    notes: 'Uses zero gravitational potential energy at infinite separation.',
+  },
+  {
+    id: 'p-circular-orbit-speed',
+    subject: 'physics', topic: 'Circular Motion & Gravitation', name: 'Circular Orbit Speed',
+    expression: 'v = √(GM/r)',
+    variables: [
+      { symbol: 'v', meaning: 'orbital speed for a circular orbit', unit: 'm/s' },
+      { symbol: 'G', meaning: 'gravitational constant' },
+      { symbol: 'M', meaning: 'mass of the central body', unit: 'kg' },
+      { symbol: 'r', meaning: 'orbital radius from the central body', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-escape-speed',
+    subject: 'physics', topic: 'Circular Motion & Gravitation', name: 'Escape Speed',
+    expression: 'vₑ = √(2GM/r)',
+    variables: [
+      { symbol: 'vₑ', meaning: 'minimum escape speed from radius r', unit: 'm/s' },
+      { symbol: 'G', meaning: 'gravitational constant' },
+      { symbol: 'M', meaning: 'mass of the body being escaped from', unit: 'kg' },
+      { symbol: 'r', meaning: 'distance from its centre', unit: 'm' },
+    ],
+  },
+
+  {
+    id: 'p-angular-frequency',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Angular Frequency',
+    expression: 'ω = 2πf = 2π/T',
+    variables: [
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+      { symbol: 'f', meaning: 'frequency', unit: 'Hz' },
+      { symbol: 'T', meaning: 'period', unit: 's' },
+    ],
+  },
+  {
+    id: 'p-shm-position',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Simple Harmonic Motion Position',
+    expression: 'x(t) = A sin(ωt + φ₀)',
+    variables: [
+      { symbol: 'x(t)', meaning: 'displacement from equilibrium', unit: 'm' },
+      { symbol: 'A', meaning: 'amplitude', unit: 'm' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+      { symbol: 'φ₀', meaning: 'initial phase', unit: 'rad' },
+    ],
+  },
+  {
+    id: 'p-shm-velocity',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Simple Harmonic Motion Velocity',
+    expression: 'v(t) = ωA cos(ωt + φ₀)',
+    variables: [
+      { symbol: 'v(t)', meaning: 'instantaneous velocity', unit: 'm/s' },
+      { symbol: 'A', meaning: 'amplitude', unit: 'm' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+    ],
+  },
+  {
+    id: 'p-shm-acceleration',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Simple Harmonic Motion Acceleration',
+    expression: 'a = -ω²x',
+    variables: [
+      { symbol: 'a', meaning: 'instantaneous acceleration', unit: 'm/s²' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+      { symbol: 'x', meaning: 'displacement from equilibrium', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-shm-energy',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Energy of Simple Harmonic Motion',
+    expression: 'E = ½mω²A²',
+    variables: [
+      { symbol: 'E', meaning: 'total mechanical energy', unit: 'J' },
+      { symbol: 'm', meaning: 'oscillating mass', unit: 'kg' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+      { symbol: 'A', meaning: 'amplitude', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-spring-period',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Mass-Spring Oscillation Period',
+    expression: 'T = 2π√(m/k)',
+    variables: [
+      { symbol: 'T', meaning: 'oscillation period', unit: 's' },
+      { symbol: 'm', meaning: 'oscillating mass', unit: 'kg' },
+      { symbol: 'k', meaning: 'spring constant', unit: 'N/m' },
+    ],
+  },
+  {
+    id: 'p-simple-pendulum-period',
+    subject: 'physics', topic: 'Periodic Motion & SHM', name: 'Simple Pendulum Period',
+    expression: 'T = 2π√(L/g)',
+    variables: [
+      { symbol: 'T', meaning: 'oscillation period', unit: 's' },
+      { symbol: 'L', meaning: 'pendulum length', unit: 'm' },
+      { symbol: 'g', meaning: 'gravitational acceleration', unit: 'm/s²' },
+    ],
+    notes: 'Small-angle approximation.',
+  },
+
+  {
+    id: 'p-wave-number',
+    subject: 'physics', topic: 'Waves & Sound', name: 'Wave Number',
+    expression: 'k = 2π/λ',
+    variables: [
+      { symbol: 'k', meaning: 'wave number', unit: 'rad/m' },
+      { symbol: 'λ', meaning: 'wavelength', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-harmonic-wave',
+    subject: 'physics', topic: 'Waves & Sound', name: 'Travelling Harmonic Wave',
+    expression: 'y(x,t) = A sin(kx - ωt + φ₀)',
+    variables: [
+      { symbol: 'y(x,t)', meaning: 'displacement of the medium', unit: 'm' },
+      { symbol: 'A', meaning: 'wave amplitude', unit: 'm' },
+      { symbol: 'k', meaning: 'wave number', unit: 'rad/m' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+      { symbol: 'φ₀', meaning: 'initial phase', unit: 'rad' },
+    ],
+    notes: 'The minus sign represents travel in the +x direction.',
+  },
+  {
+    id: 'p-standing-wave',
+    subject: 'physics', topic: 'Waves & Sound', name: 'Standing Wave (Equal Opposing Waves)',
+    expression: 'y(x,t) = 2A sin(kx) cos(ωt)',
+    variables: [
+      { symbol: 'A', meaning: 'amplitude of each travelling wave', unit: 'm' },
+      { symbol: 'k', meaning: 'wave number', unit: 'rad/m' },
+      { symbol: 'ω', meaning: 'angular frequency', unit: 'rad/s' },
+    ],
+  },
+
+  {
+    id: 'p-buoyant-force',
+    subject: 'physics', topic: 'Density & Pressure', name: "Archimedes' Principle (Buoyant Force)",
+    expression: 'Fᵦ = ρfluid Vdisplaced g',
+    variables: [
+      { symbol: 'Fᵦ', meaning: 'buoyant force', unit: 'N' },
+      { symbol: 'ρfluid', meaning: 'fluid density', unit: 'kg/m³' },
+      { symbol: 'Vdisplaced', meaning: 'volume of displaced fluid', unit: 'm³' },
+      { symbol: 'g', meaning: 'gravitational acceleration', unit: 'm/s²' },
+    ],
+  },
+  {
+    id: 'p-fluid-continuity',
+    subject: 'physics', topic: 'Density & Pressure', name: 'Continuity Equation for Fluid Flow',
+    expression: 'ρ₁A₁v₁ = ρ₂A₂v₂',
+    variables: [
+      { symbol: 'ρ', meaning: 'fluid density', unit: 'kg/m³' },
+      { symbol: 'A', meaning: 'cross-sectional area', unit: 'm²' },
+      { symbol: 'v', meaning: 'fluid speed', unit: 'm/s' },
+    ],
+    notes: 'For an incompressible fluid this becomes A₁v₁ = A₂v₂.',
+  },
+  {
+    id: 'p-volume-flow-rate',
+    subject: 'physics', topic: 'Density & Pressure', name: 'Volume Flow Rate',
+    expression: 'Q = V/Δt = Av',
+    variables: [
+      { symbol: 'Q', meaning: 'volume flow rate', unit: 'm³/s' },
+      { symbol: 'V', meaning: 'volume transported', unit: 'm³' },
+      { symbol: 'Δt', meaning: 'time interval', unit: 's' },
+      { symbol: 'A', meaning: 'cross-sectional area', unit: 'm²' },
+      { symbol: 'v', meaning: 'fluid speed', unit: 'm/s' },
+    ],
+  },
+  {
+    id: 'p-bernoulli-equation',
+    subject: 'physics', topic: 'Density & Pressure', name: "Bernoulli's Equation",
+    expression: 'P + ½ρv² + ρgy = constant',
+    variables: [
+      { symbol: 'P', meaning: 'fluid pressure', unit: 'Pa' },
+      { symbol: 'ρ', meaning: 'fluid density', unit: 'kg/m³' },
+      { symbol: 'v', meaning: 'fluid speed', unit: 'm/s' },
+      { symbol: 'y', meaning: 'height', unit: 'm' },
+    ],
+    notes: 'For steady, nonviscous, incompressible flow along a streamline.',
+  },
+
+  {
+    id: 'p-charge-quantisation',
+    subject: 'physics', topic: 'Electrostatics', name: 'Quantisation of Charge',
+    expression: 'q = ne',
+    variables: [
+      { symbol: 'q', meaning: 'net electric charge', unit: 'C' },
+      { symbol: 'n', meaning: 'integer number of elementary charges' },
+      { symbol: 'e', meaning: 'elementary charge (1.602 × 10⁻¹⁹ C)', unit: 'C' },
+    ],
+  },
+  {
+    id: 'p-electric-field-definition',
+    subject: 'physics', topic: 'Electrostatics', name: 'Electric Field Definition',
+    expression: 'E⃗ = F⃗/q',
+    variables: [
+      { symbol: 'E⃗', meaning: 'electric field', unit: 'N/C' },
+      { symbol: 'F⃗', meaning: 'electric force on a test charge', unit: 'N' },
+      { symbol: 'q', meaning: 'test charge', unit: 'C' },
+    ],
+  },
+  {
+    id: 'p-point-charge-field',
+    subject: 'physics', topic: 'Electrostatics', name: 'Electric Field of a Point Charge',
+    expression: 'E = k|q|/r²',
+    variables: [
+      { symbol: 'E', meaning: 'electric-field magnitude', unit: 'N/C' },
+      { symbol: 'k', meaning: "Coulomb's constant (8.99 × 10⁹ N·m²/C²)" },
+      { symbol: 'q', meaning: 'source charge', unit: 'C' },
+      { symbol: 'r', meaning: 'distance from the source charge', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-gauss-law',
+    subject: 'physics', topic: 'Electrostatics', name: "Gauss's Law",
+    expression: '∮E⃗·dA⃗ = qenc/ε₀',
+    variables: [
+      { symbol: 'E⃗', meaning: 'electric field', unit: 'N/C' },
+      { symbol: 'dA⃗', meaning: 'outward area element', unit: 'm²' },
+      { symbol: 'qenc', meaning: 'charge enclosed by the closed surface', unit: 'C' },
+      { symbol: 'ε₀', meaning: 'vacuum permittivity (8.85 × 10⁻¹² C²/(N·m²))' },
+    ],
+  },
+  {
+    id: 'p-electric-potential-energy',
+    subject: 'physics', topic: 'Electrostatics', name: 'Electric Potential Energy of Two Point Charges',
+    expression: 'U = kq₁q₂/r',
+    variables: [
+      { symbol: 'U', meaning: 'electric potential energy', unit: 'J' },
+      { symbol: 'k', meaning: "Coulomb's constant" },
+      { symbol: 'q₁, q₂', meaning: 'point charges', unit: 'C' },
+      { symbol: 'r', meaning: 'separation between charges', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-electric-potential-point-charge',
+    subject: 'physics', topic: 'Electrostatics', name: 'Electric Potential of a Point Charge',
+    expression: 'V = kq/r',
+    variables: [
+      { symbol: 'V', meaning: 'electric potential relative to infinity', unit: 'V' },
+      { symbol: 'k', meaning: "Coulomb's constant" },
+      { symbol: 'q', meaning: 'source charge', unit: 'C' },
+      { symbol: 'r', meaning: 'distance from the charge', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-potential-difference-field',
+    subject: 'physics', topic: 'Electrostatics', name: 'Potential Difference from Electric Field',
+    expression: 'ΔV = -∫ E⃗·dℓ⃗',
+    variables: [
+      { symbol: 'ΔV', meaning: 'electric potential difference', unit: 'V' },
+      { symbol: 'E⃗', meaning: 'electric field', unit: 'N/C' },
+      { symbol: 'dℓ⃗', meaning: 'infinitesimal path displacement', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-capacitance',
+    subject: 'physics', topic: 'Electrostatics', name: 'Capacitance',
+    expression: 'C = q/V',
+    variables: [
+      { symbol: 'C', meaning: 'capacitance', unit: 'F' },
+      { symbol: 'q', meaning: 'magnitude of charge on either conductor', unit: 'C' },
+      { symbol: 'V', meaning: 'potential difference', unit: 'V' },
+    ],
+  },
+  {
+    id: 'p-parallel-plate-capacitance',
+    subject: 'physics', topic: 'Electrostatics', name: 'Parallel-Plate Capacitance',
+    expression: 'C = ε₀A/d',
+    variables: [
+      { symbol: 'C', meaning: 'capacitance', unit: 'F' },
+      { symbol: 'ε₀', meaning: 'vacuum permittivity' },
+      { symbol: 'A', meaning: 'area of one plate', unit: 'm²' },
+      { symbol: 'd', meaning: 'plate separation', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-capacitor-energy',
+    subject: 'physics', topic: 'Electrostatics', name: 'Energy Stored in a Capacitor',
+    expression: 'U = ½CV² = ½qV = q²/(2C)',
+    variables: [
+      { symbol: 'U', meaning: 'stored electric potential energy', unit: 'J' },
+      { symbol: 'C', meaning: 'capacitance', unit: 'F' },
+      { symbol: 'V', meaning: 'potential difference', unit: 'V' },
+      { symbol: 'q', meaning: 'stored charge magnitude', unit: 'C' },
+    ],
+  },
+
+  {
+    id: 'p-magnetic-force-charge',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Magnetic Force on a Moving Charge',
+    expression: 'F = |q|vB sinθ',
+    variables: [
+      { symbol: 'F', meaning: 'magnetic-force magnitude', unit: 'N' },
+      { symbol: 'q', meaning: 'particle charge', unit: 'C' },
+      { symbol: 'v', meaning: 'particle speed', unit: 'm/s' },
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+      { symbol: 'θ', meaning: 'angle between v⃗ and B⃗' },
+    ],
+  },
+  {
+    id: 'p-lorentz-force',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Lorentz Force',
+    expression: 'F⃗ = q(E⃗ + v⃗ × B⃗)',
+    variables: [
+      { symbol: 'F⃗', meaning: 'total electromagnetic force', unit: 'N' },
+      { symbol: 'q', meaning: 'particle charge', unit: 'C' },
+      { symbol: 'E⃗', meaning: 'electric field', unit: 'N/C' },
+      { symbol: 'v⃗', meaning: 'particle velocity', unit: 'm/s' },
+      { symbol: 'B⃗', meaning: 'magnetic field', unit: 'T' },
+    ],
+  },
+  {
+    id: 'p-magnetic-radius',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Radius of Charged Particle in a Magnetic Field',
+    expression: 'r = mv/(|q|B)',
+    variables: [
+      { symbol: 'r', meaning: 'radius of the circular path', unit: 'm' },
+      { symbol: 'm', meaning: 'particle mass', unit: 'kg' },
+      { symbol: 'v', meaning: 'speed perpendicular to the field', unit: 'm/s' },
+      { symbol: 'q', meaning: 'particle charge', unit: 'C' },
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+    ],
+  },
+  {
+    id: 'p-magnetic-period',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Cyclotron Period',
+    expression: 'T = 2πm/(|q|B)',
+    variables: [
+      { symbol: 'T', meaning: 'orbital period in a uniform magnetic field', unit: 's' },
+      { symbol: 'm', meaning: 'particle mass', unit: 'kg' },
+      { symbol: 'q', meaning: 'particle charge', unit: 'C' },
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+    ],
+  },
+  {
+    id: 'p-magnetic-flux',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Magnetic Flux',
+    expression: 'ΦB = ∫B⃗·dA⃗   (uniform: ΦB = BA cosθ)',
+    variables: [
+      { symbol: 'ΦB', meaning: 'magnetic flux', unit: 'Wb' },
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+      { symbol: 'A', meaning: 'surface area', unit: 'm²' },
+      { symbol: 'θ', meaning: 'angle between B⃗ and the area normal' },
+    ],
+  },
+  {
+    id: 'p-ampere-law',
+    subject: 'physics', topic: 'Magnetism & Induction', name: "Ampère's Law",
+    expression: '∮B⃗·dℓ⃗ = μ₀Ienc',
+    variables: [
+      { symbol: 'B⃗', meaning: 'magnetic field', unit: 'T' },
+      { symbol: 'Ienc', meaning: 'current enclosed by the path', unit: 'A' },
+      { symbol: 'μ₀', meaning: 'vacuum permeability (4π × 10⁻⁷ T·m/A)' },
+    ],
+  },
+  {
+    id: 'p-field-straight-wire',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Magnetic Field of a Long Straight Wire',
+    expression: 'B = μ₀I/(2πr)',
+    variables: [
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+      { symbol: 'I', meaning: 'current in the wire', unit: 'A' },
+      { symbol: 'r', meaning: 'perpendicular distance from the wire', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-field-solenoid',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Magnetic Field Inside an Ideal Solenoid',
+    expression: 'B = μ₀nI',
+    variables: [
+      { symbol: 'B', meaning: 'magnetic-field magnitude inside the solenoid', unit: 'T' },
+      { symbol: 'μ₀', meaning: 'vacuum permeability' },
+      { symbol: 'n', meaning: 'number of turns per unit length', unit: 'm⁻¹' },
+      { symbol: 'I', meaning: 'current', unit: 'A' },
+    ],
+  },
+  {
+    id: 'p-faraday-law',
+    subject: 'physics', topic: 'Magnetism & Induction', name: "Faraday's Law of Induction",
+    expression: 'ℰ = -dΦB/dt',
+    variables: [
+      { symbol: 'ℰ', meaning: 'induced emf', unit: 'V' },
+      { symbol: 'ΦB', meaning: 'magnetic flux', unit: 'Wb' },
+      { symbol: 't', meaning: 'time', unit: 's' },
+    ],
+    notes: "The minus sign is Lenz's law: the induced effect opposes the change in flux.",
+  },
+  {
+    id: 'p-motional-emf',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Motional EMF',
+    expression: '|ℰ| = Bℓv',
+    variables: [
+      { symbol: 'ℰ', meaning: 'induced emf', unit: 'V' },
+      { symbol: 'B', meaning: 'magnetic-field magnitude', unit: 'T' },
+      { symbol: 'ℓ', meaning: 'rod length perpendicular to the motion', unit: 'm' },
+      { symbol: 'v', meaning: 'rod speed perpendicular to the field', unit: 'm/s' },
+    ],
+  },
+  {
+    id: 'p-inductor-emf',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Self-Induction EMF',
+    expression: 'ℰ = -L(dI/dt)',
+    variables: [
+      { symbol: 'ℰ', meaning: 'induced emf', unit: 'V' },
+      { symbol: 'L', meaning: 'inductance', unit: 'H' },
+      { symbol: 'dI/dt', meaning: 'rate of change of current', unit: 'A/s' },
+    ],
+  },
+  {
+    id: 'p-inductor-energy',
+    subject: 'physics', topic: 'Magnetism & Induction', name: 'Energy Stored in an Inductor',
+    expression: 'UB = ½LI²',
+    variables: [
+      { symbol: 'UB', meaning: 'magnetic potential energy', unit: 'J' },
+      { symbol: 'L', meaning: 'inductance', unit: 'H' },
+      { symbol: 'I', meaning: 'current', unit: 'A' },
+    ],
+  },
+
+  {
+    id: 'p-electric-current',
+    subject: 'physics', topic: 'Electricity & Circuits', name: 'Electric Current',
+    expression: 'I = Δq/Δt',
+    variables: [
+      { symbol: 'I', meaning: 'electric current', unit: 'A' },
+      { symbol: 'Δq', meaning: 'charge passing a point', unit: 'C' },
+      { symbol: 'Δt', meaning: 'time interval', unit: 's' },
+    ],
+  },
+  {
+    id: 'p-resistance-geometry',
+    subject: 'physics', topic: 'Electricity & Circuits', name: 'Resistance of a Uniform Conductor',
+    expression: 'R = ρℓ/A = ℓ/(σA)',
+    variables: [
+      { symbol: 'R', meaning: 'resistance', unit: 'Ω' },
+      { symbol: 'ρ', meaning: 'electrical resistivity', unit: 'Ω·m' },
+      { symbol: 'σ', meaning: 'electrical conductivity', unit: 'S/m' },
+      { symbol: 'ℓ', meaning: 'conductor length', unit: 'm' },
+      { symbol: 'A', meaning: 'cross-sectional area', unit: 'm²' },
+    ],
+  },
+  {
+    id: 'p-kirchhoff-loop',
+    subject: 'physics', topic: 'Electricity & Circuits', name: "Kirchhoff's Loop Rule",
+    expression: 'Σℰ + ΣΔV = 0',
+    variables: [
+      { symbol: 'ℰ', meaning: 'emf sources around the loop', unit: 'V' },
+      { symbol: 'ΔV', meaning: 'potential changes across circuit elements', unit: 'V' },
+    ],
+  },
+  {
+    id: 'p-kirchhoff-junction',
+    subject: 'physics', topic: 'Electricity & Circuits', name: "Kirchhoff's Junction Rule",
+    expression: 'ΣIin = ΣIout',
+    variables: [
+      { symbol: 'Iin', meaning: 'currents entering a junction', unit: 'A' },
+      { symbol: 'Iout', meaning: 'currents leaving a junction', unit: 'A' },
+    ],
+  },
+
+  {
+    id: 'p-entropy-reversible',
+    subject: 'physics', topic: 'Thermodynamics & Heat', name: 'Entropy Change (Reversible Transfer)',
+    expression: 'ΔS = Qrev/T',
+    variables: [
+      { symbol: 'ΔS', meaning: 'entropy change', unit: 'J/K' },
+      { symbol: 'Qrev', meaning: 'energy transferred thermally in a reversible process', unit: 'J' },
+      { symbol: 'T', meaning: 'absolute temperature at which transfer occurs', unit: 'K' },
+    ],
+  },
+
+  {
+    id: 'p-index-refraction',
+    subject: 'physics', topic: 'Optics', name: 'Index of Refraction',
+    expression: 'n = c₀/v',
+    variables: [
+      { symbol: 'n', meaning: 'index of refraction' },
+      { symbol: 'c₀', meaning: 'speed of light in vacuum', unit: 'm/s' },
+      { symbol: 'v', meaning: 'speed of light in the medium', unit: 'm/s' },
+    ],
+  },
+  {
+    id: 'p-snells-law',
+    subject: 'physics', topic: 'Optics', name: "Snell's Law",
+    expression: 'n₁ sinθ₁ = n₂ sinθ₂',
+    variables: [
+      { symbol: 'n₁, n₂', meaning: 'indices of refraction of the two media' },
+      { symbol: 'θ₁', meaning: 'angle of incidence measured from the normal' },
+      { symbol: 'θ₂', meaning: 'angle of refraction measured from the normal' },
+    ],
+  },
+  {
+    id: 'p-critical-angle',
+    subject: 'physics', topic: 'Optics', name: 'Critical Angle for Total Internal Reflection',
+    expression: 'θc = sin⁻¹(n₂/n₁)   (n₁ > n₂)',
+    variables: [
+      { symbol: 'θc', meaning: 'critical angle' },
+      { symbol: 'n₁', meaning: 'index of the higher-index medium' },
+      { symbol: 'n₂', meaning: 'index of the lower-index medium' },
+    ],
+  },
+  {
+    id: 'p-thin-lens-equation',
+    subject: 'physics', topic: 'Optics', name: 'Thin Lens Equation',
+    expression: '1/f = 1/do + 1/di',
+    variables: [
+      { symbol: 'f', meaning: 'lens focal length', unit: 'm' },
+      { symbol: 'do', meaning: 'object distance', unit: 'm' },
+      { symbol: 'di', meaning: 'image distance', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-linear-magnification',
+    subject: 'physics', topic: 'Optics', name: 'Linear Magnification',
+    expression: 'M = hi/ho = -di/do',
+    variables: [
+      { symbol: 'M', meaning: 'linear magnification' },
+      { symbol: 'hi, ho', meaning: 'image and object heights' },
+      { symbol: 'di, do', meaning: 'image and object distances', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-double-slit-bright',
+    subject: 'physics', topic: 'Optics', name: 'Double-Slit Bright Fringes',
+    expression: 'd sinθ = mλ',
+    variables: [
+      { symbol: 'd', meaning: 'slit separation', unit: 'm' },
+      { symbol: 'θ', meaning: 'fringe angle' },
+      { symbol: 'm', meaning: 'fringe order (0, ±1, ±2, ...)' },
+      { symbol: 'λ', meaning: 'wavelength', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-single-slit-minima',
+    subject: 'physics', topic: 'Optics', name: 'Single-Slit Diffraction Minima',
+    expression: 'a sinθ = mλ   (m = 1, 2, 3, ...)',
+    variables: [
+      { symbol: 'a', meaning: 'slit width', unit: 'm' },
+      { symbol: 'θ', meaning: 'angle to a dark fringe' },
+      { symbol: 'm', meaning: 'nonzero fringe order' },
+      { symbol: 'λ', meaning: 'wavelength', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-rayleigh-criterion',
+    subject: 'physics', topic: 'Optics', name: "Rayleigh's Criterion",
+    expression: 'θmin ≈ 1.22λ/D',
+    variables: [
+      { symbol: 'θmin', meaning: 'minimum resolvable angular separation', unit: 'rad' },
+      { symbol: 'λ', meaning: 'wavelength', unit: 'm' },
+      { symbol: 'D', meaning: 'aperture diameter', unit: 'm' },
+    ],
+  },
+  {
+    id: 'p-photoelectric-equation',
+    subject: 'physics', topic: 'Modern & Quantum Physics', name: 'Photoelectric Equation',
+    expression: 'hf = Kmax + φ',
+    variables: [
+      { symbol: 'h', meaning: "Planck's constant" },
+      { symbol: 'f', meaning: 'incident-light frequency', unit: 'Hz' },
+      { symbol: 'Kmax', meaning: 'maximum kinetic energy of emitted electrons', unit: 'J' },
+      { symbol: 'φ', meaning: 'work function of the material', unit: 'J' },
+    ],
+  },
+  {
+    id: 'p-photon-momentum',
+    subject: 'physics', topic: 'Modern & Quantum Physics', name: 'Photon Momentum',
+    expression: 'p = h/λ = hf/c₀',
+    variables: [
+      { symbol: 'p', meaning: 'photon momentum', unit: 'kg·m/s' },
+      { symbol: 'h', meaning: "Planck's constant" },
+      { symbol: 'λ', meaning: 'photon wavelength', unit: 'm' },
+      { symbol: 'f', meaning: 'photon frequency', unit: 'Hz' },
+      { symbol: 'c₀', meaning: 'speed of light in vacuum', unit: 'm/s' },
+    ],
+  },
+
   // ───────────────────────── CHEMISTRY ─────────────────────────
   {
     id: 'c-moles',
