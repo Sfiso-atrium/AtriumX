@@ -18,6 +18,15 @@ export default function AccommodationMarketplace() {
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
 
+  // A logged-in student is filtered to their own university automatically —
+  // no selector needed. Guests (and a student with no university on their
+  // profile) keep the manual picker below.
+  useEffect(() => {
+    if (currentUser?.account_type === 'student' && currentUser.university) {
+      setNearUniversity(currentUser.university)
+    }
+  }, [currentUser?.account_type, currentUser?.university])
+
   useEffect(() => {
     if (currentUser?.account_type === 'business' || !nearUniversity) {
       setListings([])
@@ -88,18 +97,20 @@ export default function AccommodationMarketplace() {
               <h1 className="font-serif text-4xl sm:text-5xl text-cream leading-tight">Find your place</h1>
               <p className="text-cream-muted text-sm sm:text-base mt-2 max-w-xl">Browse accommodation and read students' experiences.</p>
 
-              <label className="block text-cream text-sm font-semibold mt-7 max-w-md">
-                Accommodation near
-                <select
-                  aria-label="Accommodation near"
-                  value={nearUniversity}
-                  onChange={e => setNearUniversity(e.target.value)}
-                  className="block mt-2 w-full border border-slate-border rounded-xl bg-slate-deep text-cream px-4 py-3.5 outline-none focus:border-teal-light focus:ring-2 focus:ring-teal-faint"
-                >
-                  <option value="" disabled>Select a university</option>
-                  {SOUTH_AFRICAN_UNIVERSITIES.map(university => <option key={university} value={university}>{university}</option>)}
-                </select>
-              </label>
+              {!(currentUser?.account_type === 'student' && currentUser.university) && (
+                <label className="block text-cream text-sm font-semibold mt-7 max-w-md">
+                  Accommodation near
+                  <select
+                    aria-label="Accommodation near"
+                    value={nearUniversity}
+                    onChange={e => setNearUniversity(e.target.value)}
+                    className="block mt-2 w-full border border-slate-border rounded-xl bg-slate-deep text-cream px-4 py-3.5 outline-none focus:border-teal-light focus:ring-2 focus:ring-teal-faint"
+                  >
+                    <option value="" disabled>Select a university</option>
+                    {SOUTH_AFRICAN_UNIVERSITIES.map(university => <option key={university} value={university}>{university}</option>)}
+                  </select>
+                </label>
+              )}
 
               <div className="mt-4 sm:hidden">
                 <Link to="/accommodations/review" className="inline-flex items-center gap-2 rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold">
