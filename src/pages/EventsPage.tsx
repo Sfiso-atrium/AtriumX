@@ -318,6 +318,23 @@ export default function EventsPage() {
     showToast('Event cancelled.', 'success')
   }
 
+  const handleShareEventInvite = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#/student?mode=register&next=%2Fpost-event`
+    const title = 'Put this event where students can find it'
+    const text = 'Know an event students should know about? Send the organiser this AtriumX posting link:'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      showToast('Event link ready to send.', 'success')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      showToast('Could not prepare the link. Try again.', 'error')
+    }
+  }
+
   return (
     <>
       <div className="min-h-screen bg-slate-deep">
@@ -372,19 +389,31 @@ export default function EventsPage() {
             <CategoryChips categories={EVENT_FILTER_OPTIONS} active={filter} onSelect={setFilter} />
           </div>
 
+          {!currentUser && !loading && visible.length > 0 && (
+            <div className="mx-4 mb-6 rounded-2xl border border-slate-border bg-slate-card px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-cream font-bold text-sm">Know an event students should know about?</p>
+                <p className="text-cream-muted text-xs mt-1 leading-relaxed">Send the organiser the posting link so the date, venue and details are easier for students to find.</p>
+              </div>
+              <button type="button" onClick={handleShareEventInvite} className="shrink-0 rounded-xl border border-teal-light text-teal-light hover:bg-teal-faint font-bold text-xs px-4 py-2.5 transition-colors">
+                Send the event invite
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <p className="text-cream-muted text-sm">Loading events…</p>
           ) : visible.length === 0 ? (
             <div className="text-center py-16">
               <CalendarDays size={34} className="text-cream-muted mx-auto mb-3 opacity-50" />
               <p className="text-cream font-bold text-sm mb-1">No events match this filter</p>
-              <p className="text-cream-muted text-xs mb-5">Be the first to put something on the board.</p>
+              <p className="text-cream-muted text-xs mb-5">{currentUser ? 'Be the first to put something on the board.' : 'Know an event students should know about?'}</p>
               <button
                 type="button"
-                onClick={() => navigate('/post-event')}
+                onClick={() => currentUser ? navigate('/post-event') : handleShareEventInvite()}
                 className="bg-ember hover:bg-ember-dark text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors"
               >
-                Post an event
+                {currentUser ? 'Post an event' : 'Send the event invite'}
               </button>
             </div>
           ) : (

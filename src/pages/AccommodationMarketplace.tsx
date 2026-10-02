@@ -13,7 +13,7 @@ const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommo
 
 
 export default function AccommodationMarketplace() {
-  const { currentUser } = useApp()
+  const { currentUser, showToast } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
   const [nearUniversity, setNearUniversity] = useState('')
   const [loading, setLoading] = useState(true)
@@ -44,6 +44,23 @@ export default function AccommodationMarketplace() {
   // dropped rather than shown.
   const sectionsWithItems = SECTION_ORDER.filter(plan => (grouped.get(plan) ?? []).length > 0)
 
+  const handleShareAccommodationInvite = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#/accommodation/post`
+    const title = 'Put this accommodation where students can compare it'
+    const text = 'Students are comparing accommodation on AtriumX. The property team can add the listing first and create their account at the end:'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      showToast('Accommodation link ready to send.', 'success')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      showToast('Could not prepare the link. Try again.', 'error')
+    }
+  }
+
   if (currentUser?.account_type === 'business') return null
 
   return (
@@ -63,12 +80,28 @@ export default function AccommodationMarketplace() {
           {!currentUser && <label className="block text-cream text-sm">Accommodation near<select aria-label="Accommodation near" value={nearUniversity} onChange={e => setNearUniversity(e.target.value)} className="block mt-2 w-full sm:w-80 border border-slate-border rounded-xl bg-slate-card text-cream px-3 py-3"><option value="">All universities</option>{SOUTH_AFRICAN_UNIVERSITIES.map(u => <option key={u}>{u}</option>)}</select></label>}
           <Link to="/accommodations/review" className="rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold">Write a review</Link>
         </div>
+        {!currentUser && !loading && !loadError && sectionsWithItems.length > 0 && (
+          <div className="mb-7 rounded-2xl border border-slate-border bg-slate-card px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-cream font-bold text-sm">Know an accommodation students should be comparing?</p>
+              <p className="text-cream-muted text-xs mt-1 leading-relaxed">Send the property team a direct link to add it, so students can see the details and compare it with the rest.</p>
+            </div>
+            <button type="button" onClick={handleShareAccommodationInvite} className="shrink-0 rounded-xl border border-teal-light text-teal-light hover:bg-teal-faint font-bold text-xs px-4 py-2.5 transition-colors">
+              Send the accommodation invite
+            </button>
+          </div>
+        )}
         {loading ? (
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
         ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : sectionsWithItems.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
             <p className="text-cream font-semibold">No accommodation matches this university yet.</p>
-            <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>
+            <p className="text-cream-muted text-sm mt-2">{currentUser ? 'Check back as more properties join AtriumX.' : 'Know a residence or property students should be able to compare here?'}</p>
+            {!currentUser && (
+              <button type="button" onClick={handleShareAccommodationInvite} className="mt-5 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold">
+                Send the accommodation invite
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-9">

@@ -12,6 +12,8 @@ export default function StudentAuth() {
   const [searchParams] = useSearchParams()
 const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const redirectAfterLogin = useApp().redirectAfterLogin
+  const requestedNext = searchParams.get('next')
+  const safeNext = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : null
 
   const [mode, setMode] = useState<'login' | 'register'>(
     searchParams.get('mode') === 'register' ? 'register' : 'login'
@@ -63,7 +65,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           const businessProfile = await getBusinessProfile(user.id)
           defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
         }
-        const dest = redirectAfterLogin || defaultDest
+        const dest = redirectAfterLogin || safeNext || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -92,7 +94,7 @@ if (user) {
           const businessProfile = await getBusinessProfile(user.id)
           defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
         }
-        const dest = redirectAfterLogin || defaultDest
+        const dest = redirectAfterLogin || safeNext || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }

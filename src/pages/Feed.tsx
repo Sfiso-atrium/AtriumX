@@ -8,7 +8,6 @@ import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/Category
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
-const APPLICATION_LINK = 'https://atriumx.co.za/retailer'
 const GUEST_UNIVERSITY = 'University of the Witwatersrand'
 const BUSINESS_CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -20,6 +19,24 @@ const BUSINESS_CATEGORIES = [
   { id: 'salon', label: 'Salon' },
   { id: 'other', label: 'Other' },
 ]
+function GuestInvitePrompt({ title, body, actionLabel, onAction }: { title: string; body: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <div className="mx-4 mb-5 rounded-2xl border border-slate-border bg-slate-card px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p className="text-cream font-bold text-sm">{title}</p>
+        <p className="text-cream-muted text-xs mt-1 leading-relaxed">{body}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onAction}
+        className="shrink-0 rounded-xl border border-teal-light text-teal-light hover:bg-teal-faint font-bold text-xs px-4 py-2.5 transition-colors"
+      >
+        {actionLabel}
+      </button>
+    </div>
+  )
+}
+
 function EmptyState({ message, actionLabel, onAction }: { message: string; actionLabel?: string; onAction?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
@@ -245,10 +262,19 @@ const filteredBusiness = useMemo(() => {
     [filtered]
   )
 
-  const handleCopyApplicationLink = () => {
-    navigator.clipboard.writeText(APPLICATION_LINK)
-      .then(() => showToast('Application link copied â€” send it their way.', 'success'))
-      .catch(() => showToast('Could not copy the link. Try again.', 'error'))
+  const handleShareInvite = async (path: string, title: string, text: string) => {
+    const url = `${window.location.origin}${window.location.pathname}#${path}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      showToast('Link ready to send.', 'success')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      showToast('Could not prepare the link. Try again.', 'error')
+    }
   }
   const handleWantedPostChat = async (post: WantedPost) => {
     if (!currentUser) {
@@ -371,6 +397,15 @@ const filteredBusiness = useMemo(() => {
             </p>
           </div>
 
+          {!currentUser && !dbLoading && !fetchError && filtered.length > 0 && (
+            <GuestInvitePrompt
+              title="Know someone with something students are looking for?"
+              body="A useful item, service or offer is easier to find when it is on the board. Send them the student sign-in link to post it."
+              actionLabel="Send them the posting link"
+              onAction={() => handleShareInvite('/student?mode=register&next=%2Fpost', 'Put it where students can find it', 'Students are already browsing AtriumX for items, services and offers. You can sign in and post yours here:')}
+            />
+          )}
+
           {featuredListings.length > 0 && (
             <section className="pb-5">
               <div className="px-4 pb-2 flex items-center justify-between">
@@ -469,9 +504,11 @@ const filteredBusiness = useMemo(() => {
           {otherListings.length === 0 ? (
             featuredListings.length === 0 && verifiedListings.length === 0 && spottedListings.length === 0 && (
               <EmptyState
-                message={fetchError ? 'Could not load listings. Check your connection and try again.' : dbLoading ? 'Loading listings...' : 'Nothing here yet. Be the first to post.'}
-                actionLabel={dbLoading || fetchError ? undefined : 'Post a Listing'}
-                onAction={() => navigate('/plan-select')}
+                message={fetchError ? 'Could not load listings. Check your connection and try again.' : dbLoading ? 'Loading listings...' : currentUser ? 'Nothing here yet. Be the first to post.' : 'Nothing here yet. Know someone with something students are looking for?'}
+                actionLabel={dbLoading || fetchError ? undefined : currentUser ? 'Post a Listing' : 'Send them the posting link'}
+                onAction={() => currentUser
+                  ? navigate('/plan-select')
+                  : handleShareInvite('/student?mode=register&next=%2Fpost', 'Put it where students can find it', 'Students are already browsing AtriumX for items, services and offers. You can sign in and post yours here:')}
               />
             )
           ) : (
@@ -535,6 +572,15 @@ const filteredBusiness = useMemo(() => {
               </p>
             </div>
 
+            {!currentUser && !businessLoading && !businessFetchError && filteredBusiness.length > 0 && (
+              <GuestInvitePrompt
+                title="Know a business students actually use?"
+                body="Send the owner a direct listing link so students can find their offers, services and contact details here."
+                actionLabel="Send the business invite"
+                onAction={() => handleShareInvite('/business/post?plan=noticeboard', 'Put your business in front of students', 'Students are already browsing AtriumX for nearby businesses. You can add your business first and create your account at the end:')}
+              />
+            )}
+
             {filteredBusiness.length === 0 ? (
               <EmptyState
                 message={
@@ -543,11 +589,11 @@ const filteredBusiness = useMemo(() => {
                     : businessLoading
                     ? 'Loading businesses...'
                     : businessListings.length === 0
-                    ? 'No businesses listed yet. Know one that should be here?'
+                    ? 'No businesses listed yet. Know a business students already use?'
                     : 'No businesses match your search.'
                 }
-                actionLabel={businessLoading || businessFetchError || businessListings.length > 0 ? undefined : 'Copy Application Link'}
-                onAction={handleCopyApplicationLink}
+                actionLabel={businessLoading || businessFetchError || businessListings.length > 0 || currentUser ? undefined : 'Send the business invite'}
+                onAction={() => handleShareInvite('/business/post?plan=noticeboard', 'Put your business in front of students', 'Students are already browsing AtriumX for nearby businesses. You can add your business first and create your account at the end:')}
               />
             ) : (
               <>
