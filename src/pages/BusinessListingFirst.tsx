@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, Video, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
@@ -8,6 +8,7 @@ import {
   registerBusinessWithEmail,
   startPlanPayment,
   uploadListingImage,
+  uploadBusinessVideo,
 } from '../services/dataService'
 import type { Profile } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -42,6 +43,9 @@ export default function BusinessListingFirst() {
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
   const [universitySearch, setUniversitySearch] = useState('')
   const [images, setImages] = useState<string[]>([])
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState('')
@@ -67,6 +71,12 @@ export default function BusinessListingFirst() {
     const nextTier = PLAN_TIERS[nextPlan]
     setSelectedUniversities(previous => previous.slice(0, nextTier.maxUniversities))
     setImages(previous => previous.slice(0, nextTier.maxPhotos))
+    if (nextPlan !== 'campus_partner') {
+      if (videoPreview) URL.revokeObjectURL(videoPreview)
+      setVideoFile(null)
+      setVideoPreview(null)
+      setVideoUrl(null)
+    }
   }
 
   const toggleUniversity = (university: string) => {
@@ -103,6 +113,23 @@ export default function BusinessListingFirst() {
       if (typeof reader.result === 'string') setImages(previous => [...previous, reader.result as string].slice(0, maxPhotos))
     }
     reader.readAsDataURL(blob)
+  }
+
+  const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || plan !== 'campus_partner') return
+    if (videoPreview) URL.revokeObjectURL(videoPreview)
+    setVideoFile(file)
+    setVideoPreview(URL.createObjectURL(file))
+    setVideoUrl(null)
+  }
+
+  const removeVideo = () => {
+    if (videoPreview) URL.revokeObjectURL(videoPreview)
+    setVideoFile(null)
+    setVideoPreview(null)
+    setVideoUrl(null)
   }
 
   const validateListing = () => {
@@ -166,6 +193,14 @@ export default function BusinessListingFirst() {
       }
       setImages(uploadedImages)
 
+      let uploadedVideoUrl = videoUrl
+      if (plan === 'campus_partner' && videoFile && !uploadedVideoUrl) {
+        const { url, error: videoError } = await uploadBusinessVideo(videoFile, user.id)
+        if (videoError || !url) { setError(videoError || 'Could not upload the listing video.'); return }
+        uploadedVideoUrl = url
+        setVideoUrl(url)
+      }
+
       const draft = {
         plan,
         title: title.trim(),
@@ -173,6 +208,7 @@ export default function BusinessListingFirst() {
         price: Number(price) || 0,
         isNegotiable,
         imageUrls: uploadedImages,
+        videoUrl: uploadedVideoUrl,
         universities: selectedUniversities,
       }
 
@@ -195,6 +231,7 @@ export default function BusinessListingFirst() {
         category: businessType,
         customCategory: businessType === 'Other' ? customType.trim() : undefined,
         imageUrls: uploadedImages,
+        videoUrl: uploadedVideoUrl || undefined,
         residence: '',
         listingType: 'ongoing',
         isNegotiable,
@@ -231,7 +268,7 @@ export default function BusinessListingFirst() {
                 </button>
               ))}
             </div>
-            <p className="text-cream-muted text-xs mt-3">{tier.label}: up to {maxUniversities} universit{maxUniversities === 1 ? 'y' : 'ies'} and {maxPhotos === 0 ? 'text only' : `${maxPhotos} photo${maxPhotos === 1 ? '' : 's'}`}.</p>
+            <p className="text-cream-muted text-xs mt-3">{tier.label}: up to {maxUniversities} universit{maxUniversities === 1 ? 'y' : 'ies'}, {maxPhotos} photos{plan === 'campus_partner' ? ', and 1 optional video' : ''}.</p>
           </section>
 
           <div className="space-y-5">
@@ -251,16 +288,35 @@ export default function BusinessListingFirst() {
 
             <section className="bg-slate-card border border-slate-border rounded-2xl p-5 space-y-4">
               <h2 className="text-cream font-bold">Listing details</h2>
-              {maxPhotos === 0 ? (
-                <div className="border border-slate-border rounded-xl p-4 text-cream-muted text-sm">Noticeboard is text-only. Choose Featured or Campus Partner above if you want to add images.</div>
-              ) : (
-                <div>
-                  <div className="flex justify-between items-center mb-2"><span className="text-cream-muted text-xs font-bold uppercase tracking-wide">Photos</span><span className="text-cream-muted text-xs">{images.length}/{maxPhotos}</span></div>
-                  <div className="flex gap-2 flex-wrap">
-                    {images.map((image, index) => <div key={`${index}-${image.slice(-12)}`} className="relative w-20 h-20 rounded-xl overflow-hidden"><img src={image} alt="" className="w-full h-full object-cover" /><button type="button" onClick={() => setImages(previous => previous.filter((_, itemIndex) => itemIndex !== index))} className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center"><X size={12} /></button></div>)}
-                    {images.length < maxPhotos && <button type="button" onClick={() => fileRef.current?.click()} className="w-20 h-20 rounded-xl border border-dashed border-slate-border text-cream-muted flex items-center justify-center"><ImagePlus size={20} /></button>}
-                    <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+              <div>
+                <div className="flex justify-between items-center mb-2"><span className="text-cream-muted text-xs font-bold uppercase tracking-wide">Photos</span><span className="text-cream-muted text-xs">{images.length}/{maxPhotos}</span></div>
+                <div className="flex gap-2 flex-wrap">
+                  {images.map((image, index) => <div key={`${index}-${image.slice(-12)}`} className="relative w-20 h-20 rounded-xl overflow-hidden"><img src={image} alt="" className="w-full h-full object-cover" /><button type="button" onClick={() => setImages(previous => previous.filter((_, itemIndex) => itemIndex !== index))} className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center"><X size={12} /></button></div>)}
+                  {images.length < maxPhotos && <button type="button" onClick={() => fileRef.current?.click()} className="w-20 h-20 rounded-xl border border-dashed border-slate-border text-cream-muted flex items-center justify-center"><ImagePlus size={20} /></button>}
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                </div>
+              </div>
+
+              {plan === 'campus_partner' && (
+                <div className="border-t border-slate-border pt-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <span className="text-cream-muted text-xs font-bold uppercase tracking-wide">Video</span>
+                      <p className="text-cream-muted text-xs mt-1">Campus Partner includes one optional listing video.</p>
+                    </div>
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold">
+                      <Video size={15} /> {videoFile || videoUrl ? 'Replace video' : 'Add video'}
+                      <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleVideoSelect} className="hidden" />
+                    </label>
                   </div>
+                  {videoPreview || videoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-border bg-black">
+                      <video src={videoPreview || videoUrl || undefined} controls className="w-full max-h-52 object-contain" />
+                      <button type="button" onClick={removeVideo} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center" aria-label="Remove listing video"><X size={15} /></button>
+                    </div>
+                  ) : (
+                    <p className="text-cream-muted text-xs border border-dashed border-slate-border rounded-xl py-4 px-4 text-center">No video added. This is optional.</p>
+                  )}
                 </div>
               )}
               <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Listing name" className={inputClass} />

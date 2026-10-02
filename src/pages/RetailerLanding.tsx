@@ -206,7 +206,7 @@ export default function RetailerLanding() {
                 price="Free"
                 period="/ 7 days"
                 onSelect={() => navigate('/business/post?plan=noticeboard')}
-                features={['1 university reach', 'Text-only listing', '1 active listing', '7-day visibility']}
+                features={['1 university reach', 'Up to 3 photos per listing', '1 active listing', '7-day visibility']}
               />
               <PricingCard
                 name="Featured"
@@ -214,14 +214,14 @@ export default function RetailerLanding() {
                 period="/ 30 days"
                 highlighted
                 onSelect={() => navigate('/business/post?plan=featured')}
-                features={['Reach up to 2 universities', '1 photo per listing', 'Up to 2 active listings', 'Reply to student messages', 'Sponsored badge']}
+                features={['Reach up to 2 universities', 'Up to 5 photos per listing', 'Up to 2 active listings', 'Reply to student messages', 'Sponsored badge']}
               />
               <PricingCard
                 name="Campus Partner"
                 price="R349"
                 period="/ 30 days"
                 onSelect={() => navigate('/business/post?plan=campus_partner')}
-                features={['Reach up to 3 universities', 'Up to 3 photos per listing', 'Up to 3 active listings', 'Reply to reviews', 'Campus Partner badge']}
+                features={['Reach up to 3 universities', 'Up to 10 photos per listing', '1 optional listing video', 'Up to 3 active listings', 'Reply to reviews', 'Campus Partner badge']}
               />
             </div>
           </section>

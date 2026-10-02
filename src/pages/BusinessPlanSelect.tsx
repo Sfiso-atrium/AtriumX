@@ -11,13 +11,13 @@ type BusinessPlanKey = 'noticeboard' | 'featured' | 'campus_partner'
 const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
   noticeboard: [
     '1 university reach',
-    'Text only — no photos',
+    'Up to 3 photos per listing',
     '1 active listing',
     '7-day visibility',
   ],
   featured: [
     'Reach up to 2 universities',
-    '1 photo per listing',
+    'Up to 5 photos per listing',
     'Up to 2 active listings',
     'Reply to student messages',
     '"Sponsored" badge on your listings',
@@ -25,7 +25,8 @@ const PLAN_FEATURES: Record<BusinessPlanKey, string[]> = {
   ],
   campus_partner: [
     'Reach up to 3 universities',
-    'Up to 3 photos per listing',
+    'Up to 10 photos per listing',
+    '1 optional listing video',
     'Up to 3 active listings',
     'Reply to student messages',
     'Reply to reviews',

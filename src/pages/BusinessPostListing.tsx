@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, Video, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
-  createListing, updateListing, uploadListingImage, getUserListings, getBusinessProfile,
+  createListing, updateListing, uploadListingImage, uploadBusinessVideo, getUserListings, getBusinessProfile,
   getEffectiveBusinessPlan, PLAN_TIERS, PlanKey, BusinessProfile, Listing
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
@@ -30,7 +30,9 @@ const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [isNegotiable, setIsNegotiable] = useState(false)
 const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +47,7 @@ useEffect(() => {
     setPrice(String(editListing.price))
     setIsNegotiable(editListing.is_negotiable)
     setImageUrls(editListing.image_urls || [])
+    setVideoUrl(editListing.video_url || null)
   }, [editListing])
   useEffect(() => {
     if (searchParams.get('resume') !== '1' || !currentUser || currentUser.account_type !== 'business') return
@@ -57,11 +60,12 @@ useEffect(() => {
       setPrice(String(draft.price ?? ''))
       setIsNegotiable(Boolean(draft.isNegotiable))
       setImageUrls(Array.isArray(draft.imageUrls) ? draft.imageUrls : [])
+      setVideoUrl(plan === 'campus_partner' && typeof draft.videoUrl === 'string' ? draft.videoUrl : null)
       setSelectedUniversities(Array.isArray(draft.universities) ? draft.universities : [])
     } catch {
       sessionStorage.removeItem('atriumx_pending_business_draft')
     }
-  }, [searchParams, currentUser?.id, currentUser?.account_type])
+  }, [searchParams, currentUser?.id, currentUser?.account_type, plan])
   useEffect(() => {
     if (isLoadingAuth) return
     if (!currentUser) { setCheckingBusiness(false); return }
@@ -169,6 +173,7 @@ if (submitted) return (
   const tierConfig = PLAN_TIERS[plan]
   const maxPhotos = tierConfig.maxPhotos
   const canUploadPhoto = maxPhotos > 0
+  const canUploadVideo = plan === 'campus_partner'
 
 const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -197,6 +202,21 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
   }
 
   const removeImage = (idx: number) => setImageUrls(prev => prev.filter((_, i) => i !== idx))
+
+  const handleVideoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !canUploadVideo) return
+
+    setUploadingVideo(true)
+    const { url, error: uploadError } = await uploadBusinessVideo(file, currentUser.id)
+    setUploadingVideo(false)
+    if (uploadError || !url) {
+      showToast(uploadError || 'Could not upload the listing video.', 'error')
+      return
+    }
+    setVideoUrl(url)
+  }
 
   const maxUniversities = 'maxUniversities' in PLAN_TIERS[plan] && typeof PLAN_TIERS[plan].maxUniversities === 'number' ? PLAN_TIERS[plan].maxUniversities : 1
   const accountUniversities = business?.universities ?? []
@@ -246,6 +266,7 @@ const sharedFields = {
       category: editListing?.category || business?.business_type || 'other',
       customCategory: editListing?.custom_category || business?.custom_business_type || undefined,
       imageUrls,
+      videoUrl: (canUploadVideo || !!editListing?.video_url) ? (videoUrl || undefined) : undefined,
       residence: '',
       listingType: 'ongoing' as const,
       isNegotiable,
@@ -286,7 +307,7 @@ const sharedFields = {
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Business listing</p>
             <h1 className="font-serif text-3xl text-cream">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
             <p className="text-cream-muted text-sm mt-2">
-              Keep everything in one place. Your current {tierConfig.label} plan allows {maxPhotos === 0 ? 'a text-only listing' : `up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''}`}.
+              Keep everything in one place. Your current {tierConfig.label} plan allows up to {maxPhotos} photo{maxPhotos !== 1 ? 's' : ''}{canUploadVideo ? ' and one optional video' : ''}.
             </p>
           </div>
 
@@ -406,46 +427,56 @@ const sharedFields = {
                   )}
                 </div>
 
-                {!canUploadPhoto ? (
-                  <div className="bg-slate-deep border border-slate-border rounded-xl px-4 py-4 flex items-center gap-3">
-                    <ImagePlus size={18} className="text-cream-muted flex-shrink-0" />
-                    <div>
-                      <p className="text-cream-muted text-sm">Photos aren't included on the Noticeboard plan</p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                  {imageUrls.map((url, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep border border-slate-border">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
-                        className="text-blue-400 text-xs underline mt-1"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 bg-slate-deep/80 rounded-full flex items-center justify-center text-cream"
                       >
-                        Upgrade to add photos
+                        <X size={12} />
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
-                    {imageUrls.map((url, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep border border-slate-border">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx)}
-                          className="absolute top-1.5 right-1.5 w-7 h-7 bg-slate-deep/80 rounded-full flex items-center justify-center text-cream"
-                        >
-                          <X size={12} />
+                  ))}
+                  {imageUrls.length < maxPhotos && (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="aspect-square rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-1.5 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-40"
+                    >
+                      <ImagePlus size={20} />
+                      <span className="text-xs">{uploading ? 'Uploading...' : 'Add photo'}</span>
+                    </button>
+                  )}
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                </div>
+
+                {canUploadVideo && (
+                  <div className="mt-4 pt-4 border-t border-slate-border">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <h3 className="text-cream font-bold text-sm">Listing video</h3>
+                        <p className="text-cream-muted text-xs mt-1">Campus Partner includes one optional video.</p>
+                      </div>
+                      <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold">
+                        <Video size={15} />
+                        {videoUrl ? 'Replace video' : 'Add video'}
+                        <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleVideoSelect} disabled={uploadingVideo} className="hidden" />
+                      </label>
+                    </div>
+                    {videoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-border bg-black">
+                        <video src={videoUrl} controls className="w-full max-h-52 object-contain" />
+                        <button type="button" onClick={() => setVideoUrl(null)} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center" aria-label="Remove listing video">
+                          <X size={15} />
                         </button>
                       </div>
-                    ))}
-                    {imageUrls.length < maxPhotos && (
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        disabled={uploading}
-                        className="aspect-square rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-1.5 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-40"
-                      >
-                        <ImagePlus size={20} />
-                        <span className="text-xs">{uploading ? 'Uploading...' : 'Add photo'}</span>
-                      </button>
+                    ) : (
+                      <p className="text-cream-muted text-xs border border-dashed border-slate-border rounded-xl py-4 px-4 text-center">{uploadingVideo ? 'Uploading video...' : 'No video added. This is optional.'}</p>
                     )}
-                    <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                   </div>
                 )}
               </section>
@@ -456,7 +487,9 @@ const sharedFields = {
             <aside className="md:sticky md:top-20 space-y-3">
               <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
                 <div className="h-32 sm:h-36 bg-slate-deep border-b border-slate-border">
-                  {imageUrls[0] ? (
+                  {videoUrl ? (
+                    <video src={videoUrl} muted playsInline controls className="w-full h-full object-cover bg-black" />
+                  ) : imageUrls[0] ? (
                     <img src={imageUrls[0]} alt="Listing preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-cream-muted gap-2">
@@ -496,6 +529,7 @@ const sharedFields = {
                   <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{tierConfig.maxListings}</span> active listing{tierConfig.maxListings !== 1 ? 's' : ''}</div>
                   <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{maxPhotos}</span> photo{maxPhotos !== 1 ? 's' : ''}</div>
                 </div>
+                {canUploadVideo && <p className="text-cream-muted text-xs mt-3">Includes one optional listing video.</p>}
                 {plan !== 'campus_partner' && (
                   <button
                     type="button"
@@ -509,7 +543,7 @@ const sharedFields = {
 
               <button
                 onClick={handleSubmit}
-                disabled={loading || uploading || !title || description.length < 20 || selectedUniversities.length === 0}
+                disabled={loading || uploading || uploadingVideo || !title || description.length < 20 || selectedUniversities.length === 0}
                 className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-colors"
               >
                 {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
