@@ -21,6 +21,17 @@ Deno.serve(async req => {
     const body=JSON.parse(new TextDecoder().decode(bytes))
     if(typeof body.receipt!=='string'||!/^[a-f0-9]{64}$/.test(body.receipt))return reply({error:'The submission receipt is missing. Please refresh and try again.'},400)
     const receiptHash=await sha256(body.receipt)
+    if(body.action==='account_context'){
+      if(typeof body.id!=='string'||!/^[0-9a-f-]{36}$/i.test(body.id))return reply({error:'The submission reference is missing.'},400)
+      const {data:s,error}=await admin.from('accommodation_submissions')
+        .select('id,email,contact_number,website,payload')
+        .eq('id',body.id).eq('receipt_hash',receiptHash).maybeSingle()
+      if(error||!s)return reply({error:'Could not verify this accommodation submission.'},403)
+      const universities=Array.isArray(s.payload?.universities)?s.payload.universities:[]
+      const university=typeof universities[0]==='string'?universities[0]:''
+      if(!s.payload?.title||!s.payload?.address||!university)return reply({error:'This accommodation submission is missing required account details.'},400)
+      return reply({context:{id:s.id,email:s.email,phone:s.contact_number,website:s.website,title:s.payload.title,address:s.payload.address,university}})
+    }
     if(body.action==='claim'){
       const authorization=req.headers.get('Authorization')??''
       const client=createClient(url,anonKey,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}})
