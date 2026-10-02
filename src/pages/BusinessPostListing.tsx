@@ -35,6 +35,7 @@ const [imageUrls, setImageUrls] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 const [submitted, setSubmitted] = useState(false)
+  const [submittedId, setSubmittedId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
 useEffect(() => {
@@ -99,6 +100,8 @@ useEffect(() => {
   if (!isLoadingAuth && !currentUser) return <BusinessListingFirst />
   if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
 
+  const resultListingId = editListing?.id || submittedId
+
 if (submitted) return (
     <div className="min-h-screen bg-slate-deep flex flex-col items-center justify-center px-6 text-center">
       <div className="w-16 h-16 rounded-full bg-teal-faint flex items-center justify-center mb-4">
@@ -112,12 +115,22 @@ if (submitted) return (
           ? 'Your changes are live now. Our team may still review them, but your listing was never taken down while that happens.'
           : 'Your listing is live now on the Business marketplace for the universities you selected.'}
       </p>
-      <button
-        onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
-        className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-8 rounded-xl transition-colors"
-      >
-        {editListing ? 'Back to My Listings' : 'Back to Feed'}
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        {resultListingId && (
+          <button
+            onClick={() => navigate(`/listing/${resultListingId}`)}
+            className="bg-ember hover:bg-ember-dark text-white font-bold py-3 px-8 rounded-xl transition-colors"
+          >
+            View Listing
+          </button>
+        )}
+        <button
+          onClick={() => navigate(editListing ? `/profile/${currentUser.id}` : '/feed')}
+          className="border border-slate-border text-cream font-bold py-3 px-8 rounded-xl transition-colors hover:border-teal-light"
+        >
+          {editListing ? 'Back to My Listings' : 'Back to Feed'}
+        </button>
+      </div>
     </div>
   )
   if (atLimit) return (
@@ -249,12 +262,13 @@ const sharedFields = {
       return
     }
 
-    const { error: err } = await createListing({
+    const { id: createdId, error: err } = await createListing({
       sellerId: currentUser.id,
       ...sharedFields,
       planTier: plan,
     })
     if (err) { setLoading(false); setError(err); return }
+    setSubmittedId(createdId)
     sessionStorage.removeItem('atriumx_pending_business_draft')
     await refreshBusinessProfile()
     setLoading(false)
@@ -267,192 +281,266 @@ const sharedFields = {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
-<h1 className="font-serif text-2xl text-cream mb-1">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
-          <p className="text-cream-muted text-sm mb-6">
-            Posting on the {tierConfig.label} plan — {maxPhotos === 0 ? 'text only, no photos' : `up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''}`}.
-          </p>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
+          <div className="mb-6">
+            <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Business listing</p>
+            <h1 className="font-serif text-3xl text-cream">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
+            <p className="text-cream-muted text-sm mt-2">
+              Keep everything in one place. Your current {tierConfig.label} plan allows {maxPhotos === 0 ? 'a text-only listing' : `up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''}`}.
+            </p>
+          </div>
 
-          <div className="flex flex-col gap-5">
-            {/* PHOTOS */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Photos ({imageUrls.length}/{maxPhotos})
-              </label>
-              {!canUploadPhoto ? (
-                <div className="bg-slate-card border border-slate-border rounded-xl px-4 py-3 flex items-center gap-3">
-                  <ImagePlus size={18} className="text-cream-muted flex-shrink-0" />
-                  <div>
-                    <p className="text-cream-muted text-sm">Photos aren't included on the Noticeboard plan</p>
-                    <button
-                      onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
-                      className="text-blue-400 text-xs underline"
-                    >
-                      Upgrade to add photos
-                    </button>
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+            <div className="space-y-5">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="mb-5">
+                  <h2 className="text-cream font-bold text-base">Listing details</h2>
+                  <p className="text-cream-muted text-xs mt-1">The main information students will see first.</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                      Listing Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 20% off haircuts for students"
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      className={inputClass}
+                    />
                   </div>
-                </div>
-              ) : (
-                <div className="flex gap-2 flex-wrap">
-                  {imageUrls.map((url, idx) => (
-                    <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-slate-deep/80 rounded-full flex items-center justify-center text-cream"
-                      >
-                        <X size={11} />
-                      </button>
+
+                  <div>
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                      Starting Price — optional
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cream-muted text-sm font-bold">R</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        value={price}
+                        onChange={e => setPrice(e.target.value)}
+                        className={inputClass + ' pl-8'}
+                      />
                     </div>
-                  ))}
-                  {imageUrls.length < maxPhotos && (
                     <button
-                      onClick={() => fileRef.current?.click()}
-                      disabled={uploading}
-                      className="w-20 h-20 rounded-xl border border-dashed border-slate-border flex items-center justify-center text-cream-muted hover:border-teal-light transition-colors disabled:opacity-40"
-                    >
-                      <ImagePlus size={20} />
-                    </button>
-                  )}
-                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                </div>
-              )}
-            </div>
-
-            {/* TITLE */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Listing Name <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 20% off haircuts for students"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-
-            {/* PRICE */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Starting Price — optional
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cream-muted text-sm font-bold">R</span>
-<input
-                  type="number"
-                  placeholder="0"
-                  min="0"
-                  value={price}
-                  onChange={e => setPrice(e.target.value)}
-                  className={inputClass + ' pl-8'}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsNegotiable(v => !v)}
-                className={`mt-2 text-xs px-3 py-2 rounded-xl border transition-colors ${
-                  isNegotiable
-                    ? 'bg-gold/10 text-gold border-gold/40'
-                    : 'bg-slate-card text-cream-muted border-slate-border hover:border-teal-light'
-                }`}
-              >
-                {isNegotiable ? '✓ Open to offers' : 'Mark as open to offers'}
-              </button>
-            </div>
-            {/* DESCRIPTION */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Description <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                placeholder="What are you offering? Include anything students should know."
-                maxLength={500}
-                rows={4}
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                className={inputClass + ' resize-none'}
-              />
-              <div className="flex justify-between mt-1">
-                {description.length < 20 && description.length > 0 && (
-                  <p className="text-red-400 text-xs">Minimum 20 characters</p>
-                )}
-                <p className="text-cream-muted text-xs text-right ml-auto">{description.length}/500</p>
-              </div>
-            </div>
-
-            {/* UNIVERSITIES */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Universities <span className="text-red-400">*</span>
-              </label>
-              <p className={needsUniversityReduction ? "text-red-400 text-xs mb-3" : "text-cream-muted text-xs mb-3"}>
-                {needsUniversityReduction
-                  ? `Your current plan now allows ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Choose the universit${maxUniversities !== 1 ? 'ies' : 'y'} you want to keep before posting.`
-                  : accountUniversities.length < maxUniversities
-                  ? `Choose up to ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. New university access can only be added while your plan has room.`
-                  : `This account already has access to its ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Future listings can only use these universities.`}
-              </p>
-              <input
-                type="text"
-                placeholder="Search for a university..."
-                value={universitySearch}
-                onChange={e => setUniversitySearch(e.target.value)}
-                className={inputClass}
-              />
-              <div className="mt-2 flex flex-col gap-2 max-h-56 overflow-y-auto">
-                {universityOptions.map(university => {
-                  const selected = selectedUniversities.includes(university)
-                  const isAccountUniversity = accountUniversities.includes(university)
-                  return (
-                    <button
-                      key={university}
                       type="button"
-                      onClick={() => toggleUniversity(university)}
-                      className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
-                        selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream hover:border-teal-light'
+                      onClick={() => setIsNegotiable(v => !v)}
+                      className={`mt-2 text-xs px-3 py-2 rounded-xl border transition-colors ${
+                        isNegotiable
+                          ? 'bg-gold/10 text-gold border-gold/40'
+                          : 'bg-slate-deep text-cream-muted border-slate-border hover:border-teal-light'
                       }`}
                     >
-                      <span className="flex-1 min-w-0">{university}</span>
-                      {isAccountUniversity && (
-                        <span className="text-[10px] text-cream-muted">Account</span>
-                      )}
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
-                        {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
-                      </span>
+                      {isNegotiable ? '✓ Open to offers' : 'Mark as open to offers'}
                     </button>
-                  )
-                })}
-                {universityOptions.length === 0 && (
-                  <p className="text-cream-muted text-sm text-center py-4">No universities match your search.</p>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
+                      Description <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      placeholder="What are you offering? Include anything students should know."
+                      maxLength={500}
+                      rows={5}
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      className={inputClass + ' resize-y'}
+                    />
+                    <div className="flex justify-between mt-1">
+                      {description.length < 20 && description.length > 0 && (
+                        <p className="text-red-400 text-xs">Minimum 20 characters</p>
+                      )}
+                      <p className="text-cream-muted text-xs text-right ml-auto">{description.length}/500</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-cream font-bold text-base">Universities</h2>
+                    <p className={needsUniversityReduction ? "text-red-400 text-xs mt-1" : "text-cream-muted text-xs mt-1"}>
+                      {needsUniversityReduction
+                        ? `Your current plan now allows ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Choose the universit${maxUniversities !== 1 ? 'ies' : 'y'} you want to keep before posting.`
+                        : accountUniversities.length < maxUniversities
+                        ? `Choose up to ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. New university access can only be added while your plan has room.`
+                        : `This account already has access to its ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Future listings can only use these universities.`}
+                    </p>
+                  </div>
+                  <span className="text-cream-muted text-xs bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                    {selectedUniversities.length}/{maxUniversities}
+                  </span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Search for a university..."
+                  value={universitySearch}
+                  onChange={e => setUniversitySearch(e.target.value)}
+                  className={inputClass}
+                />
+                <div className="mt-3 grid sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+                  {universityOptions.map(university => {
+                    const selected = selectedUniversities.includes(university)
+                    const isAccountUniversity = accountUniversities.includes(university)
+                    return (
+                      <button
+                        key={university}
+                        type="button"
+                        onClick={() => toggleUniversity(university)}
+                        className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
+                          selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'
+                        }`}
+                      >
+                        <span className="flex-1 min-w-0">{university}</span>
+                        {isAccountUniversity && <span className="text-[10px] text-cream-muted">Account</span>}
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
+                          {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
+                        </span>
+                      </button>
+                    )
+                  })}
+                  {universityOptions.length === 0 && (
+                    <p className="text-cream-muted text-sm text-center py-5 sm:col-span-2">No universities match your search.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-cream font-bold text-base">Media</h2>
+                    <p className="text-cream-muted text-xs mt-1">
+                      {canUploadPhoto ? `Add up to ${maxPhotos} photo${maxPhotos !== 1 ? 's' : ''} to show students what you offer.` : 'Your current plan is text only.'}
+                    </p>
+                  </div>
+                  {canUploadPhoto && (
+                    <span className="text-cream-muted text-xs bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
+                      {imageUrls.length}/{maxPhotos}
+                    </span>
+                  )}
+                </div>
+
+                {!canUploadPhoto ? (
+                  <div className="bg-slate-deep border border-slate-border rounded-xl px-4 py-4 flex items-center gap-3">
+                    <ImagePlus size={18} className="text-cream-muted flex-shrink-0" />
+                    <div>
+                      <p className="text-cream-muted text-sm">Photos aren't included on the Noticeboard plan</p>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
+                        className="text-blue-400 text-xs underline mt-1"
+                      >
+                        Upgrade to add photos
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {imageUrls.map((url, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep border border-slate-border">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1.5 right-1.5 w-7 h-7 bg-slate-deep/80 rounded-full flex items-center justify-center text-cream"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {imageUrls.length < maxPhotos && (
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploading}
+                        className="aspect-square rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-1.5 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-40"
+                      >
+                        <ImagePlus size={20} />
+                        <span className="text-xs">{uploading ? 'Uploading...' : 'Add photo'}</span>
+                      </button>
+                    )}
+                    <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                  </div>
                 )}
-              </div>
+              </section>
+
+              {error && <p className="text-red-400 text-sm">{error}</p>}
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <aside className="lg:sticky lg:top-20 space-y-4">
+              <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
+                <div className="aspect-[16/9] bg-slate-deep border-b border-slate-border">
+                  {imageUrls[0] ? (
+                    <img src={imageUrls[0]} alt="Listing preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-cream-muted gap-2">
+                      <ImagePlus size={24} />
+                      <span className="text-xs">Your first photo will appear here</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-teal-light font-bold mb-2">Your listing preview</p>
+                  <h2 className="text-cream font-bold text-lg leading-tight">{title.trim() || 'Your business listing'}</h2>
+                  <p className="text-cream-muted text-xs mt-1">{business?.business_name || 'Business'}{business?.physical_address ? ` · ${business.physical_address}` : ''}</p>
+                  <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-border">
+                    <span className="text-gold font-bold">{price ? `R${price}` : 'Price not added'}</span>
+                    {isNegotiable && <span className="text-gold text-xs">Open to offers</span>}
+                  </div>
+                  {description.trim() && <p className="text-cream-muted text-xs mt-3 line-clamp-3">{description.trim()}</p>}
+                  {selectedUniversities.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {selectedUniversities.map(university => (
+                        <span key={university} className="text-[10px] text-cream-muted bg-slate-deep border border-slate-border rounded-lg px-2 py-1">{university}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
 
-<button
-              onClick={handleSubmit}
-              disabled={loading || uploading || !title || description.length < 20 || selectedUniversities.length === 0}
-              className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
-            >
-              {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
-            </button>
-            {/* Nothing ranks above Campus Partner, so there's nothing to
-                upgrade to — hide the button entirely rather than show a dead end. */}
-            {plan !== 'campus_partner' && (
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-cream-muted text-xs">Current plan</p>
+                    <h3 className="text-cream font-bold mt-1">{tierConfig.label}</h3>
+                  </div>
+                  <span className="text-gold font-bold text-sm">{tierConfig.price}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-4 text-xs text-cream-muted">
+                  <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{tierConfig.maxListings}</span> active listing{tierConfig.maxListings !== 1 ? 's' : ''}</div>
+                  <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{maxPhotos}</span> photo{maxPhotos !== 1 ? 's' : ''}</div>
+                </div>
+                {plan !== 'campus_partner' && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
+                    className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-2.5 rounded-xl transition-colors mt-3"
+                  >
+                    View upgrade options
+                  </button>
+                )}
+              </section>
+
               <button
-                type="button"
-                onClick={() => navigate('/business/plan-select', { state: { forcePlans: true } })}
-                className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-3 rounded-xl transition-colors"
+                onClick={handleSubmit}
+                disabled={loading || uploading || !title || description.length < 20 || selectedUniversities.length === 0}
+                className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-colors"
               >
-                Upgrade Plan
+                {loading ? (editListing ? 'Saving...' : 'Submitting...') : (editListing ? 'Save Changes' : 'Post Listing')}
               </button>
-            )}
+              <p className="text-cream-muted text-xs text-center">You can review the details above before publishing.</p>
+            </aside>
           </div>
-        </div>
-   </div>
+        </main>
+      </div>
       {cropSrc && (
         <ImageCropModal
           imageSrc={cropSrc}

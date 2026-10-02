@@ -15,7 +15,7 @@ import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
 const input =
-  'w-full bg-slate-card border border-slate-border rounded-xl px-3 py-2.5 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light'
+  'w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-sm text-cream placeholder:text-cream-muted focus:outline-none focus:border-teal-light'
 
 export default function PostEvent() {
   const navigate = useNavigate()
@@ -130,7 +130,7 @@ export default function PostEvent() {
 
     setSaving(true)
 
-    const { error } = await createEvent({
+    const { id: createdId, error } = await createEvent({
       hostId: currentUser.id,
       title: title.trim(),
       description: description.trim(),
@@ -145,7 +145,7 @@ export default function PostEvent() {
 
     if (error) return showToast(error, 'error')
     showToast('Event posted.', 'success')
-    navigate('/events')
+    navigate(createdId ? `/event/${createdId}` : '/events')
   }
 
   if (!currentUser) {
@@ -160,134 +160,218 @@ export default function PostEvent() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
-          {/* Lets someone who tapped the wrong thing swap without going back. */}
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
           <PostTypeSwitcher current="event" />
 
-          <h1 className="font-serif text-2xl text-cream mb-1">Post an Event</h1>
-          <p className="text-cream-muted text-sm mb-6">
-            {currentUser.account_type === 'business'
-              ? 'Choose which universities your business can reach for this event.'
-              : 'Anyone at your university will see it on the Events board.'}
-          </p>
-
-          <div className="flex flex-col gap-3">
-            <input className={input} placeholder="Event title" value={title} onChange={e => setTitle(e.target.value)} />
-
-            {/* Poster upload — same crop flow as listing photos. Defaults
-                to Portrait since a poster/flyer is normally taller than
-                wide, but the modal's own Landscape/Square/Portrait toggle
-                still lets the host pick a different shape if theirs is. */}
-            <div>
-              <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                Poster (optional)
-              </label>
-              {posterUrl ? (
-                <div className="relative w-full aspect-[3/4] max-w-[220px] rounded-xl overflow-hidden border border-slate-border">
-                  <img src={posterUrl} alt="Event poster" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setPosterUrl(null)}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
-                    aria-label="Remove poster"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploadingPoster}
-                  className="w-full aspect-[3/4] max-w-[220px] rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-1.5 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-60"
-                >
-                  <ImagePlus size={20} />
-                  <span className="text-xs font-bold">{uploadingPoster ? 'Uploading…' : 'Add a poster'}</span>
-                </button>
-              )}
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterSelect} />
-            </div>
-
-            <select className={input} value={category} onChange={e => setCategory(e.target.value)}>
-              {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            <div className="flex gap-3">
-              <input className={input} type="date" value={date} onChange={e => setDate(e.target.value)} />
-              <input className={input} type="time" value={time} onChange={e => setTime(e.target.value)} />
-            </div>
-
-            <input className={input} placeholder="Where? (e.g. Great Hall)" value={location} onChange={e => setLocation(e.target.value)} />
-
-            {currentUser.account_type === 'business' && (
-              <div>
-                <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
-                  Universities this event will reach <span className="text-red-400">*</span>
-                </label>
-                {loadingBusinessUniversities ? (
-                  <p className="text-cream-muted text-sm py-2">Loading your university access...</p>
-                ) : businessUniversities.length === 0 ? (
-                  <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {businessUniversities.map(university => {
-                      const selected = selectedUniversities.includes(university)
-                      return (
-                        <button
-                          key={university}
-                          type="button"
-                          onClick={() => setSelectedUniversities(prev => {
-                            if (selected) return prev.filter(u => u !== university)
-                            return [...prev, university]
-                          })}
-                          className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
-                            selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-card text-cream hover:border-teal-light'
-                          }`}
-                        >
-                          <span className="flex-1 min-w-0">{university}</span>
-                          <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
-                            {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <textarea
-              className={`${input} resize-none`} rows={4}
-              placeholder="What's happening? Any details people should know."
-              value={description} onChange={e => setDescription(e.target.value)}
-            />
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsFree(f => !f)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                  isFree ? 'bg-teal-primary border-teal-light text-cream' : 'bg-slate-card border-slate-border text-cream-muted'
-                }`}
-              >
-                Free entry
-              </button>
-              {!isFree && (
-                <input
-                  className={input} type="number" min="0" placeholder="Ticket price (R)"
-                  value={price} onChange={e => setPrice(e.target.value)}
-                />
-              )}
-              {isFree && <span className="text-cream-muted text-xs">Tap to add a ticket price instead</span>}
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={saving || loadingBusinessUniversities}
-              className="bg-gold hover:bg-gold/90 disabled:opacity-60 text-slate-deep font-bold py-3 rounded-xl text-sm transition-colors mt-2"
-            >
-              {saving ? 'Posting…' : 'Post event'}
-            </button>
+          <div className="mb-6">
+            <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Event listing</p>
+            <h1 className="font-serif text-3xl text-cream">Post an Event</h1>
+            <p className="text-cream-muted text-sm mt-2">
+              {currentUser.account_type === 'business'
+                ? 'Add your event details in one page and choose which universities your business can reach.'
+                : 'Add your event details in one page. Students at your university will see it on the Events board.'}
+            </p>
           </div>
-        </div>
+
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+            <div className="space-y-5">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="mb-5">
+                  <h2 className="text-cream font-bold text-base">Event details</h2>
+                  <p className="text-cream-muted text-xs mt-1">The information students need to understand the event.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Event title</label>
+                    <input className={input} placeholder="Event title" value={title} onChange={e => setTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Category</label>
+                    <select className={input} value={category} onChange={e => setCategory(e.target.value)}>
+                      {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Description</label>
+                    <textarea
+                      className={`${input} resize-y`}
+                      rows={5}
+                      placeholder="What's happening? Any details people should know."
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="mb-5">
+                  <h2 className="text-cream font-bold text-base">Date, place & ticketing</h2>
+                  <p className="text-cream-muted text-xs mt-1">Keep the practical event information together.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Date</label>
+                    <input className={input} type="date" value={date} onChange={e => setDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Start time</label>
+                    <input className={input} type="time" value={time} onChange={e => setTime(e.target.value)} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Location</label>
+                    <input className={input} placeholder="Where? (e.g. Great Hall)" value={location} onChange={e => setLocation(e.target.value)} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Entry</label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsFree(f => !f)}
+                        className={`px-4 py-3 rounded-xl text-xs font-bold border transition-colors ${
+                          isFree ? 'bg-teal-primary border-teal-light text-cream' : 'bg-slate-deep border-slate-border text-cream-muted'
+                        }`}
+                      >
+                        Free entry
+                      </button>
+                      {!isFree ? (
+                        <input
+                          className={input}
+                          type="number"
+                          min="0"
+                          placeholder="Ticket price (R)"
+                          value={price}
+                          onChange={e => setPrice(e.target.value)}
+                        />
+                      ) : (
+                        <div className="flex items-center text-cream-muted text-xs px-1">Tap “Free entry” to add a ticket price instead.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {currentUser.account_type === 'business' && (
+                <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h2 className="text-cream font-bold text-base">Universities this event will reach</h2>
+                      <p className="text-cream-muted text-xs mt-1">Only universities already available to this business account are shown.</p>
+                    </div>
+                    <span className="text-cream-muted text-xs">{selectedUniversities.length} selected</span>
+                  </div>
+                  {loadingBusinessUniversities ? (
+                    <p className="text-cream-muted text-sm py-2">Loading your university access...</p>
+                  ) : businessUniversities.length === 0 ? (
+                    <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {businessUniversities.map(university => {
+                        const selected = selectedUniversities.includes(university)
+                        return (
+                          <button
+                            key={university}
+                            type="button"
+                            onClick={() => setSelectedUniversities(prev => {
+                              if (selected) return prev.filter(u => u !== university)
+                              return [...prev, university]
+                            })}
+                            className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
+                              selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'
+                            }`}
+                          >
+                            <span className="flex-1 min-w-0">{university}</span>
+                            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
+                              {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+                <div className="mb-4">
+                  <h2 className="text-cream font-bold text-base">Event poster</h2>
+                  <p className="text-cream-muted text-xs mt-1">Optional. Add one poster or event image to help the listing stand out.</p>
+                </div>
+                {posterUrl ? (
+                  <div className="relative w-full aspect-[3/4] max-w-[240px] rounded-xl overflow-hidden border border-slate-border bg-slate-deep">
+                    <img src={posterUrl} alt="Event poster" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPosterUrl(null)}
+                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                      aria-label="Remove poster"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploadingPoster}
+                    className="w-full min-h-40 rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-2 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-60"
+                  >
+                    <ImagePlus size={22} />
+                    <span className="text-xs font-bold">{uploadingPoster ? 'Uploading…' : 'Add a poster'}</span>
+                  </button>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterSelect} />
+              </section>
+            </div>
+
+            <aside className="lg:sticky lg:top-20 space-y-4">
+              <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
+                <div className="aspect-[16/9] bg-slate-deep border-b border-slate-border">
+                  {posterUrl ? (
+                    <img src={posterUrl} alt="Event preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-cream-muted gap-2">
+                      <ImagePlus size={24} />
+                      <span className="text-xs">Your event poster will appear here</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-teal-light font-bold mb-2">Your event preview</p>
+                  <h2 className="text-cream font-bold text-lg leading-tight">{title.trim() || 'Your event title'}</h2>
+                  <p className="text-cream-muted text-xs mt-1">{category}{location.trim() ? ` · ${location.trim()}` : ''}</p>
+                  <div className="mt-4 pt-4 border-t border-slate-border space-y-2 text-xs">
+                    <div className="flex justify-between gap-3"><span className="text-cream-muted">Date</span><span className="text-cream">{date || 'Not set'}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-cream-muted">Time</span><span className="text-cream">{time || 'Not set'}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-cream-muted">Entry</span><span className="text-gold font-bold">{isFree ? 'Free' : price ? `R${price}` : 'Price not set'}</span></div>
+                  </div>
+                  {description.trim() && <p className="text-cream-muted text-xs mt-3 line-clamp-3">{description.trim()}</p>}
+                  {selectedUniversities.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {selectedUniversities.map(university => (
+                        <span key={university} className="text-[10px] text-cream-muted bg-slate-deep border border-slate-border rounded-lg px-2 py-1">{university}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4">
+                <p className="text-cream font-bold text-sm">Events are free to post</p>
+                <p className="text-cream-muted text-xs mt-1">There is no event plan or upgrade step. This keeps the existing event flow unchanged.</p>
+              </section>
+
+              <button
+                onClick={handleSubmit}
+                disabled={saving || loadingBusinessUniversities}
+                className="w-full bg-gold hover:bg-gold/90 disabled:opacity-60 text-slate-deep font-bold py-3.5 rounded-xl text-sm transition-colors"
+              >
+                {saving ? 'Posting…' : 'Post event'}
+              </button>
+              <p className="text-cream-muted text-xs text-center">After posting, you will be taken to the event details page.</p>
+            </aside>
+          </div>
+        </main>
       </div>
       {cropSrc && (
         <ImageCropModal
