@@ -1256,6 +1256,40 @@ export async function createAccommodationListing(payload: {
   return { id: data || null, error: error ? error.message : null }
 }
 
+export async function updateAccommodationListing(payload: {
+  listingId: string
+  sellerId: string
+  title: string
+  buildingCount: number
+  address: string
+  description: string
+  amenities: string[]
+  imageUrls: string[]
+  universities: string[]
+  roomPricing: AccommodationRoomPricing[]
+  videoUrl?: string | null
+  buildingAddresses?: string[]
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('accommodation_listings')
+    .update({
+      title: payload.title,
+      building_count: payload.buildingCount,
+      address: payload.address,
+      description: payload.description,
+      amenities: payload.amenities,
+      image_urls: payload.imageUrls,
+      universities: payload.universities,
+      room_pricing: payload.roomPricing,
+      video_url: payload.videoUrl ?? null,
+      building_addresses: payload.buildingAddresses ?? [],
+    })
+    .eq('id', payload.listingId)
+    .eq('seller_id', payload.sellerId)
+
+  return { error: error ? error.message : null }
+}
+
 async function getBusinessWebsites(sellerIds: string[]): Promise<Record<string, string | null>> {
   const ids = Array.from(new Set(sellerIds))
   if (ids.length === 0) return {}
