@@ -39,6 +39,7 @@ import AccommodationMarketplace from './pages/AccommodationMarketplace'
 import AccommodationClaim from './pages/AccommodationClaim'
 import AccommodationPostListing from './pages/AccommodationPostListing'
 import AccommodationDetail from './pages/AccommodationDetail'
+import AccommodationEditListing from './pages/AccommodationEditListing'
 
 function ToastLayer() {
   const { toasts } = useApp()
@@ -151,6 +152,7 @@ export default function App() {
           <Route path="/accommodation/plan-select" element={<AccommodationPlanSelect />} />
           <Route path="/accommodation/post" element={<AccommodationPostListing />} />
           <Route path="/accommodation/claim" element={<AccommodationClaim />} />
+          <Route path="/accommodation/:id/edit" element={<AccommodationEditListing />} />
           <Route path="/accommodation/:id" element={<AccommodationDetail />} />
           <Route path="/accommodations/review" element={<AccommodationReviewPage />} />
           <Route path="/accommodations/residence/:id" element={<ResidenceDetail />} />
