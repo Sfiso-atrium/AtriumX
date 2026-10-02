@@ -260,7 +260,7 @@ setLoading(true)
         <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
           {!editListing && <PostTypeSwitcher current="listing" />}
 
-          <div className="mb-6">
+          <div className="mb-4">
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Student marketplace listing</p>
             <h1 className="font-serif text-3xl text-cream">{editListing ? 'Edit Listing' : 'New Listing'}</h1>
             <p className="text-cream-muted text-sm mt-2">
@@ -268,10 +268,10 @@ setLoading(true)
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-            <div className="space-y-5">
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-5">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 md:gap-5 items-start">
+            <div className="space-y-4">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+                <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Listing details</h2>
                   <p className="text-cream-muted text-xs mt-1">Tell students what you are selling or offering.</p>
                 </div>
@@ -339,7 +339,7 @@ setLoading(true)
                       <textarea
                         placeholder="Describe your item — condition, what is included, where to collect."
                         maxLength={500}
-                        rows={5}
+                        rows={3}
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                         className={inputClass + ' resize-y'}
@@ -353,8 +353,8 @@ setLoading(true)
                 </div>
               </section>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-5">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+                <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Price & options</h2>
                   <p className="text-cream-muted text-xs mt-1">Keep pricing and variations together so students can understand the offer quickly.</p>
                 </div>
@@ -389,51 +389,30 @@ setLoading(true)
                   </div>
 
                   {maxVariants > 0 && (
-                    <div className="sm:col-span-2 border-t border-slate-border pt-4">
-                      <div className="flex items-start justify-between gap-3 mb-3">
+                    <details className="sm:col-span-2 border-t border-slate-border pt-3">
+                      <summary className="list-none cursor-pointer flex items-center justify-between gap-3 py-1">
                         <div>
-                          <p className="text-cream text-sm font-bold">Variants — optional</p>
-                          <p className="text-cream-muted text-xs mt-1">Use this for multiple sizes, flavours, or types.</p>
+                          <p className="text-cream text-sm font-bold">Variants <span className="text-cream-muted font-normal text-xs">(optional)</span></p>
+                          <p className="text-cream-muted text-xs mt-1">{variants.length ? `${variants.length} added` : 'Use for multiple sizes, flavours, or types.'}</p>
                         </div>
-                        <span className="text-cream-muted text-xs">{variants.length}/{maxVariants}</span>
-                      </div>
-                      <div className="space-y-2">
+                        <span className="text-teal-light text-xs font-bold">{variants.length}/{maxVariants} ▾</span>
+                      </summary>
+                      <div className="space-y-2 mt-3">
                         {variants.map((v, idx) => (
                           <div key={idx} className="flex gap-2">
-                            <input
-                              type="text"
-                              placeholder="Variant name (e.g. 50ml)"
-                              value={v.name}
-                              onChange={e => updateVariant(idx, 'name', e.target.value)}
-                              className={inputClass + ' flex-1'}
-                            />
-                            <div className="relative w-28">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted text-sm">R</span>
-                              <input
-                                type="number"
-                                placeholder="0"
-                                value={v.price}
-                                onChange={e => updateVariant(idx, 'price', e.target.value)}
-                                className={inputClass + ' pl-7'}
-                              />
-                            </div>
-                            <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-300 px-2">
-                              <Trash2 size={16} />
-                            </button>
+                            <input type="text" placeholder="Variant name (e.g. 50ml)" value={v.name} onChange={e => updateVariant(idx, 'name', e.target.value)} className={inputClass + ' flex-1 py-2.5'} />
+                            <div className="relative w-28"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted text-sm">R</span><input type="number" placeholder="0" value={v.price} onChange={e => updateVariant(idx, 'price', e.target.value)} className={inputClass + ' pl-7 py-2.5'} /></div>
+                            <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-300 px-2"><Trash2 size={16} /></button>
                           </div>
                         ))}
-                        {variants.length < maxVariants && (
-                          <button type="button" onClick={addVariant} className="flex items-center gap-2 text-teal-light text-sm hover:text-cream transition-colors pt-1">
-                            <Plus size={14} /> Add variant
-                          </button>
-                        )}
+                        {variants.length < maxVariants && <button type="button" onClick={addVariant} className="flex items-center gap-2 text-teal-light text-sm hover:text-cream transition-colors pt-1"><Plus size={14} /> Add variant</button>}
                       </div>
-                    </div>
+                    </details>
                   )}
                 </div>
               </section>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
                 <div className="mb-4">
                   <h2 className="text-cream font-bold text-base">Location</h2>
                   <p className="text-cream-muted text-xs mt-1">Tell students where the item or service is available.</p>
@@ -454,7 +433,7 @@ setLoading(true)
                 </datalist>
               </section>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h2 className="text-cream font-bold text-base">Media</h2>
@@ -491,7 +470,7 @@ setLoading(true)
 
                 {canUploadPhoto ? (
                   <>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
                       {imageUrls.map((url, idx) => (
                         <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep border border-slate-border">
                           <img src={url} alt="" className="w-full h-full object-cover" />
@@ -535,9 +514,9 @@ setLoading(true)
               {error && <p className="text-red-400 text-sm">{error}</p>}
             </div>
 
-            <aside className="lg:sticky lg:top-20 space-y-4">
+            <aside className="md:sticky md:top-20 space-y-3">
               <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
-                <div className="aspect-[16/9] bg-slate-deep border-b border-slate-border">
+                <div className="h-32 sm:h-36 bg-slate-deep border-b border-slate-border">
                   {imageUrls[0] ? (
                     <img src={imageUrls[0]} alt="Listing preview" className="w-full h-full object-cover" />
                   ) : (

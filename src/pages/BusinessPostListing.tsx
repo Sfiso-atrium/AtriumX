@@ -282,7 +282,7 @@ const sharedFields = {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
-          <div className="mb-6">
+          <div className="mb-4">
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Business listing</p>
             <h1 className="font-serif text-3xl text-cream">{editListing ? 'Edit Listing' : 'New Business Listing'}</h1>
             <p className="text-cream-muted text-sm mt-2">
@@ -290,10 +290,10 @@ const sharedFields = {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-            <div className="space-y-5">
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-5">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 md:gap-5 items-start">
+            <div className="space-y-4">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+                <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Listing details</h2>
                   <p className="text-cream-muted text-xs mt-1">The main information students will see first.</p>
                 </div>
@@ -347,7 +347,7 @@ const sharedFields = {
                     <textarea
                       placeholder="What are you offering? Include anything students should know."
                       maxLength={500}
-                      rows={5}
+                      rows={3}
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       className={inputClass + ' resize-y'}
@@ -362,58 +362,36 @@ const sharedFields = {
                 </div>
               </section>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
+              <details className="bg-slate-card border border-slate-border rounded-2xl">
+                <summary className="list-none cursor-pointer p-4 sm:p-5 flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-cream font-bold text-base">Universities</h2>
+                    <h2 className="text-cream font-bold text-base">Universities <span className="text-red-400">*</span></h2>
                     <p className={needsUniversityReduction ? "text-red-400 text-xs mt-1" : "text-cream-muted text-xs mt-1"}>
-                      {needsUniversityReduction
-                        ? `Your current plan now allows ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Choose the universit${maxUniversities !== 1 ? 'ies' : 'y'} you want to keep before posting.`
-                        : accountUniversities.length < maxUniversities
-                        ? `Choose up to ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. New university access can only be added while your plan has room.`
-                        : `This account already has access to its ${maxUniversities} universit${maxUniversities !== 1 ? 'ies' : 'y'}. Future listings can only use these universities.`}
+                      {selectedUniversities.length ? selectedUniversities.join(' · ') : needsUniversityReduction ? `Choose the ${maxUniversities} university access${maxUniversities === 1 ? '' : 'es'} you want to keep.` : `Choose up to ${maxUniversities} universit${maxUniversities === 1 ? 'y' : 'ies'}.`}
                     </p>
                   </div>
-                  <span className="text-cream-muted text-xs bg-slate-deep border border-slate-border rounded-xl px-3 py-2">
-                    {selectedUniversities.length}/{maxUniversities}
-                  </span>
+                  <span className="text-teal-light text-xs font-bold whitespace-nowrap">{selectedUniversities.length}/{maxUniversities} ▾</span>
+                </summary>
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-slate-border pt-4">
+                  <input type="text" placeholder="Search for a university..." value={universitySearch} onChange={e => setUniversitySearch(e.target.value)} className={inputClass + ' py-2.5'} />
+                  <div className="mt-3 grid sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {universityOptions.map(university => {
+                      const selected = selectedUniversities.includes(university)
+                      const isAccountUniversity = accountUniversities.includes(university)
+                      return (
+                        <button key={university} type="button" onClick={() => toggleUniversity(university)} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border text-xs transition-colors ${selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'}`}>
+                          <span className="flex-1 min-w-0">{university}</span>
+                          {isAccountUniversity && <span className="text-[10px] text-cream-muted">Account</span>}
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>{selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}</span>
+                        </button>
+                      )
+                    })}
+                    {universityOptions.length === 0 && <p className="text-cream-muted text-sm text-center py-4 sm:col-span-2">No universities match your search.</p>}
+                  </div>
                 </div>
+              </details>
 
-                <input
-                  type="text"
-                  placeholder="Search for a university..."
-                  value={universitySearch}
-                  onChange={e => setUniversitySearch(e.target.value)}
-                  className={inputClass}
-                />
-                <div className="mt-3 grid sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                  {universityOptions.map(university => {
-                    const selected = selectedUniversities.includes(university)
-                    const isAccountUniversity = accountUniversities.includes(university)
-                    return (
-                      <button
-                        key={university}
-                        type="button"
-                        onClick={() => toggleUniversity(university)}
-                        className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
-                          selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'
-                        }`}
-                      >
-                        <span className="flex-1 min-w-0">{university}</span>
-                        {isAccountUniversity && <span className="text-[10px] text-cream-muted">Account</span>}
-                        <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
-                          {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
-                        </span>
-                      </button>
-                    )
-                  })}
-                  {universityOptions.length === 0 && (
-                    <p className="text-cream-muted text-sm text-center py-5 sm:col-span-2">No universities match your search.</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h2 className="text-cream font-bold text-base">Media</h2>
@@ -443,7 +421,7 @@ const sharedFields = {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
                     {imageUrls.map((url, idx) => (
                       <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep border border-slate-border">
                         <img src={url} alt="" className="w-full h-full object-cover" />
@@ -475,9 +453,9 @@ const sharedFields = {
               {error && <p className="text-red-400 text-sm">{error}</p>}
             </div>
 
-            <aside className="lg:sticky lg:top-20 space-y-4">
+            <aside className="md:sticky md:top-20 space-y-3">
               <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
-                <div className="aspect-[16/9] bg-slate-deep border-b border-slate-border">
+                <div className="h-32 sm:h-36 bg-slate-deep border-b border-slate-border">
                   {imageUrls[0] ? (
                     <img src={imageUrls[0]} alt="Listing preview" className="w-full h-full object-cover" />
                   ) : (

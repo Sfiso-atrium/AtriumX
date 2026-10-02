@@ -163,7 +163,7 @@ export default function PostEvent() {
         <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
           <PostTypeSwitcher current="event" />
 
-          <div className="mb-6">
+          <div className="mb-4">
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Event listing</p>
             <h1 className="font-serif text-3xl text-cream">Post an Event</h1>
             <p className="text-cream-muted text-sm mt-2">
@@ -173,10 +173,10 @@ export default function PostEvent() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-            <div className="space-y-5">
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-5">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 md:gap-5 items-start">
+            <div className="space-y-4">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+                <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Event details</h2>
                   <p className="text-cream-muted text-xs mt-1">The information students need to understand the event.</p>
                 </div>
@@ -195,7 +195,7 @@ export default function PostEvent() {
                     <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">Description</label>
                     <textarea
                       className={`${input} resize-y`}
-                      rows={5}
+                      rows={3}
                       placeholder="What's happening? Any details people should know."
                       value={description}
                       onChange={e => setDescription(e.target.value)}
@@ -204,8 +204,8 @@ export default function PostEvent() {
                 </div>
               </section>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-5">
+              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+                <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Date, place & ticketing</h2>
                   <p className="text-cream-muted text-xs mt-1">Keep the practical event information together.</p>
                 </div>
@@ -252,91 +252,57 @@ export default function PostEvent() {
               </section>
 
               {currentUser.account_type === 'business' && (
-                <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-4 mb-4">
+                <details className="bg-slate-card border border-slate-border rounded-2xl">
+                  <summary className="list-none cursor-pointer p-4 sm:p-5 flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-cream font-bold text-base">Universities this event will reach</h2>
-                      <p className="text-cream-muted text-xs mt-1">Only universities already available to this business account are shown.</p>
+                      <h2 className="text-cream font-bold text-base">Universities this event will reach <span className="text-red-400">*</span></h2>
+                      <p className="text-cream-muted text-xs mt-1">{selectedUniversities.length ? selectedUniversities.join(' · ') : 'Choose from this business account’s university access.'}</p>
                     </div>
-                    <span className="text-cream-muted text-xs">{selectedUniversities.length} selected</span>
+                    <span className="text-teal-light text-xs font-bold whitespace-nowrap">{selectedUniversities.length} selected ▾</span>
+                  </summary>
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-slate-border pt-4">
+                    {loadingBusinessUniversities ? (
+                      <p className="text-cream-muted text-sm py-2">Loading your university access...</p>
+                    ) : businessUniversities.length === 0 ? (
+                      <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
+                    ) : (
+                      <div className="grid sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto">
+                        {businessUniversities.map(university => {
+                          const selected = selectedUniversities.includes(university)
+                          return (
+                            <button key={university} type="button" onClick={() => setSelectedUniversities(prev => selected ? prev.filter(u => u !== university) : [...prev, university])} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border text-xs transition-colors ${selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'}`}>
+                              <span className="flex-1 min-w-0">{university}</span>
+                              <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>{selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                  {loadingBusinessUniversities ? (
-                    <p className="text-cream-muted text-sm py-2">Loading your university access...</p>
-                  ) : businessUniversities.length === 0 ? (
-                    <p className="text-red-400 text-sm py-2">Your business account has no university access configured.</p>
-                  ) : (
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      {businessUniversities.map(university => {
-                        const selected = selectedUniversities.includes(university)
-                        return (
-                          <button
-                            key={university}
-                            type="button"
-                            onClick={() => setSelectedUniversities(prev => {
-                              if (selected) return prev.filter(u => u !== university)
-                              return [...prev, university]
-                            })}
-                            className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors ${
-                              selected ? 'border-teal-light bg-teal-faint text-cream' : 'border-slate-border bg-slate-deep text-cream hover:border-teal-light'
-                            }`}
-                          >
-                            <span className="flex-1 min-w-0">{university}</span>
-                            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'border-teal-light bg-teal-light' : 'border-slate-border'}`}>
-                              {selected && <span className="w-2 h-2 rounded-sm bg-slate-deep" />}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </section>
+                </details>
               )}
-
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-5 sm:p-6">
-                <div className="mb-4">
-                  <h2 className="text-cream font-bold text-base">Event poster</h2>
-                  <p className="text-cream-muted text-xs mt-1">Optional. Add one poster or event image to help the listing stand out.</p>
-                </div>
-                {posterUrl ? (
-                  <div className="relative w-full aspect-[3/4] max-w-[240px] rounded-xl overflow-hidden border border-slate-border bg-slate-deep">
-                    <img src={posterUrl} alt="Event poster" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setPosterUrl(null)}
-                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
-                      aria-label="Remove poster"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploadingPoster}
-                    className="w-full min-h-40 rounded-xl border border-dashed border-slate-border flex flex-col items-center justify-center gap-2 text-cream-muted hover:border-teal-light transition-colors disabled:opacity-60"
-                  >
-                    <ImagePlus size={22} />
-                    <span className="text-xs font-bold">{uploadingPoster ? 'Uploading…' : 'Add a poster'}</span>
-                  </button>
-                )}
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterSelect} />
-              </section>
             </div>
 
-            <aside className="lg:sticky lg:top-20 space-y-4">
+            <aside className="md:sticky md:top-20 space-y-3">
               <section className="bg-slate-card border border-slate-border rounded-2xl overflow-hidden">
-                <div className="aspect-[16/9] bg-slate-deep border-b border-slate-border">
+                <div className="relative h-36 sm:h-40 bg-slate-deep border-b border-slate-border">
                   {posterUrl ? (
-                    <img src={posterUrl} alt="Event preview" className="w-full h-full object-cover" />
+                    <>
+                      <img src={posterUrl} alt="Event preview" className="w-full h-full object-contain" />
+                      <div className="absolute bottom-2 right-2 flex gap-2">
+                        <button type="button" onClick={() => fileRef.current?.click()} className="bg-black/65 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg">Replace</button>
+                        <button type="button" onClick={() => setPosterUrl(null)} className="bg-black/65 text-white rounded-lg p-1.5" aria-label="Remove poster"><X size={14} /></button>
+                      </div>
+                    </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-cream-muted gap-2">
-                      <ImagePlus size={24} />
-                      <span className="text-xs">Your event poster will appear here</span>
-                    </div>
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingPoster} className="w-full h-full flex flex-col items-center justify-center text-cream-muted gap-2 hover:text-cream transition-colors disabled:opacity-60">
+                      <ImagePlus size={22} />
+                      <span className="text-xs font-bold">{uploadingPoster ? 'Uploading…' : 'Add optional event poster'}</span>
+                    </button>
                   )}
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterSelect} />
                 </div>
-                <div className="p-4">
+                <div className="p-3.5">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-teal-light font-bold mb-2">Your event preview</p>
                   <h2 className="text-cream font-bold text-lg leading-tight">{title.trim() || 'Your event title'}</h2>
                   <p className="text-cream-muted text-xs mt-1">{category}{location.trim() ? ` · ${location.trim()}` : ''}</p>
