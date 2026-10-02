@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Globe, Building2, Plus, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Globe, Building2, Plus, ArrowRight, PencilLine } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Profile as ProfileType, Listing, Rating, BusinessProfile, PublicBusinessProfile, AccommodationListing, AccommodationPlanKey,
@@ -194,9 +194,14 @@ export default function Profile() {
                       <Plus size={16} /> Add accommodation
                     </button>
                   ) : (
-                    <button onClick={() => navigate(`/accommodation/${accommodationListings[0].id}`)} className="inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm">
-                      View accommodation
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => navigate(`/accommodation/${accommodationListings[0].id}/edit`)} className="inline-flex items-center gap-2 border border-teal-primary text-teal-light font-bold px-4 py-2.5 rounded-xl text-sm">
+                        <PencilLine size={16} /> Edit listing
+                      </button>
+                      <button onClick={() => navigate(`/accommodation/${accommodationListings[0].id}`)} className="inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm">
+                        View accommodation
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3 mt-5">

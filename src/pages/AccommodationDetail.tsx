@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, Plus, Send, Star, Tag } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, PencilLine, Plus, Send, Star, Tag } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, selectAccommodationUniversities, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
@@ -112,7 +112,11 @@ export default function AccommodationDetail() {
     <div className="min-h-screen bg-slate-deep pb-24">
       <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center justify-between px-4">
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream"><ArrowLeft size={20} /></button>
-        {!isOwner && !listing.guest_submission && <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>}
+        {isOwner ? (
+          <button onClick={() => navigate(`/accommodation/${listing.id}/edit`)} className="text-teal-light hover:text-cream text-sm font-semibold flex items-center gap-1.5"><PencilLine size={14} /> Edit listing</button>
+        ) : !listing.guest_submission ? (
+          <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>
+        ) : null}
       </div>
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {needsUniversitySelection && (

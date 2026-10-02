@@ -14,6 +14,7 @@ import {
   getEditedListings,
   getReportsForListings,
   getAccommodationReportsForAdmin,
+  clearAccommodationReports,
   getChatReports,
   suspendListingById,
   clearReports,
@@ -168,6 +169,15 @@ const handleClearReports = async (id: string) => {
     showToast('Notification sent to the accommodation owner.', 'success')
   }
 
+  const handleClearAccommodationReports = async (accommodationListingId: string) => {
+    setActionId(accommodationListingId)
+    const { error } = await clearAccommodationReports(accommodationListingId)
+    setActionId(null)
+    if (error) { showToast(error, 'error'); return }
+    setAccommodationReports(prev => prev.filter(report => report.accommodation_listing_id !== accommodationListingId))
+    showToast('Accommodation reports cleared.', 'success')
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-slate-deep flex items-center justify-center">
       <p className="text-cream-muted">Loading...</p>
@@ -225,7 +235,7 @@ const activeList =
                 : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
             }`}
           >
-            Reported ({reportedListings.length})
+            Reported ({reportedListings.length + accommodationReports.length})
           </button>
           <button
             onClick={() => setTab('chatReports')}
@@ -375,6 +385,41 @@ const activeList =
                       >
                         <Eye size={13} />
                         Mark Reviewed
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            {tab === 'reports' && accommodationReports.map(report => {
+              const busy = actionId === report.accommodation_listing_id
+              const deadlineActive = report.report_edit_deadline_at && new Date(report.report_edit_deadline_at).getTime() > Date.now()
+              return (
+                <div key={`accommodation-${report.id}`} className="bg-slate-card border border-red-500/20 rounded-2xl p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-teal-light text-[11px] font-bold uppercase tracking-[0.12em]">Accommodation report</p>
+                      <p className="text-cream font-bold text-sm mt-1 truncate">{report.listing_title}</p>
+                      <p className="text-cream-muted text-xs mt-0.5">Owner: {report.seller_name || 'Unknown'} · Reported by {report.reporter_name || 'Unknown user'}</p>
+                      <p className="text-cream-muted text-xs mt-2 pl-2 border-l-2 border-red-500/40">"{report.reason}"</p>
+                      {report.report_required_field && (
+                        <p className="text-gold text-xs mt-2">Required correction: {report.report_required_field.replace(/_/g, ' ')}</p>
+                      )}
+                      {report.report_edit_deadline_at && (
+                        <p className={`text-xs mt-1 ${deadlineActive ? 'text-cream-muted' : 'text-red-400'}`}>
+                          Correction deadline: {new Date(report.report_edit_deadline_at).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    {report.listing_image_urls?.[0] && <img src={report.listing_image_urls[0]} alt="" className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <button onClick={() => setWarningReport(report)} className="flex items-center gap-1.5 bg-teal-primary hover:bg-teal-light text-white text-xs font-bold px-3 py-2 rounded-xl">
+                      <PencilLine size={13} /> {report.report_warning_sent_at ? 'Update correction notice' : 'Request correction'}
+                    </button>
+                    {report.status === 'reviewed' && !report.report_edit_deadline_at && (
+                      <button onClick={() => handleClearAccommodationReports(report.accommodation_listing_id)} disabled={busy} className="flex items-center gap-1.5 border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-xs font-bold px-3 py-2 rounded-xl">
+                        <Flag size={13} /> Clear accommodation reports
                       </button>
                     )}
                   </div>
