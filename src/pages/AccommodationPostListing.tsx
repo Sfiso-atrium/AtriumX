@@ -592,11 +592,18 @@ export default function AccommodationPostListing() {
             </section>
 
             <button
-              onClick={handleSubmit}
-              disabled={busy || uploadingImages || uploadingVideo || hasExistingListing}
+              type="button"
+              onClick={() => {
+                if (hasExistingListing && existingListings[0]?.id) {
+                  navigate(`/accommodation/${existingListings[0].id}/edit`)
+                  return
+                }
+                void handleSubmit()
+              }}
+              disabled={busy || uploadingImages || uploadingVideo}
               className="w-full bg-teal-primary hover:opacity-90 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl"
             >
-              {busy ? 'Saving...' : hasExistingListing ? 'Accommodation listing already created' : isGuestSubmission ? 'Submit for review — free' : isSetupFlow && plan !== 'accommodation_free' ? 'Continue to payment' : 'Publish accommodation'}
+              {busy ? 'Saving...' : hasExistingListing ? 'Edit existing accommodation' : isGuestSubmission ? 'Submit for review — free' : isSetupFlow && plan !== 'accommodation_free' ? 'Continue to payment' : 'Publish accommodation'}
             </button>
             <p className="text-cream-muted text-xs text-center">Review your listing details above before publishing.</p>
           </aside>
