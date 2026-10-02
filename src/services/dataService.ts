@@ -2060,6 +2060,82 @@ export interface BusinessProfile {
   created_at: string
 }
 
+// Creates only the authenticated business identity. This is used by the
+// low-friction plan flow where the person supplies email/password first and
+// completes the business/accommodation profile on the listing form.
+export async function registerBusinessShellWithEmail(
+  email: string,
+  password: string
+): Promise<{ user: Profile | null; error: string | null }> {
+  const normalizedEmail = email.trim().toLowerCase()
+  const fallbackName = normalizedEmail.split('@')[0] || 'Business'
+  const initials = fallbackName.slice(0, 2).toUpperCase()
+
+  const { data, error } = await supabase.auth.signUp({
+    email: normalizedEmail,
+    password,
+    options: {
+      data: {
+        full_name: fallbackName,
+        avatar_initials: initials,
+        avatar_color: '#185FA5',
+        account_type: 'business',
+        email: normalizedEmail,
+      },
+    },
+  })
+
+  if (error) return { user: null, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message }
+  if (!data.user) return { user: null, error: 'Registration failed.' }
+
+  let profile: Profile | null = null
+  for (let i = 0; i < 5; i++) {
+    await new Promise(r => setTimeout(r, 600))
+    profile = await getUserById(data.user.id)
+    if (profile) break
+  }
+  if (!profile) return { user: null, error: 'Account created but profile is missing. Contact support.' }
+  return { user: profile, error: null }
+}
+
+export async function completeBusinessProfileForCurrentUser(payload: {
+  userId: string
+  businessName: string
+  businessType: string
+  customBusinessType?: string
+  contactNumber: string
+  physicalAddress?: string
+  website?: string
+  university: string
+  isAccommodation: boolean
+}): Promise<{ profile: BusinessProfile | null; error: string | null }> {
+  const initials = payload.businessName.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+  const { error: profileError } = await supabase.from('profiles').update({
+    full_name: payload.businessName,
+    university: payload.university,
+    avatar_initials: initials || 'BU',
+  }).eq('id', payload.userId)
+  if (profileError) return { profile: null, error: profileError.message }
+
+  const { data, error } = await supabase.from('business_profiles').insert({
+    id: payload.userId,
+    business_name: payload.businessName,
+    business_type: payload.businessType,
+    custom_business_type: payload.businessType === 'Other' ? payload.customBusinessType || null : null,
+    contact_number: payload.contactNumber,
+    physical_address: payload.physicalAddress?.trim() || null,
+    website: payload.website?.trim() || null,
+    universities: [payload.university],
+    is_accommodation: payload.isAccommodation,
+    accommodation_plan: 'accommodation_free',
+    accommodation_plan_expires_at: null,
+    status: 'approved',
+  }).select('*').single()
+
+  if (error || !data) return { profile: null, error: error?.message || 'Could not finish account setup.' }
+  return { profile: data as BusinessProfile, error: null }
+}
+
 // Businesses register a real account (same auth.users + profiles path as
 // students, just tagged account_type: 'business' — see migration 014) so
 // they can log in, chat, and get notifications like everyone else. No
