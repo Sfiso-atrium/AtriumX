@@ -112,7 +112,7 @@ export default function AccommodationMarketplace() {
                 </label>
               )}
 
-              <div className="mt-4 sm:hidden">
+              <div className="mt-4 lg:hidden">
                 <Link to="/accommodations/review" className="inline-flex items-center gap-2 rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold">
                   <PenLine size={17} /> Write a review
                 </Link>
@@ -120,7 +120,7 @@ export default function AccommodationMarketplace() {
             </div>
 
             <div className="relative min-h-[170px] sm:min-h-[210px] lg:min-h-[245px] flex items-end justify-center lg:justify-end">
-              <Link to="/accommodations/review" className="hidden sm:inline-flex absolute right-0 top-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm z-10">
+              <Link to="/accommodations/review" className="hidden lg:inline-flex absolute right-0 top-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm z-10">
                 <PenLine size={17} /> Write a review
               </Link>
               <img
