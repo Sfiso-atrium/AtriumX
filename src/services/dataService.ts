@@ -233,9 +233,9 @@ export const PLAN_TIERS = {
   // here — these values are what the tier grants once upgrades are wired
   // up, and are also what the reply/chat gates (migration 014) check
   // against right now.
-noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 0, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null, maxUniversities: 1 },
-  featured:       { label: 'Featured',       price: 'R199', priceNum: 199, days: 30, maxListings: 2, maxPhotos: 1, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored', maxUniversities: 2 },
-  campus_partner: { label: 'Campus Partner', price: 'R349', priceNum: 349, days: 30, maxListings: 3, maxPhotos: 3, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner', maxUniversities: 3 },
+noticeboard:    { label: 'Noticeboard',    price: 'Free', priceNum: 0,   days: 7,  maxListings: 1, maxPhotos: 3, maxVariants: 0, maxMsgs: 0,   canChat: false, canRenew: false, canNegBadge: false, pushNotif: false, bulkPost: 0, searchBoost: false, badge: null, maxUniversities: 1 },
+  featured:       { label: 'Featured',       price: 'R199', priceNum: 199, days: 30, maxListings: 2, maxPhotos: 5, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: false, badge: 'Sponsored', maxUniversities: 2 },
+  campus_partner: { label: 'Campus Partner', price: 'R349', priceNum: 349, days: 30, maxListings: 3, maxPhotos: 10, maxVariants: 0, maxMsgs: 999, canChat: true,  canRenew: true,  canNegBadge: false, pushNotif: true,  bulkPost: 0, searchBoost: true,  badge: 'Campus Partner', maxUniversities: 3 },
 } as const
 
 export type PlanKey = keyof typeof PLAN_TIERS
@@ -1167,6 +1167,26 @@ export async function uploadListingImage(
 ): Promise<{ url: string | null; error: string | null }> {
   const ext = file.name.split('.').pop()
   const filename = `listings/${userId}/${Date.now()}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('listing-images')
+    .upload(filename, file, { upsert: false })
+
+  if (uploadError) return { url: null, error: uploadError.message }
+
+  const { data } = supabase.storage
+    .from('listing-images')
+    .getPublicUrl(filename)
+
+  return { url: data.publicUrl, error: null }
+}
+
+export async function uploadBusinessVideo(
+  file: File,
+  userId: string
+): Promise<{ url: string | null; error: string | null }> {
+  const ext = file.name.split('.').pop() || 'mp4'
+  const filename = `business-videos/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
   const { error: uploadError } = await supabase.storage
     .from('listing-images')
