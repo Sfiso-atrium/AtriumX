@@ -37,6 +37,8 @@ export default function PaymentResult() {
   )
   const [planKey, setPlanKey] = useState<string | null>(null)
   const [paymentType, setPaymentType] = useState<'business' | 'accommodation'>(() => sessionStorage.getItem('atriumx_payment_type') === 'accommodation' ? 'accommodation' : 'business')
+  const hasPendingAccommodationDraft = !!sessionStorage.getItem('atriumx_pending_accommodation_draft')
+  const hasPendingBusinessDraft = !!sessionStorage.getItem('atriumx_pending_business_draft')
 
   useEffect(() => {
     if (outcome === 'cancelled' || !currentUser) return
@@ -53,12 +55,12 @@ export default function PaymentResult() {
       if (payment?.status === 'complete') {
         setPlanKey(payment.plan_key)
         setPaymentType(payment.plan_key.startsWith('accommodation_') ? 'accommodation' : 'business')
-        setStatus('complete')
-        // Pull the profile fresh so the rest of the app sees the new plan
-        // straight away instead of after a reload.
+        // Pull the profile fresh before showing the continue button so the
+        // resumed listing sees the paid plan immediately.
         const refreshed = await getUserById(currentUser.id)
         if (refreshed) setCurrentUser(refreshed)
         await refreshBusinessProfile()
+        setStatus('complete')
         return
       }
 
@@ -88,13 +90,20 @@ export default function PaymentResult() {
           text: "This usually takes a few seconds. You don't need to do anything — please don't close this page.",
           action: null,
         }
-      case 'complete':
+      case 'complete': {
+        const resumeAccommodation = paymentType === 'accommodation' && hasPendingAccommodationDraft
+        const resumeBusiness = paymentType === 'business' && hasPendingBusinessDraft
         return {
           icon: <CheckCircle2 size={44} className="text-teal-light" />,
           title: `You're on ${planKey ? (planKey.startsWith('accommodation_') ? ACCOMMODATION_PLANS[planKey as AccommodationPlanKey]?.label : PLAN_TIERS[planKey as PlanKey]?.label) : 'your new plan'}`,
-          text: 'Your plan is active and your listings have moved across to it.',
-          action: { label: 'Post a listing', to: paymentType === 'accommodation' ? '/accommodation/plan-select' : (currentUser?.account_type === 'business' ? '/business/plan-select' : '/post') },
+          text: resumeAccommodation || resumeBusiness ? 'Your plan is active. Your listing draft is ready exactly where you left it.' : 'Your plan is active and its features are ready to use.',
+          action: resumeAccommodation
+            ? { label: 'Continue your listing', to: '/accommodation/post?resume=1' }
+            : resumeBusiness
+            ? { label: 'Continue your listing', to: '/business/post?resume=1' }
+            : { label: 'Post a listing', to: paymentType === 'accommodation' ? '/accommodation/post' : (currentUser?.account_type === 'business' ? '/business/post' : '/post') },
         }
+      }
       case 'slow':
         return {
           icon: <Clock size={44} className="text-gold" />,

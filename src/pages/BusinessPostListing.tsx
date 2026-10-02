@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ImagePlus, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
@@ -10,10 +10,12 @@ import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import ImageCropModal from '../components/common/ImageCropModal'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
+import BusinessListingFirst from './BusinessListingFirst'
 
 export default function BusinessPostListing() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 const { currentUser, isLoadingAuth, showToast, refreshBusinessProfile } = useApp()
   const { plan: statePlan, editListing } = (location.state as { plan?: PlanKey; editListing?: Listing } | null) || {}
   const plan = statePlan || (currentUser?.account_type === 'business' ? getEffectiveBusinessPlan(currentUser) : undefined)
@@ -44,8 +46,24 @@ useEffect(() => {
     setImageUrls(editListing.image_urls || [])
   }, [editListing])
   useEffect(() => {
+    if (searchParams.get('resume') !== '1' || !currentUser || currentUser.account_type !== 'business') return
+    try {
+      const raw = sessionStorage.getItem('atriumx_pending_business_draft')
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      setTitle(draft.title ?? '')
+      setDescription(draft.description ?? '')
+      setPrice(String(draft.price ?? ''))
+      setIsNegotiable(Boolean(draft.isNegotiable))
+      setImageUrls(Array.isArray(draft.imageUrls) ? draft.imageUrls : [])
+      setSelectedUniversities(Array.isArray(draft.universities) ? draft.universities : [])
+    } catch {
+      sessionStorage.removeItem('atriumx_pending_business_draft')
+    }
+  }, [searchParams, currentUser?.id, currentUser?.account_type])
+  useEffect(() => {
     if (isLoadingAuth) return
-    if (!currentUser) { navigate('/retailer/signup'); return }
+    if (!currentUser) { setCheckingBusiness(false); return }
     if (currentUser.account_type !== 'business') { navigate('/plan-select'); return }
     if (!plan) { navigate('/business/plan-select'); return }
 
@@ -53,14 +71,17 @@ useEffect(() => {
       setBusiness(biz)
       const universityLimit = 'maxUniversities' in PLAN_TIERS[plan] && typeof PLAN_TIERS[plan].maxUniversities === 'number' ? PLAN_TIERS[plan].maxUniversities : 1
       const savedUniversities = biz?.universities ?? []
-      if (savedUniversities.length > universityLimit) {
-        // A paid plan has expired or been reduced. Do not guess which
-        // universities the business wants to keep; make them choose.
-        setSelectedUniversities([])
-      } else if (editListing) {
-        setSelectedUniversities(editListing.universities?.length ? editListing.universities : savedUniversities)
-      } else if (savedUniversities.length) {
-        setSelectedUniversities([savedUniversities[0]])
+      const resumingDraft = searchParams.get('resume') === '1' && !!sessionStorage.getItem('atriumx_pending_business_draft')
+      if (!resumingDraft) {
+        if (savedUniversities.length > universityLimit) {
+          // A paid plan has expired or been reduced. Do not guess which
+          // universities the business wants to keep; make them choose.
+          setSelectedUniversities([])
+        } else if (editListing) {
+          setSelectedUniversities(editListing.universities?.length ? editListing.universities : savedUniversities)
+        } else if (savedUniversities.length) {
+          setSelectedUniversities([savedUniversities[0]])
+        }
       }
       setCheckingBusiness(false)
 
@@ -73,8 +94,9 @@ useEffect(() => {
         if (active >= max) setAtLimit(true)
       }
     })
-  }, [currentUser, isLoadingAuth, navigate, plan, editListing])
+  }, [currentUser, isLoadingAuth, navigate, plan, editListing, searchParams])
 
+  if (!isLoadingAuth && !currentUser) return <BusinessListingFirst />
   if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
 
 if (submitted) return (
@@ -209,6 +231,7 @@ const sharedFields = {
       description: description.trim(),
       price: Number(price) || 0,
       category: editListing?.category || business?.business_type || 'other',
+      customCategory: editListing?.custom_category || business?.custom_business_type || undefined,
       imageUrls,
       residence: '',
       listingType: 'ongoing' as const,
@@ -232,6 +255,7 @@ const sharedFields = {
       planTier: plan,
     })
     if (err) { setLoading(false); setError(err); return }
+    sessionStorage.removeItem('atriumx_pending_business_draft')
     await refreshBusinessProfile()
     setLoading(false)
     setSubmitted(true)

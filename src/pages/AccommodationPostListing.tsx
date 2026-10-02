@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ImagePlus, Plus, X } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, createAccommodationListing, getAccommodationListingsBySeller, getBusinessProfile, roomTypeLabel, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
+import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, completeBusinessProfileForCurrentUser, createAccommodationListing, getAccommodationListingsBySeller, getBusinessProfile, roomTypeLabel, startAccommodationPlanPayment, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
+import AddressAutocomplete from '../components/common/AddressAutocomplete'
 import { compressImageForUpload, fileToBase64 } from '../services/imageCache'
 import { getSubmissionReceipt, saveSubmissionReceipt, intakeRequest } from '../services/accommodationIntake'
 
@@ -16,7 +17,8 @@ type RoomDraft = { id: number; sharing: string; bursary: number | null; nsfas: n
 
 export default function AccommodationPostListing() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, showToast, isLoadingAuth, isLoadingBusinessProfile } = useApp()
+  const [searchParams] = useSearchParams()
+  const { currentUser, businessProfile, showToast, isLoadingAuth, isLoadingBusinessProfile, refreshBusinessProfile } = useApp()
   const [title, setTitle] = useState('')
   const [buildingCount, setBuildingCount] = useState('1')
   const [roomPricing, setRoomPricing] = useState<RoomDraft[]>([])
@@ -43,10 +45,14 @@ export default function AccommodationPostListing() {
   const [consent, setConsent] = useState(false)
   const [honeypot, setHoneypot] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
-  const [showUpgrades, setShowUpgrades] = useState(false)
-  const isGuest = !(currentUser?.account_type === 'business' && businessProfile?.is_accommodation)
-
-  const plan = (isGuest ? 'accommodation_free' : (businessProfile?.accommodation_plan ?? 'accommodation_free')) as AccommodationPlanKey
+  const requestedPlanParam = searchParams.get('plan')
+  const requestedPlan: AccommodationPlanKey = requestedPlanParam === 'accommodation_featured' || requestedPlanParam === 'accommodation_premium' ? requestedPlanParam : 'accommodation_free'
+  const isGuestSubmission = currentUser?.account_type !== 'business'
+  const isSetupFlow = currentUser?.account_type === 'business' && searchParams.get('setup') === '1'
+  const isSetupAccount = isSetupFlow && !businessProfile
+  const isAccommodationAccount = currentUser?.account_type === 'business' && !!businessProfile?.is_accommodation
+  const isLocalImageMode = isGuestSubmission || isSetupFlow
+  const plan = (isSetupFlow ? requestedPlan : isGuestSubmission ? 'accommodation_free' : (businessProfile?.accommodation_plan ?? 'accommodation_free')) as AccommodationPlanKey
   const maxPhotos = plan === 'accommodation_free' ? 3 : plan === 'accommodation_featured' ? 12 : 30
   const maxUniversities = plan === 'accommodation_free' ? 1 : plan === 'accommodation_featured' ? 2 : 3
   const hasExistingListing = existingListings.length > 0
@@ -59,6 +65,38 @@ export default function AccommodationPostListing() {
     if (!currentUser || !businessProfile?.is_accommodation) return
     getAccommodationListingsBySeller(currentUser.id).then(setExistingListings).catch(() => setError('Could not check your existing property. Please refresh before submitting.'))
   }, [currentUser?.id, businessProfile?.is_accommodation])
+
+  useEffect(() => {
+    if (currentUser?.account_type === 'business' && businessProfile && !businessProfile.is_accommodation) navigate('/feed', { replace: true })
+  }, [currentUser?.account_type, businessProfile, navigate])
+
+  useEffect(() => {
+    if (isSetupFlow && currentUser?.email) setEmail(currentUser.email)
+  }, [isSetupFlow, currentUser?.email])
+
+  useEffect(() => {
+    if (searchParams.get('resume') !== '1' || !isAccommodationAccount) return
+    try {
+      const raw = sessionStorage.getItem('atriumx_pending_accommodation_draft')
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      setTitle(draft.title ?? '')
+      setBuildingCount(String(draft.buildingCount ?? 1))
+      setRoomPricing(draft.roomPricing ?? [])
+      setBuildingAddresses(draft.buildingAddresses ?? [])
+      setAddress(draft.address ?? '')
+      setDescription(draft.description ?? '')
+      const knownAmenities = new Set(AMENITY_OPTIONS)
+      const allAmenities: string[] = Array.isArray(draft.amenities) ? draft.amenities : []
+      setSelectedAmenities(allAmenities.filter(item => knownAmenities.has(item)))
+      setOtherAmenities(allAmenities.filter(item => !knownAmenities.has(item)).join(', '))
+      setSelectedUniversities(draft.universities ?? [])
+      setImages(draft.imageUrls ?? [])
+      setVideoUrl(draft.videoUrl ?? null)
+    } catch {
+      sessionStorage.removeItem('atriumx_pending_accommodation_draft')
+    }
+  }, [searchParams, isAccommodationAccount])
 
   if (isLoadingAuth || (currentUser?.account_type === 'business' && isLoadingBusinessProfile)) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
 
@@ -118,7 +156,7 @@ export default function AccommodationPostListing() {
     try {
       const picked = Array.from(files).slice(0, Math.max(0, maxPhotos - images.length))
       for (const file of picked) {
-        if (isGuest) {
+        if (isLocalImageMode) {
           const compressed = await compressImageForUpload(file)
           if (compressed.size > 512000 || !['image/jpeg','image/png','image/webp'].includes(compressed.type)) {
             setError('Use a smaller JPG, PNG or WebP photo (under 500 KB after compression).'); continue
@@ -141,9 +179,9 @@ export default function AccommodationPostListing() {
     const buildings = Number(buildingCount)
     const amenities = [...selectedAmenities, ...otherAmenities.split(',').map(s => s.trim()).filter(Boolean)]
     if (hasExistingListing) return setError('Your accommodation account already has a listing. Add all buildings to that listing instead of creating another one.')
-    if (isGuest && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email address.')
-    if (isGuest && !phone.trim()) return setError('Contact number is required.')
-    if (isGuest && !consent) return setError('Please confirm you are authorised to submit these details.')
+    if (isGuestSubmission && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email address.')
+    if ((isGuestSubmission || isSetupFlow) && !phone.trim()) return setError('Contact number is required.')
+    if (isGuestSubmission && !consent) return setError('Please confirm you are authorised to submit these details.')
     if (!title.trim()) return setError('Property name is required.')
     if (!Number.isInteger(buildings) || buildings < 1 || buildings > 100) return setError('Enter a valid number of buildings.')
     if (!address.trim()) return setError('Property address is required.')
@@ -162,41 +200,98 @@ export default function AccommodationPostListing() {
 
     setBusy(true)
     try {
-    if (isGuest) {
-      const result = await intakeRequest({action:'submit',receipt:receipt.receipt,email:email.trim(),phone:phone.trim(),website:website.trim(),consent,honeypot,
-        property:{title:title.trim(),building_count:buildings,address:address.trim(),description:description.trim(),amenities,universities:selectedUniversities,room_pricing:rooms},
-        photos:images.map(image=>({base64:image.split(',')[1]}))})
-      if (result.error) { setError(result.error); return }
-      if (!result.id) { setError('Could not confirm your submission. Please try again.'); return }
-      saveSubmissionReceipt({receipt:receipt.receipt,id:result.id})
-      setSubmittedId(result.id);setShowAccountPopup(true);return
-    }
-    if (!currentUser) return
-    const { id, error: createError } = await createAccommodationListing({
-      sellerId: currentUser.id,
-      title: title.trim(),
-      buildingCount: buildings,
-      address: address.trim(),
-      description: description.trim(),
-      amenities,
-      imageUrls: images,
-      universities: selectedUniversities,
-      planTier: plan,
-      roomPricing: rooms,
-      buildingAddresses: extraAddresses,
-      videoUrl,
-    })
-    if (createError) { setError(createError); return }
-    if (id) {
-      await getBusinessProfile(currentUser.id)
-      showToast('Accommodation listed.', 'success')
-      navigate(`/accommodation/${id}`, { replace: true })
-    }
+      if (isGuestSubmission) {
+        const result = await intakeRequest({action:'submit',receipt:receipt.receipt,email:email.trim(),phone:phone.trim(),website:website.trim(),consent,honeypot,
+          property:{title:title.trim(),building_count:buildings,address:address.trim(),description:description.trim(),amenities,universities:selectedUniversities,room_pricing:rooms},
+          photos:images.map(image=>({base64:image.split(',')[1]}))})
+        if (result.error) { setError(result.error); return }
+        if (!result.id) { setError('Could not confirm your submission. Please try again.'); return }
+        saveSubmissionReceipt({receipt:receipt.receipt,id:result.id})
+        setSubmittedId(result.id);setShowAccountPopup(true);return
+      }
+      if (!currentUser) return
+
+      let publishedImages = images
+      if (isSetupFlow) {
+        if (isSetupAccount) {
+          const { error: profileError } = await completeBusinessProfileForCurrentUser({
+          userId: currentUser.id,
+          businessName: title.trim(),
+          businessType: 'Other',
+          customBusinessType: 'Student accommodation',
+          contactNumber: phone.trim(),
+          physicalAddress: address.trim(),
+          website: website.trim() || undefined,
+          university: selectedUniversities[0],
+            isAccommodation: true,
+          })
+          if (profileError) { setError(profileError); return }
+          await refreshBusinessProfile()
+        }
+
+        const uploaded: string[] = []
+        for (let index = 0; index < images.length; index += 1) {
+          const image = images[index]
+          if (!image.startsWith('data:')) { uploaded.push(image); continue }
+          const blob = await fetch(image).then(response => response.blob())
+          const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg'
+          const file = new File([blob], `accommodation-${index + 1}.${extension}`, { type: blob.type || 'image/jpeg' })
+          const { url, error: uploadError } = await uploadAccommodationImage(file, currentUser.id)
+          if (uploadError || !url) { setError(uploadError || 'Could not upload a property photo.'); return }
+          uploaded.push(url)
+        }
+        publishedImages = uploaded
+        setImages(uploaded)
+
+        if (plan !== 'accommodation_free') {
+          sessionStorage.setItem('atriumx_pending_accommodation_draft', JSON.stringify({
+            plan,
+            title: title.trim(),
+            buildingCount: buildings,
+            roomPricing,
+            buildingAddresses: extraAddresses,
+            address: address.trim(),
+            description: description.trim(),
+            amenities,
+            universities: selectedUniversities,
+            imageUrls: publishedImages,
+            videoUrl,
+          }))
+          const { error: paymentError } = await startAccommodationPlanPayment(plan)
+          if (paymentError) {
+            showToast(paymentError, 'error')
+            navigate('/accommodation/plan-select', { replace: true })
+          }
+          return
+        }
+      }
+
+      const { id, error: createError } = await createAccommodationListing({
+        sellerId: currentUser.id,
+        title: title.trim(),
+        buildingCount: buildings,
+        address: address.trim(),
+        description: description.trim(),
+        amenities,
+        imageUrls: publishedImages,
+        universities: selectedUniversities,
+        planTier: plan,
+        roomPricing: rooms,
+        buildingAddresses: extraAddresses,
+        videoUrl,
+      })
+      if (createError) { setError(createError); return }
+      if (id) {
+        sessionStorage.removeItem('atriumx_pending_accommodation_draft')
+        await getBusinessProfile(currentUser.id)
+        showToast('Accommodation listed.', 'success')
+        navigate(`/accommodation/${id}`, { replace: true })
+      }
     } catch { setError('Could not save your listing. Your form is kept; please try again.') }
     finally { setBusy(false) }
   }
 
-  if (isGuest && submittedId) return <div className="min-h-screen bg-slate-deep"><Navbar /><main className="max-w-lg mx-auto px-4 py-12 text-cream space-y-5">
+  if (isGuestSubmission && submittedId) return <div className="min-h-screen bg-slate-deep"><Navbar /><main className="max-w-lg mx-auto px-4 py-12 text-cream space-y-5">
     <h1 className="font-serif text-3xl">Submission received</h1><p className="text-cream-muted">Your accommodation details are saved for review. Your listing will appear after approval. An account and payment are optional.</p>
     <p className="text-cream-muted text-xs">Reference: {submittedId}</p>
     <button onClick={() => navigate('/accommodation/claim')} className="bg-teal-primary text-white px-4 py-3 rounded-xl">Manage this submission</button>
@@ -215,17 +310,16 @@ export default function AccommodationPostListing() {
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream text-sm flex items-center gap-2 mb-5"><ArrowLeft size={17} /> Back</button>
         <div className="flex items-end justify-between gap-4 mb-6">
           <div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Accommodation listing</p><h1 className="font-serif text-3xl text-cream">Add your property</h1><p className="text-cream-muted text-sm mt-2">One listing represents all of your buildings. Room pricing is optional and can be shown by room type.</p></div>
-          <button type="button" onClick={() => isGuest ? setShowUpgrades(v => !v) : navigate('/accommodation/plan-select')} className="text-teal-light text-sm underline">Upgrade (optional)</button>
+          <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="text-teal-light text-sm underline">Upgrade (optional)</button>
           <span className="text-cream font-bold text-sm bg-slate-card border border-slate-border px-3 py-2 rounded-xl">{ACCOMMODATION_PLANS[plan].label}</span>
         </div>
 
-        {showUpgrades && <div className="bg-slate-card border border-slate-border rounded-xl p-4 mb-5 text-cream-muted text-sm">Free: 1 university and 3 photos. Featured: R199/month, 2 universities and 12 photos. Premium: R399/month, 3 universities, 30 photos and video. Submit free below; you can upgrade from your accommodation account later.</div>}
         <div className="space-y-5">
-          {isGuest && <section className="bg-slate-card border border-slate-border rounded-2xl p-5 space-y-4"><h2 className="text-cream font-bold">Provider contact details</h2><p className="text-cream-muted text-sm">Submit free without an account. We review the property before publishing it.</p>
-            <label className="block text-cream-muted text-sm">Email address (private)<input type="email" value={email} onChange={e=>setEmail(e.target.value)} maxLength={254} className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
+          {(isGuestSubmission || isSetupFlow) && <section className="bg-slate-card border border-slate-border rounded-2xl p-5 space-y-4"><h2 className="text-cream font-bold">Provider contact details</h2><p className="text-cream-muted text-sm">{isSetupFlow ? 'Your login is ready. Finish these listing details and they will become your accommodation account details.' : 'Submit free without an account. We review the property before publishing it.'}</p>
+            <label className="block text-cream-muted text-sm">Email address (private)<input type="email" value={email} onChange={e=>setEmail(e.target.value)} readOnly={isSetupFlow} maxLength={254} className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream disabled:opacity-70" /></label>
             <label className="block text-cream-muted text-sm">Contact number (shown after approval)<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} maxLength={30} className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
             <label className="block text-cream-muted text-sm">Website (optional)<input value={website} onChange={e=>setWebsite(e.target.value)} maxLength={500} placeholder="https://" className="block w-full mt-1 bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream" /></label>
-            <input value={honeypot} onChange={e=>setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+            {isGuestSubmission && <input value={honeypot} onChange={e=>setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />}
           </section>}
 
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
@@ -236,12 +330,12 @@ export default function AccommodationPostListing() {
                 <label className="block text-cream-muted text-xs font-semibold mb-1.5">Number of buildings</label>
                 <input value={buildingCount} onChange={e => setBuildingCount(e.target.value.replace(/[^0-9]/g, ''))} min="1" type="number" inputMode="numeric" placeholder="e.g. 3" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
               </div>
-              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Property address" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light self-end" />
+              <AddressAutocomplete value={address} onChange={setAddress} placeholder="Property address" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light self-end" />
               {plan !== 'accommodation_free' && Number(buildingCount) > 1 && (
                 <div className="sm:col-span-2 space-y-3">
                   <p className="text-cream-muted text-xs">Optional. Add an address for each additional building. The address above counts as building 1.</p>
                   {Array.from({ length: Number(buildingCount) - 1 }, (_, i) => (
-                    <input key={i} value={buildingAddresses[i] ?? ''} onChange={e => updateBuildingAddress(i, e.target.value)} placeholder={`Building ${i + 2} address (optional)`} className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light" />
+                    <AddressAutocomplete key={i} value={buildingAddresses[i] ?? ''} onChange={value => updateBuildingAddress(i, value)} placeholder={`Building ${i + 2} address (optional)`} />
                   ))}
                 </div>
               )}
@@ -332,10 +426,10 @@ export default function AccommodationPostListing() {
             </div>
           </section>
 
-          {isGuest && <label className="flex gap-3 text-cream-muted text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="mt-1"/><span>I am authorised to submit this property, and agree to have its details, photos and contact number published after review. My email stays private.</span></label>}
+          {isGuestSubmission && <label className="flex gap-3 text-cream-muted text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="mt-1"/><span>I am authorised to submit this property, and agree to have its details, photos and contact number published after review. My email stays private.</span></label>}
           {uploadingImages && <p className="text-cream-muted text-sm">Preparing photos...</p>}
           {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
-          <button onClick={handleSubmit} disabled={busy || uploadingImages || uploadingVideo || hasExistingListing} className="w-full bg-teal-primary hover:opacity-90 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl">{busy ? 'Saving...' : hasExistingListing ? 'Accommodation listing already created' : isGuest ? 'Submit for review — free' : 'Publish accommodation'}</button>
+          <button onClick={handleSubmit} disabled={busy || uploadingImages || uploadingVideo || hasExistingListing} className="w-full bg-teal-primary hover:opacity-90 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl">{busy ? 'Saving...' : hasExistingListing ? 'Accommodation listing already created' : isGuestSubmission ? 'Submit for review — free' : isSetupFlow && plan !== 'accommodation_free' ? 'Continue to payment' : 'Publish accommodation'}</button>
         </div>
       </main>
     </div>

@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { registerBusinessWithEmail, loginWithEmail, getBusinessProfile } from '../services/dataService'
+import { registerBusinessWithEmail, registerBusinessShellWithEmail, loginWithEmail, getBusinessProfile } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
+import AddressAutocomplete from '../components/common/AddressAutocomplete'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
+import { getSubmissionAccountContext } from '../services/accommodationIntake'
+import type { AccommodationAccountContext } from '../services/accommodationIntake'
 
 export const BUSINESS_TYPES = [
   'Restaurant', 'Clothing', 'Electronics',
@@ -19,12 +22,18 @@ export default function RetailerSignup() {
     ? 'Featured'
     : requestedPackage === 'campus_partner'
     ? 'Campus Partner'
+    : requestedPackage === 'accommodation_featured'
+    ? 'Featured'
+    : requestedPackage === 'accommodation_premium'
+    ? 'Premium'
     : null
 
   const isAccommodation = searchParams.get('accommodation') === '1'
   const initialMode = searchParams.get('mode') === 'login' ? 'login' : 'register'
   const accountLabel = isAccommodation ? 'Accommodation' : 'Business'
   const accountLower = isAccommodation ? 'accommodation' : 'business'
+  const isSubmissionAccount = isAccommodation && searchParams.get('submission') === '1'
+  const isQuickSetup = searchParams.get('quick') === '1' && !isSubmissionAccount
 
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [businessName, setBusinessName] = useState('')
@@ -42,12 +51,30 @@ export default function RetailerSignup() {
   const [error, setError] = useState('')
   const [confirmedBusiness, setConfirmedBusiness] = useState(false)
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
+  const [submissionContext, setSubmissionContext] = useState<AccommodationAccountContext | null>(null)
+  const [loadingSubmission, setLoadingSubmission] = useState(isSubmissionAccount)
   const universityQuery = universitySearch.trim().toLowerCase()
   const filteredUniversities = useMemo(() => SOUTH_AFRICAN_UNIVERSITIES.filter(u =>
     !universityQuery ||
     u.toLowerCase().includes(universityQuery) ||
     (UNIVERSITY_ALIASES[u] ?? []).some(a => a.toLowerCase().startsWith(universityQuery))
   ), [universityQuery])
+
+  useEffect(() => {
+    if (!isSubmissionAccount) return
+    let active = true
+    getSubmissionAccountContext().then(({ context, error: contextError }) => {
+      if (!active) return
+      if (contextError || !context) {
+        setError(contextError || 'Could not load your accommodation submission.')
+      } else {
+        setSubmissionContext(context)
+        setEmail(context.email)
+      }
+      setLoadingSubmission(false)
+    })
+    return () => { active = false }
+  }, [isSubmissionAccount])
 
   const inputClass = "w-full bg-slate-card border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-sapphire-light transition-colors"
 
@@ -71,6 +98,55 @@ export default function RetailerSignup() {
         } else {
           navigate('/feed')
         }
+      }
+      return
+    }
+
+    if (isSubmissionAccount) {
+      if (!submissionContext) return setError('Could not verify the accommodation details from your submission.')
+      if (password.length < 8) return setError('Password must be at least 8 characters.')
+
+      setLoading(true)
+      const refCode = searchParams.get('ref') || undefined
+      const { user, error: err } = await registerBusinessWithEmail(
+        submissionContext.email,
+        password,
+        submissionContext.title,
+        'Other',
+        'Student accommodation',
+        submissionContext.phone,
+        submissionContext.address,
+        submissionContext.website || undefined,
+        submissionContext.university,
+        true,
+        refCode
+      )
+      setLoading(false)
+      if (err) return setError(err)
+      if (user) {
+        setCurrentUser(user)
+        navigate('/accommodation/claim', { replace: true })
+      }
+      return
+    }
+
+    if (isQuickSetup) {
+      const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      if (!emailValid) return setError('Enter a valid email address.')
+      if (password.length < 8) return setError('Password must be at least 8 characters.')
+
+      setLoading(true)
+      const { user, error: err } = await registerBusinessShellWithEmail(email.trim(), password)
+      setLoading(false)
+      if (err) return setError(err)
+      if (user) {
+        setCurrentUser(user)
+        const validAccommodationPlan = requestedPackage === 'accommodation_featured' || requestedPackage === 'accommodation_premium'
+        const validBusinessPlan = requestedPackage === 'featured' || requestedPackage === 'campus_partner' || requestedPackage === 'noticeboard'
+        const plan = isAccommodation
+          ? (validAccommodationPlan ? requestedPackage : 'accommodation_free')
+          : (validBusinessPlan ? requestedPackage : 'noticeboard')
+        navigate(`${isAccommodation ? '/accommodation/post' : '/business/post'}?setup=1&plan=${plan}`, { replace: true })
       }
       return
     }
@@ -112,6 +188,69 @@ export default function RetailerSignup() {
       setCurrentUser(user)
       navigate(isAccommodation ? (searchParams.get('submission') === '1' ? '/accommodation/claim' : '/accommodation') : '/feed')
     }
+  }
+
+  if (mode === 'register' && isSubmissionAccount) {
+    return (
+      <div className="min-h-screen bg-slate-deep">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 pt-8 pb-24">
+          <h1 className="font-serif text-3xl text-cream mb-1">Create your password</h1>
+          <p className="text-cream-muted text-sm mb-6">We already have the accommodation details you submitted. You do not need to type them again.</p>
+
+          {loadingSubmission ? (
+            <p className="text-cream-muted text-sm">Loading your submitted details...</p>
+          ) : submissionContext ? (
+            <>
+              <div className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-5 space-y-2 text-sm">
+                <p className="text-cream font-bold">{submissionContext.title}</p>
+                <p className="text-cream-muted">{submissionContext.email}</p>
+                <p className="text-cream-muted">{submissionContext.university}</p>
+                <p className="text-cream-muted">{submissionContext.address}</p>
+                {submissionContext.website && <p className="text-cream-muted break-all">{submissionContext.website}</p>}
+              </div>
+              <input type="password" placeholder="Create password" value={password}
+                onChange={e => setPassword(e.target.value)} className={inputClass} />
+              <p className="text-cream-muted text-xs mt-2 px-1">Use at least 8 characters. This password will let you manage the listing after approval.</p>
+              <p className="text-cream-muted text-xs mt-4 px-1">By creating the account you agree to the <a href="/Privacy.html" target="_blank" rel="noopener noreferrer" className="text-sapphire-light underline">Privacy Policy</a>.</p>
+              {error && <p className="text-red-400 text-sm mt-4 px-1">{error}</p>}
+              <button onClick={handleSubmit} disabled={loading}
+                className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors mt-5">
+                {loading ? 'Creating account...' : 'Create Account'}
+              </button>
+              <button onClick={() => navigate('/retailer/signup?accommodation=1&mode=login&submission=1')} className="w-full text-sapphire-light text-sm text-center underline mt-4">Already have an account? Sign in</button>
+            </>
+          ) : (
+            <>
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              <button onClick={() => navigate('/accommodation/post')} className="text-sapphire-light text-sm underline mt-4">Return to accommodation form</button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (mode === 'register' && isQuickSetup) {
+    return (
+      <div className="min-h-screen bg-slate-deep">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 pt-8 pb-24">
+          <h1 className="font-serif text-3xl text-cream mb-1">Create your {accountLower} account</h1>
+          <p className="text-cream-muted text-sm mb-6">{requestedPackageLabel ? `${requestedPackageLabel} selected. ` : ''}Create the login first, then we will take you straight to the listing form.</p>
+          <div className="flex flex-col gap-4">
+            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} />
+            <p className="text-cream-muted text-xs px-1">Use at least 8 characters. Your business/property details are collected on the next screen.</p>
+            {error && <p className="text-red-400 text-sm px-1">{error}</p>}
+            <button onClick={handleSubmit} disabled={loading} className="w-full bg-ember hover:bg-ember-dark disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors">
+              {loading ? 'Creating account...' : 'Continue to listing form'}
+            </button>
+            <button onClick={() => navigate(`/retailer/signup?mode=login${isAccommodation ? '&accommodation=1' : ''}`)} className="text-sapphire-light text-sm text-center underline">Already registered? Sign in</button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -197,8 +336,12 @@ export default function RetailerSignup() {
                 onChange={e => setContactNumber(e.target.value)} className={inputClass} />
 
               <div>
-                <input type="text" placeholder={isAccommodation ? 'Property address' : 'Physical address (e.g. Shop 4, Campus Square)'} value={physicalAddress}
-                  onChange={e => setPhysicalAddress(e.target.value)} className={inputClass} />
+                <AddressAutocomplete
+                  value={physicalAddress}
+                  onChange={setPhysicalAddress}
+                  placeholder={isAccommodation ? 'Property address' : 'Physical address (e.g. Shop 4, Campus Square)'}
+                  className={inputClass}
+                />
                 <p className="text-cream-muted text-xs mt-1 px-1">
                   Add a physical address or a website below — at least one, so students can find you outside the app.
                 </p>

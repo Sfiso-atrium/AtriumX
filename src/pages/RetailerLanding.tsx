@@ -74,7 +74,7 @@ export default function RetailerLanding() {
         eyebrow: 'CAMPUS ADVERTISING • JOHANNESBURG',
         title: 'Put your business in front of students on campus.',
         body: 'AtriumX helps local businesses reach students where they already browse listings, discover services and stay connected to campus life.',
-        cta: 'Create a business account',
+        cta: 'Create a business listing',
         image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1400&q=85',
         imageAlt: 'Students on campus',
         bubble: 'Be seen by students\nnear campus',
@@ -94,14 +94,14 @@ export default function RetailerLanding() {
 
   const steps = isAccommodation
     ? [
-        { number: '01', title: 'Create your account', body: 'Set up your accommodation account with your property details and your main university.', icon: Building2 },
-        { number: '02', title: 'Add your listing', body: 'Upload photos, set your price and include the details students usually want to know.', icon: Home },
-        { number: '03', title: 'Start receiving enquiries', body: 'Once your listing is live, students can view it and contact you through AtriumX.', icon: MessageCircle },
+        { number: '01', title: 'Add your listing', body: 'Share your property details, university, location and photos first.', icon: Building2 },
+        { number: '02', title: 'Create a password', body: 'Your submission is already saved. Creating an account afterward is optional and only needs a password.', icon: Home },
+        { number: '03', title: 'Start receiving enquiries', body: 'Once your listing is approved, students can view it and contact you through AtriumX.', icon: MessageCircle },
       ]
     : [
-        { number: '01', title: 'Create your account', body: 'Register your business in a few minutes and choose the university you want to start with.', icon: Store },
-        { number: '02', title: 'Choose a plan', body: 'Start free on Noticeboard or upgrade when you need more visibility and more active listings.', icon: CheckCircle2 },
-        { number: '03', title: 'Post and get discovered', body: 'Publish your listing and let students find your products or services from the Businesses tab.', icon: Users },
+        { number: '01', title: 'Add your business and listing', body: 'Enter the business details, university, listing information and any photos allowed by your chosen plan.', icon: Store },
+        { number: '02', title: 'Create a password', body: 'When the listing is ready, create one password so you can sign in and update the details later.', icon: CheckCircle2 },
+        { number: '03', title: 'Publish and get discovered', body: 'Free listings publish immediately. Paid plans continue securely to payment without making you re-enter the listing.', icon: Users },
       ]
 
   return (
@@ -135,10 +135,10 @@ export default function RetailerLanding() {
               Sign in
             </button>
             <button
-              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
+              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/business/post?plan=noticeboard')}
               className="hidden rounded-full bg-[#1565F9] px-5 py-2 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.20)] hover:opacity-90 sm:inline-flex"
             >
-              Create account
+              {isAccommodation ? 'List property' : 'Create listing'}
             </button>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function RetailerLanding() {
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
+                onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/business/post?plan=noticeboard')}
                 className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-full bg-[#1565F9] px-7 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(21,101,249,0.20)] hover:opacity-90"
               >
                 {hero.cta} <ArrowRight size={16} />
@@ -205,7 +205,7 @@ export default function RetailerLanding() {
                 name="Noticeboard"
                 price="Free"
                 period="/ 7 days"
-                onSelect={() => navigate('/retailer/signup')}
+                onSelect={() => navigate('/business/post?plan=noticeboard')}
                 features={['1 university reach', 'Text-only listing', '1 active listing', '7-day visibility']}
               />
               <PricingCard
@@ -213,14 +213,14 @@ export default function RetailerLanding() {
                 price="R199"
                 period="/ 30 days"
                 highlighted
-                onSelect={() => navigate('/retailer/signup?package=featured')}
+                onSelect={() => navigate('/business/post?plan=featured')}
                 features={['Reach up to 2 universities', '1 photo per listing', 'Up to 2 active listings', 'Reply to student messages', 'Sponsored badge']}
               />
               <PricingCard
                 name="Campus Partner"
                 price="R349"
                 period="/ 30 days"
-                onSelect={() => navigate('/retailer/signup?package=campus_partner')}
+                onSelect={() => navigate('/business/post?plan=campus_partner')}
                 features={['Reach up to 3 universities', 'Up to 3 photos per listing', 'Up to 3 active listings', 'Reply to reviews', 'Campus Partner badge']}
               />
             </div>
@@ -253,10 +253,10 @@ export default function RetailerLanding() {
                 : 'Show students what you offer, where to find you and how to get in touch — all in one place.'}
             </p>
             <button
-              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/retailer/signup')}
+              onClick={() => navigate(isAccommodation ? '/accommodation/post' : '/business/post?plan=noticeboard')}
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1565F9] px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_18px_rgba(21,101,249,0.18)] hover:opacity-90"
             >
-              {isAccommodation ? 'Create accommodation account' : 'Create business account'} <ArrowRight size={16} />
+              {isAccommodation ? 'List accommodation' : 'Create business listing'} <ArrowRight size={16} />
             </button>
           </div>
 

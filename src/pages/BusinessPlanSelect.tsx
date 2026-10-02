@@ -49,6 +49,7 @@ export default function BusinessPlanSelect() {
   const [selected, setSelected] = useState<PlanKey | null>(null)
   const [paying, setPaying] = useState(false)
   const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
+  const hasPendingDraft = !!sessionStorage.getItem('atriumx_pending_business_draft')
 
   const plans = BUSINESS_PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [BusinessPlanKey, typeof PLAN_TIERS[BusinessPlanKey]])
   const currentPlan = currentUser?.plan as PlanKey | undefined
@@ -87,7 +88,7 @@ export default function BusinessPlanSelect() {
 
   const handleSelectPlan = async (key: PlanKey) => {
     if (planIsActive && currentPlan === key) {
-      navigate('/business/post', { state: { plan: key } })
+      navigate(hasPendingDraft ? '/business/post?resume=1' : '/business/post', { state: { plan: key } })
       return
     }
     if (planIsActive && currentPlan) {
@@ -119,7 +120,7 @@ export default function BusinessPlanSelect() {
       return
     }
 
-    navigate('/business/post', { state: { plan: key } })
+    navigate(hasPendingDraft ? '/business/post?resume=1' : '/business/post', { state: { plan: key } })
   }
 
   if (isLoadingAuth || view === 'checking') return (

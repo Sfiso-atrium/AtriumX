@@ -14,20 +14,47 @@ const FEATURES: Record<AccommodationPlanKey, string[]> = {
 
 export default function AccommodationPlanSelect() {
   const navigate = useNavigate()
-  const { currentUser, businessProfile, showToast, isLoadingAuth } = useApp()
+  const { currentUser, businessProfile, showToast, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   const [paying, setPaying] = useState(false)
+  const hasPendingDraft = !!sessionStorage.getItem('atriumx_pending_accommodation_draft')
 
-  if (isLoadingAuth) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
-  if (!currentUser || currentUser.account_type !== 'business' || !businessProfile?.is_accommodation) return null
+  if (isLoadingAuth || (currentUser?.account_type === 'business' && isLoadingBusinessProfile)) {
+    return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
+  }
 
-  const current = businessProfile.accommodation_plan as AccommodationPlanKey
+  if (currentUser?.account_type === 'student') return null
+  if (currentUser?.account_type === 'business' && businessProfile && !businessProfile.is_accommodation) return null
+
+  const current = businessProfile?.is_accommodation ? businessProfile.accommodation_plan as AccommodationPlanKey : null
+  const needsProfileSetup = currentUser?.account_type === 'business' && !businessProfile
 
   async function choose(plan: AccommodationPlanKey) {
-    if (paying || plan === current) return
-    if (plan === 'accommodation_free') {
-      navigate('/accommodation')
+    if (paying) return
+
+    if (!currentUser) {
+      if (plan === 'accommodation_free') {
+        navigate('/accommodation/post')
+      } else {
+        navigate(`/retailer/signup?accommodation=1&quick=1&package=${plan}`)
+      }
       return
     }
+
+    if (needsProfileSetup) {
+      navigate(`/accommodation/post?setup=1&plan=${plan}`)
+      return
+    }
+
+    if (plan === current) {
+      navigate(hasPendingDraft ? '/accommodation/post?resume=1' : '/accommodation/post')
+      return
+    }
+
+    if (plan === 'accommodation_free') {
+      navigate(hasPendingDraft ? '/accommodation/post?resume=1' : '/accommodation/post')
+      return
+    }
+
     setPaying(true)
     const { error } = await startAccommodationPlanPayment(plan)
     if (error) {
@@ -41,7 +68,7 @@ export default function AccommodationPlanSelect() {
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
         <h1 className="font-serif text-3xl text-cream">Accommodation plans</h1>
-        <p className="text-cream-muted text-sm mt-1 mb-6">Choose the visibility and reach for your accommodation listing. Your whole accommodation provider is represented by one listing, including all of your buildings.</p>
+        <p className="text-cream-muted text-sm mt-1 mb-6">Choose the visibility and reach for your accommodation listing. If you are not signed in yet, paid plans ask only for your email and password before taking you to the matching listing form.</p>
         <div className="grid gap-4">
           {ACCOMMODATION_PLAN_ORDER.map(plan => {
             const tier = ACCOMMODATION_PLANS[plan]
@@ -59,18 +86,16 @@ export default function AccommodationPlanSelect() {
                   {FEATURES[plan].map(f => <li key={f} className="flex items-center gap-2 text-sm text-cream-muted"><Check size={14} className="text-teal-light" />{f}</li>)}
                 </ul>
                 <div className="mt-5">
-                  {active ? (
-                    <button onClick={() => navigate('/accommodation/post')} className="w-full bg-teal-primary text-white font-bold py-2.5 rounded-xl">Create listing with this plan</button>
-                  ) : (
-                    <button onClick={() => choose(plan)} disabled={paying} className="w-full border border-slate-border text-cream font-bold py-2.5 rounded-xl hover:border-teal-light disabled:opacity-50">{paying ? 'Opening payment...' : `Upgrade to ${tier.label}`}</button>
-                  )}
+                  <button onClick={() => choose(plan)} disabled={paying} className={`w-full font-bold py-2.5 rounded-xl disabled:opacity-50 ${active ? 'bg-teal-primary text-white' : 'border border-slate-border text-cream hover:border-teal-light'}`}>
+                    {paying ? 'Opening payment...' : active ? 'Create listing with this plan' : currentUser && businessProfile ? `Upgrade to ${tier.label}` : `Choose ${tier.label}`}
+                  </button>
                 </div>
               </div>
             )
           })}
         </div>
       </main>
-      <BottomNav />
+      {currentUser && <BottomNav />}
     </div>
   )
 }
