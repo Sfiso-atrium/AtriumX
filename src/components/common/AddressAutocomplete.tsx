@@ -30,6 +30,32 @@ function formatAddress(feature: PhotonFeature): string {
   return [...new Set(parts)].join(', ')
 }
 
+// Keyed by the normalized query. A hit skips the network entirely, which is
+// what makes retyping or backspacing through an address feel instant instead
+// of re-debouncing and re-fetching from the (distant, shared) geocoder every
+// time. Module-level, not per-mount, so it also warms up as the person moves
+// between every form that uses this component in the same session.
+const resultCache = new Map<string, string[]>()
+const CACHE_LIMIT = 300
+
+function cacheGet(key: string): string[] | undefined {
+  const hit = resultCache.get(key)
+  if (hit) {
+    // refresh recency so frequently-reused prefixes survive eviction
+    resultCache.delete(key)
+    resultCache.set(key, hit)
+  }
+  return hit
+}
+
+function cacheSet(key: string, value: string[]) {
+  resultCache.set(key, value)
+  if (resultCache.size > CACHE_LIMIT) {
+    const oldest = resultCache.keys().next().value
+    if (oldest !== undefined) resultCache.delete(oldest)
+  }
+}
+
 export default function AddressAutocomplete({ value, onChange, placeholder = 'Address', className = '', disabled = false }: Props) {
   const inputClass = className || 'w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light transition-colors'
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -37,6 +63,8 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Ad
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const skipNextSearch = useRef(false)
+  const suggestionsRef = useRef<string[]>([])
+  suggestionsRef.current = suggestions
 
   useEffect(() => {
     if (disabled || skipNextSearch.current) {
@@ -45,11 +73,29 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Ad
     }
 
     const query = value.trim()
+    const key = query.toLowerCase()
+
     if (query.length < 3) {
       setSuggestions([])
       setOpen(false)
       return
     }
+
+    // Exact cache hit: this exact query has been fetched before in this
+    // session — show it immediately, no debounce, no request.
+    const cached = cacheGet(key)
+    if (cached) {
+      setSuggestions(cached)
+      setOpen(cached.length > 0)
+      setLoading(false)
+      return
+    }
+
+    // While the real lookup is in flight, narrow whatever is already on
+    // screen to what still matches — so continuing to type never blanks
+    // the list out and wait; it just gets more precise as results arrive.
+    const refined = suggestionsRef.current.filter(s => s.toLowerCase().includes(key))
+    if (refined.length > 0) setSuggestions(refined)
 
     const timer = window.setTimeout(async () => {
       abortRef.current?.abort()
@@ -68,6 +114,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Ad
         if (!response.ok) throw new Error('Address lookup failed')
         const data = await response.json() as { features?: PhotonFeature[] }
         const next = [...new Set((data.features ?? []).map(formatAddress).filter(Boolean))].slice(0, 6)
+        cacheSet(key, next)
         setSuggestions(next)
         setOpen(next.length > 0)
       } catch (error) {
@@ -78,7 +125,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Ad
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
-    }, 350)
+    }, 150)
 
     return () => window.clearTimeout(timer)
   }, [value, disabled])
