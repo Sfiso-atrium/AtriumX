@@ -713,8 +713,9 @@ export async function getListings(filters: {
   currentUser?: Profile | null
   university?: string | null
 } = {}): Promise<Listing[]> {
-  if (filters.currentUser?.account_type === 'student' && !filters.currentUser.university) return []
-  if (filters.currentUser?.account_type === 'business' && !filters.university) return []
+  if (filters.currentUser?.is_admin && !filters.university) return []
+  if (!filters.currentUser?.is_admin && filters.currentUser?.account_type === 'student' && !filters.currentUser.university) return []
+  if (!filters.currentUser?.is_admin && filters.currentUser?.account_type === 'business' && !filters.university) return []
 
   let query = supabase
     .from('listings')
@@ -734,17 +735,19 @@ export async function getListings(filters: {
   if (error) throw new Error(error.message)
   if (!data) return []
 
-  // Admins can read every listing for moderation. Apply the normal role scope
-  // when they use the ordinary marketplace, using the same database rule as RLS.
-  const visibleData = filters.currentUser?.is_admin && data.length
-    ? await filterNormalMarketplaceListings(data)
-    : data
+  // Admin marketplace browsing uses the university explicitly selected in
+  // the admin UI. Normal users continue to rely on their existing role scope.
+  const visibleData = data
 
   const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
   const scoped = visibleData
     .filter(listing => {
       const seller = sellerMap[listing.seller_id]
       if (!seller || seller.account_type !== 'student') return false
+
+      if (filters.currentUser?.is_admin) {
+        return seller.university === filters.university
+      }
 
       if (filters.currentUser?.account_type === 'student') {
         return seller.university === filters.currentUser.university
@@ -770,8 +773,9 @@ export async function getListings(filters: {
 // Campus Partner is pinned above Featured, which is pinned above Noticeboard,
 // matching the "pinned to top" promise on the pricing page.
 export async function getBusinessListings(currentUser?: Profile | null, university?: string | null): Promise<Listing[]> {
-  if (currentUser?.account_type === 'student' && !currentUser.university) return []
-  if (currentUser?.account_type === 'business' && !university) return []
+  if (currentUser?.is_admin && !university) return []
+  if (!currentUser?.is_admin && currentUser?.account_type === 'student' && !currentUser.university) return []
+  if (!currentUser?.is_admin && currentUser?.account_type === 'business' && !university) return []
 
   let query = supabase
     .from('listings')
@@ -780,7 +784,9 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
     .order('created_at', { ascending: false })
 
   // Business listings carry their university reach on the listing itself.
-  if (currentUser?.account_type === 'student' && currentUser.university) {
+  if (currentUser?.is_admin && university) {
+    query = query.contains('universities', [university])
+  } else if (currentUser?.account_type === 'student' && currentUser.university) {
     query = query.contains('universities', [currentUser.university])
   } else if (currentUser?.account_type === 'business' && university) {
     query = query.contains('universities', [university])
@@ -790,9 +796,7 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   if (error) throw new Error(error.message)
   if (!data) return []
 
-  const visibleData = currentUser?.is_admin && data.length
-    ? await filterNormalMarketplaceListings(data)
-    : data
+  const visibleData = data
 
   const sellerMap = await getPublicListingSellerMap(visibleData.map(listing => listing.seller_id))
   const businessData = visibleData
@@ -823,7 +827,7 @@ export async function getBusinessListings(currentUser?: Profile | null, universi
   }))
 
   const BUSINESS_PLAN_RANK: Record<string, number> = { campus_partner: 3, featured: 2, noticeboard: 1 }
-  const selectedUniversity = currentUser?.account_type === 'student' ? currentUser.university : university
+  const selectedUniversity = currentUser?.is_admin ? university : currentUser?.account_type === 'student' ? currentUser.university : university
   const sorted = (await withListingPlanDisplay(withAddress as Listing[], true))
     .filter(listing => !selectedUniversity || listing.universities.includes(selectedUniversity)).sort(
     (a, b) => (BUSINESS_PLAN_RANK[b.plan_tier] || 0) - (BUSINESS_PLAN_RANK[a.plan_tier] || 0)
@@ -3590,13 +3594,16 @@ export async function createWantedPost(payload: {
 // RLS (wanted_posts_select_scoped, migration 048) already does the
 // university scoping and status filtering server-side -- same shape as
 // getListings -- so this is a plain select, newest first.
-export async function getWantedPosts(): Promise<WantedPost[]> {
-  const { data, error } = await supabase
+export async function getWantedPosts(university?: string | null): Promise<WantedPost[]> {
+  let query = supabase
     .from('wanted_posts')
     .select('*, seeker:profiles_public!inner(*)')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
+  if (university) query = query.eq('seeker.university', university)
+
+  const { data, error } = await query
   if (error || !data) return []
   return data as WantedPost[]
 }
