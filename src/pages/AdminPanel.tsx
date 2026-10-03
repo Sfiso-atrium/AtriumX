@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2 } from 'lucide-react'
+import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Listing,
@@ -30,6 +30,7 @@ import AccommodationSubmissionQueue from '../components/admin/AccommodationSubmi
 import BottomNav from '../components/common/BottomNav'
 import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
+import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 
 type Tab = 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'active' | 'sold' | 'expired' | 'suspended'
@@ -53,6 +54,11 @@ const [reportedListings, setReportedListings] = useState<Listing[]>([])
   const [loadError, setLoadError] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
   const [warningReport, setWarningReport] = useState<AccommodationReport | null>(null)
+  const [browseUniversity, setBrowseUniversity] = useState('')
+
+  useEffect(() => {
+    if (!browseUniversity && currentUser?.university && SOUTH_AFRICAN_UNIVERSITIES.includes(currentUser.university)) setBrowseUniversity(currentUser.university)
+  }, [browseUniversity, currentUser?.university])
 
   useEffect(() => {
     if (isLoadingAuth) return
@@ -87,6 +93,19 @@ setLoadError(false)
         setLoading(false)
       })
   }, [currentUser, isLoadingAuth, navigate, showToast])
+
+  const openUniversityView = (view: 'marketplace' | 'business' | 'accommodation') => {
+    if (!browseUniversity) {
+      showToast('Choose a university first.', 'info')
+      return
+    }
+    const university = encodeURIComponent(browseUniversity)
+    if (view === 'accommodation') {
+      navigate(`/accommodations?university=${university}`)
+      return
+    }
+    navigate(`/feed?university=${university}&tab=${view}`)
+  }
 
   const handleChatEnded = (conversationId: string) => {
     setChatReports(prev => prev.map(r =>
@@ -203,6 +222,41 @@ const activeList =
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-24">
         <h1 className="font-serif text-3xl text-cream mb-1">Admin Panel</h1>
         <p className="text-cream-muted text-sm mb-6">Manage listings and reports.</p>
+
+        <section className="mb-6 rounded-2xl border border-slate-border bg-slate-card p-4 sm:p-5">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-cream font-bold text-sm">Browse university experiences</p>
+              <p className="text-cream-muted text-xs mt-1 leading-relaxed">Admin access is not tied to your account university. Choose any university, then open its student marketplace, business marketplace or accommodation view.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <label className="text-cream text-xs font-semibold">
+                University
+                <select
+                  value={browseUniversity}
+                  onChange={e => setBrowseUniversity(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-slate-border bg-slate-deep px-3 py-2.5 text-sm text-cream outline-none focus:border-teal-light"
+                >
+                  <option value="" disabled>Choose a university</option>
+                  {SOUTH_AFRICAN_UNIVERSITIES.map(university => (
+                    <option key={university} value={university}>{university}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => openUniversityView('marketplace')} disabled={!browseUniversity} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-border bg-slate-deep px-3 py-2.5 text-xs font-bold text-cream hover:border-teal-primary disabled:opacity-40">
+                  <GraduationCap size={14} /> Student marketplace
+                </button>
+                <button type="button" onClick={() => openUniversityView('business')} disabled={!browseUniversity} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-border bg-slate-deep px-3 py-2.5 text-xs font-bold text-cream hover:border-teal-primary disabled:opacity-40">
+                  <Store size={14} /> Business marketplace
+                </button>
+                <button type="button" onClick={() => openUniversityView('accommodation')} disabled={!browseUniversity} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-primary px-3 py-2.5 text-xs font-bold text-white disabled:opacity-40">
+                  <Building2 size={14} /> Accommodation
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
         <div className="flex flex-wrap gap-2 mb-6">

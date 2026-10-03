@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 import ResidenceDirectory from '../components/common/ResidenceDirectory'
 import { useEffect, useMemo, useState } from 'react'
@@ -13,22 +13,22 @@ const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommo
 
 export default function AccommodationMarketplace() {
   const { currentUser, showToast } = useApp()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const requestedUniversity = new URLSearchParams(location.search).get('university')
   const [listings, setListings] = useState<AccommodationListing[]>([])
   const [nearUniversity, setNearUniversity] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
 
-  // A logged-in student is filtered to their own university automatically —
-  // no selector needed. Guests (and a student with no university on their
-  // profile) keep the manual picker below.
   useEffect(() => {
-    if (currentUser?.account_type === 'student' && currentUser.university) {
-      setNearUniversity(currentUser.university)
+    if (currentUser?.is_admin && requestedUniversity && SOUTH_AFRICAN_UNIVERSITIES.includes(requestedUniversity)) {
+      setNearUniversity(requestedUniversity)
     }
-  }, [currentUser?.account_type, currentUser?.university])
+  }, [currentUser?.is_admin, requestedUniversity])
 
   useEffect(() => {
-    if (currentUser?.account_type === 'business' || !nearUniversity) {
+    if ((currentUser?.account_type === 'business' && !currentUser.is_admin) || !nearUniversity) {
       setListings([])
       setLoading(false)
       setLoadError(false)
@@ -84,12 +84,32 @@ export default function AccommodationMarketplace() {
     }
   }
 
-  if (currentUser?.account_type === 'business') return null
+  const changeUniversity = (university: string) => {
+    setNearUniversity(university)
+    if (currentUser?.is_admin) {
+      navigate(`/accommodations?university=${encodeURIComponent(university)}`, { replace: true })
+    }
+  }
+
+  if (currentUser?.account_type === 'business' && !currentUser.is_admin) return null
 
   return (
     <div className="min-h-screen bg-slate-deep pb-28">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-7">
+        {currentUser?.is_admin && (
+          <div className="mb-4 rounded-2xl border border-slate-border bg-slate-card px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-cream font-bold text-sm">Admin university view</p>
+              <p className="text-cream-muted text-xs mt-0.5">{nearUniversity || 'Choose a university below'} · Accommodation</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => nearUniversity && navigate(`/feed?university=${encodeURIComponent(nearUniversity)}&tab=marketplace`)} disabled={!nearUniversity} className="rounded-xl border border-slate-border px-3 py-2 text-xs font-bold text-cream hover:border-teal-primary disabled:opacity-40">Student marketplace</button>
+              <button type="button" onClick={() => nearUniversity && navigate(`/feed?university=${encodeURIComponent(nearUniversity)}&tab=business`)} disabled={!nearUniversity} className="rounded-xl border border-slate-border px-3 py-2 text-xs font-bold text-cream hover:border-teal-primary disabled:opacity-40">Business marketplace</button>
+              <button type="button" onClick={() => navigate('/admin')} className="rounded-xl border border-teal-light px-3 py-2 text-xs font-bold text-teal-primary hover:bg-teal-faint">Admin panel</button>
+            </div>
+          </div>
+        )}
         <section className="overflow-hidden rounded-[28px] border border-slate-border bg-slate-card px-5 py-6 sm:px-7 sm:py-7 lg:px-9 lg:py-8">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)] lg:items-center">
             <div className="min-w-0">
@@ -97,22 +117,20 @@ export default function AccommodationMarketplace() {
               <h1 className="font-serif text-4xl sm:text-5xl text-cream leading-tight">Find your place</h1>
               <p className="text-cream-muted text-sm sm:text-base mt-2 max-w-xl">Browse accommodation and read students' experiences.</p>
 
-              {!(currentUser?.account_type === 'student' && currentUser.university) && (
-                <label className="block text-cream text-sm font-semibold mt-7 max-w-md">
-                  Accommodation near
-                  <select
-                    aria-label="Accommodation near"
-                    value={nearUniversity}
-                    onChange={e => setNearUniversity(e.target.value)}
-                    className="block mt-2 w-full border border-slate-border rounded-xl bg-slate-deep text-cream px-4 py-3.5 outline-none focus:border-teal-light focus:ring-2 focus:ring-teal-faint"
-                  >
-                    <option value="" disabled>Select a university</option>
-                    {SOUTH_AFRICAN_UNIVERSITIES.map(university => <option key={university} value={university}>{university}</option>)}
-                  </select>
-                </label>
-              )}
+              <label className="block text-cream text-sm font-semibold mt-7 max-w-md">
+                Accommodation near
+                <select
+                  aria-label="Accommodation near"
+                  value={nearUniversity}
+                  onChange={e => changeUniversity(e.target.value)}
+                  className="block mt-2 w-full border border-slate-border rounded-xl bg-slate-deep text-cream px-4 py-3.5 outline-none focus:border-teal-light focus:ring-2 focus:ring-teal-faint"
+                >
+                  <option value="" disabled>Select a university</option>
+                  {SOUTH_AFRICAN_UNIVERSITIES.map(university => <option key={university} value={university}>{university}</option>)}
+                </select>
+              </label>
 
-              <div className="mt-4 lg:hidden">
+              <div className="mt-4 sm:hidden">
                 <Link to="/accommodations/review" className="inline-flex items-center gap-2 rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold">
                   <PenLine size={17} /> Write a review
                 </Link>
@@ -120,7 +138,7 @@ export default function AccommodationMarketplace() {
             </div>
 
             <div className="relative min-h-[170px] sm:min-h-[210px] lg:min-h-[245px] flex items-end justify-center lg:justify-end">
-              <Link to="/accommodations/review" className="hidden lg:inline-flex absolute right-0 top-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm z-10">
+              <Link to="/accommodations/review" className="hidden sm:inline-flex absolute right-0 top-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm z-10">
                 <PenLine size={17} /> Write a review
               </Link>
               <img

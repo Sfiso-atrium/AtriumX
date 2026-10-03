@@ -8,6 +8,7 @@ import CategoryChips, { STUDENT_CATEGORIES } from '../components/common/Category
 import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
+import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 const GUEST_UNIVERSITY = 'University of the Witwatersrand'
 const BUSINESS_CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -62,17 +63,24 @@ export default function Feed() {
 const { activeCategory, setActiveCategory, showToast, currentUser, setAuthPromptOpen, setRedirectAfterLogin } = useApp()
   const navigate = useNavigate()
   const location = useLocation()
-  const requestedUniversity = new URLSearchParams(location.search).get('university')
+  const searchParams = new URLSearchParams(location.search)
+  const requestedUniversity = searchParams.get('university')
+  const requestedTab = searchParams.get('tab')
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
   useEffect(() => { localStorage.setItem('feed_last_tab', feedTab) }, [feedTab])
   useEffect(() => {
-    // Start each account in the audience appropriate to its role.
+    // Admins can deliberately inspect either marketplace at any university.
+    if (currentUser?.is_admin && (requestedTab === 'marketplace' || requestedTab === 'business')) {
+      setFeedTab(requestedTab)
+      return
+    }
+    // Start each normal account in the audience appropriate to its role.
     if (currentUser?.account_type === 'business') {
       setFeedTab('business')
     } else if (currentUser?.account_type === 'student') {
       setFeedTab('marketplace')
     }
-  }, [currentUser?.account_type])
+  }, [currentUser?.account_type, currentUser?.is_admin, requestedTab])
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
@@ -108,7 +116,7 @@ const [fetchError, setFetchError] = useState(false)
   const [businessFetchError, setBusinessFetchError] = useState(false)
 
   useEffect(() => {
-    if (currentUser?.account_type !== 'business') {
+    if (currentUser?.is_admin || currentUser?.account_type !== 'business') {
       setBusinessUniversities([])
       setBusinessUniversitiesLoading(false)
       return
@@ -133,14 +141,16 @@ const [fetchError, setFetchError] = useState(false)
     return () => { mounted = false }
   }, [currentUser])
 
-  const marketplaceUniversity = currentUser?.account_type === 'business'
-    ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
-        ? requestedUniversity
-        : businessUniversities[0] ?? null)
-    : currentUser?.university ?? null
+  const marketplaceUniversity = currentUser?.is_admin
+    ? (requestedUniversity || currentUser.university || null)
+    : currentUser?.account_type === 'business'
+      ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
+          ? requestedUniversity
+          : businessUniversities[0] ?? null)
+      : currentUser?.university ?? null
 
   useEffect(() => {
-    if (currentUser?.account_type === 'business' && businessUniversitiesLoading) return
+    if (!currentUser?.is_admin && currentUser?.account_type === 'business' && businessUniversitiesLoading) return
 
     setDbLoading(true)
     setBusinessLoading(true)
@@ -159,7 +169,7 @@ const [fetchError, setFetchError] = useState(false)
 
     getResidences().then(setResidenceOptions)
     setWantedPostsLoading(true)
-    getWantedPosts()
+    getWantedPosts(currentUser?.is_admin ? marketplaceUniversity : undefined)
       .then(data => { setWantedPosts(data); setWantedPostsLoading(false) })
       .catch(() => setWantedPostsLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
@@ -292,6 +302,17 @@ const filteredBusiness = useMemo(() => {
     if (convId) navigate(`/chat/${convId}`)
   }
 
+  const changeAdminUniversity = (university: string) => {
+    navigate(`/feed?university=${encodeURIComponent(university)}&tab=${feedTab}`, { replace: true })
+  }
+
+  const changeFeedTab = (nextTab: 'marketplace' | 'business') => {
+    setFeedTab(nextTab)
+    if (currentUser?.is_admin && marketplaceUniversity) {
+      navigate(`/feed?university=${encodeURIComponent(marketplaceUniversity)}&tab=${nextTab}`, { replace: true })
+    }
+  }
+
   return (
     <>
       <div className="min-h-screen bg-slate-deep">
@@ -302,6 +323,30 @@ const filteredBusiness = useMemo(() => {
             <h1 className="font-serif text-2xl text-cream">Discover</h1>
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
+
+          {currentUser?.is_admin && (
+            <div className="mx-4 mt-2 mb-3 rounded-2xl border border-slate-border bg-slate-card p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <label className="min-w-0 flex-1 text-xs font-semibold text-cream">
+                  Admin university view
+                  <select
+                    value={marketplaceUniversity ?? ''}
+                    onChange={e => changeAdminUniversity(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-border bg-slate-deep px-3 py-2.5 text-sm text-cream outline-none focus:border-teal-light"
+                  >
+                    <option value="" disabled>Choose a university</option>
+                    {SOUTH_AFRICAN_UNIVERSITIES.map(university => (
+                      <option key={university} value={university}>{university}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => marketplaceUniversity && navigate(`/accommodations?university=${encodeURIComponent(marketplaceUniversity)}`)} disabled={!marketplaceUniversity} className="rounded-xl border border-teal-light px-3 py-2.5 text-xs font-bold text-teal-primary hover:bg-teal-faint disabled:opacity-40">Accommodation</button>
+                  <button type="button" onClick={() => navigate('/admin')} className="rounded-xl border border-slate-border px-3 py-2.5 text-xs font-bold text-cream-muted hover:text-cream">Admin panel</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="px-4 pt-2 pb-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch border-b border-[#e8eef6]">
             <div className="flex h-12 bg-white border border-slate-border rounded-xl p-1">
@@ -346,7 +391,7 @@ const filteredBusiness = useMemo(() => {
               <span className="text-cream-muted">For:</span>
               <select
                 value={feedTab}
-                onChange={e => setFeedTab(e.target.value as 'marketplace' | 'business')}
+                onChange={e => changeFeedTab(e.target.value as 'marketplace' | 'business')}
                 className="bg-transparent text-cream focus:outline-none cursor-pointer"
               >
                 <option value="marketplace">Students</option>
