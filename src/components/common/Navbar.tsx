@@ -18,7 +18,7 @@ import {
 import { useApp } from '../../context/AppContext'
 import NotificationBell from './NotificationBell'
 import { pushSupported, subscribeToPush, unsubscribeFromPush } from '../../services/push'
-import { getBusinessProfile, BusinessProfile, getEffectiveBusinessPlan, PLAN_TIERS } from '../../services/dataService'
+import { getAccommodationListingsBySeller, getBusinessProfile, BusinessProfile, getEffectiveBusinessPlan, PLAN_TIERS } from '../../services/dataService'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -32,6 +32,7 @@ export default function Navbar() {
   const [pushBlocked, setPushBlocked] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
+  const [accommodationUniversities, setAccommodationUniversities] = useState<string[]>([])
   const [universityMenuOpen, setUniversityMenuOpen] = useState(false)
 
   // Sign in/up, business account creation, and the retailer landing page are
@@ -41,14 +42,34 @@ export default function Navbar() {
   const hideSidemenu = ['/student', '/retailer', '/retailer/signup'].includes(location.pathname)
 
   useEffect(() => {
+    let cancelled = false
+
     if (!currentUser || currentUser.account_type !== 'business') {
       setBusinessProfile(null)
+      setAccommodationUniversities([])
       setUniversityMenuOpen(false)
-      return
+      return () => { cancelled = true }
     }
 
-    getBusinessProfile(currentUser.id).then(setBusinessProfile)
-  }, [currentUser])
+    getBusinessProfile(currentUser.id).then(async profile => {
+      if (cancelled) return
+      setBusinessProfile(profile)
+
+      if (!profile?.is_accommodation) {
+        setAccommodationUniversities([])
+        return
+      }
+
+      const listings = await getAccommodationListingsBySeller(currentUser.id)
+      if (cancelled) return
+      const listing = listings[0]
+      setAccommodationUniversities(listing?.active_universities?.length
+        ? listing.active_universities
+        : listing?.universities ?? profile.universities ?? [])
+    })
+
+    return () => { cancelled = true }
+  }, [currentUser?.id, currentUser?.account_type])
 
   useEffect(() => {
     if (!menuOpen || !currentUser || !pushSupported()) return
@@ -93,10 +114,21 @@ export default function Navbar() {
   }
 
   const effectiveBusinessPlan = getEffectiveBusinessPlan(currentUser)
-  const businessUniversityLimit = 'maxUniversities' in PLAN_TIERS[effectiveBusinessPlan] && typeof PLAN_TIERS[effectiveBusinessPlan].maxUniversities === 'number'
+  const normalBusinessUniversityLimit = 'maxUniversities' in PLAN_TIERS[effectiveBusinessPlan] && typeof PLAN_TIERS[effectiveBusinessPlan].maxUniversities === 'number'
     ? PLAN_TIERS[effectiveBusinessPlan].maxUniversities
     : 1
-  const visibleBusinessUniversities = (businessProfile?.universities ?? []).slice(0, businessUniversityLimit)
+  const isAccommodationBusiness = !!businessProfile?.is_accommodation
+  const accommodationUniversityLimit = businessProfile?.accommodation_plan === 'accommodation_premium'
+    ? 3
+    : businessProfile?.accommodation_plan === 'accommodation_featured'
+      ? 2
+      : 1
+  const businessUniversityLimit = isAccommodationBusiness ? accommodationUniversityLimit : normalBusinessUniversityLimit
+  const businessUniversities = isAccommodationBusiness ? accommodationUniversities : (businessProfile?.universities ?? [])
+  const visibleBusinessUniversities = businessUniversities.slice(0, businessUniversityLimit)
+  const isLargestBusinessPlan = isAccommodationBusiness
+    ? businessProfile?.accommodation_plan === 'accommodation_premium'
+    : effectiveBusinessPlan === 'campus_partner'
 
 
   return (
@@ -162,7 +194,7 @@ export default function Navbar() {
                           <span className="text-cream text-xs font-semibold">
                             {visibleBusinessUniversities.length} / {businessUniversityLimit} universities
                           </span>
-                          {effectiveBusinessPlan !== 'campus_partner' && visibleBusinessUniversities.length >= businessUniversityLimit && (
+                          {!isLargestBusinessPlan && visibleBusinessUniversities.length >= businessUniversityLimit && (
                             <span className="text-cream-muted text-[10px]">Plan limit reached</span>
                           )}
                         </div>
@@ -184,9 +216,9 @@ export default function Navbar() {
                             <p className="text-cream-muted text-xs">No university has been selected yet.</p>
                           )}
                         </div>
-                        {effectiveBusinessPlan !== 'campus_partner' && (
+                        {!isLargestBusinessPlan && (
                           <button
-                            onClick={() => { setUniversityMenuOpen(false); navigate('/business/plan-select', { state: { forcePlans: true } }) }}
+                            onClick={() => { setUniversityMenuOpen(false); navigate(isAccommodationBusiness ? '/accommodation/plan-select' : '/business/plan-select', isAccommodationBusiness ? undefined : { state: { forcePlans: true } }) }}
                             className="mt-3 w-full bg-ember hover:bg-ember-dark text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
                           >
                             Upgrade to reach more universities
