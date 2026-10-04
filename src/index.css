@@ -105,12 +105,31 @@ html.dark-mode [class*="border-[#d7e1ee]"] {
   border-color: rgb(var(--atriumx-border-rgb)) !important;
 }
 
+/* My Space quick-access tiles keep their pastel light-mode backgrounds by
+   default. In dark mode, move those tiles onto the shared dark card surface
+   so the light text applied by the dark theme remains readable. */
+html.dark-mode .bg-blue-50,
+html.dark-mode .bg-green-100,
+html.dark-mode .bg-violet-50,
+html.dark-mode .bg-pink-100 {
+  background-color: rgb(var(--atriumx-bg-card-rgb)) !important;
+  border-color: rgb(var(--atriumx-border-rgb)) !important;
+}
+
 /* The current entrance page uses a few fixed light-palette utilities. Keep
    those surfaces and text aligned with the shared dark theme when enabled. */
 html.dark-mode [class*="bg-[#F7FAFF]"],
 html.dark-mode [class*="bg-[#F8FBFF]"],
 html.dark-mode [class*="bg-[#EDF5FF]"] {
   background-color: rgb(var(--atriumx-bg-deep-rgb)) !important;
+}
+
+/* Tailwind gradient utilities paint with background-image, so changing only
+   background-color leaves the light entrance CTA visible underneath white
+   dark-mode text. Replace that specific light gradient with a dark card. */
+html.dark-mode [class*="from-[#EDF5FF]"][class*="to-[#F8FBFF]"] {
+  background-image: none !important;
+  background-color: rgb(var(--atriumx-bg-card-rgb)) !important;
 }
 
 html.dark-mode [class*="border-[#E6EDF7]"],
