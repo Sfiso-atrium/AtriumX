@@ -5,6 +5,7 @@ import {
   BedDouble,
   Building2,
   CalendarDays,
+  Contrast,
   GraduationCap,
   Heart,
   MapPin,
@@ -45,7 +46,7 @@ const exploreCards = [
 
 export default function Entrance() {
   const navigate = useNavigate()
-  const { currentUser, isLoadingAuth } = useApp()
+  const { currentUser, isLoadingAuth, darkMode, toggleDarkMode } = useApp()
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
@@ -88,6 +89,14 @@ export default function Entrance() {
           </nav>
 
           <div className="flex items-center gap-2.5">
+            <button
+              onClick={toggleDarkMode}
+              aria-label="Toggle dark mode"
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${darkMode ? 'border-teal-light bg-teal-faint text-teal-light' : 'border-[#E6EDF7] bg-white text-[#334155] hover:bg-[#F1F5F9]'}`}
+            >
+              <Contrast size={17} />
+            </button>
             <button
               onClick={() => navigate('/feed')}
               aria-label="Browse marketplace"
