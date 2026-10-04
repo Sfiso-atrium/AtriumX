@@ -8,6 +8,7 @@ import { getAccommodationListings, AccommodationListing, ACCOMMODATION_PLANS, Ac
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import AccommodationCard from '../components/common/AccommodationCard'
+import { getExampleAccommodationListings } from '../data/exampleAccommodations'
 
 const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommodation_featured', 'accommodation_free']
 
@@ -41,10 +42,14 @@ export default function AccommodationMarketplace() {
 
     getAccommodationListings(nearUniversity)
       .then(data => {
-        if (!cancelled) setListings(data)
+        if (!cancelled) setListings([...data, ...getExampleAccommodationListings(nearUniversity)])
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
+        if (!cancelled) {
+          setListings(getExampleAccommodationListings(nearUniversity))
+          setLoadError(false)
+          showToast('Live accommodation could not load. Showing example residences.', 'info')
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

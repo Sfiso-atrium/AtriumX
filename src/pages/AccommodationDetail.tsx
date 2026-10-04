@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, PencilLine, Plus, Send, Star, Tag } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, PencilLine, Plus, Send, Star, Tag, X } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, selectAccommodationUniversities, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
+import { getExampleAccommodationById, isExampleAccommodationId, isExampleAccommodationListing } from '../data/exampleAccommodations'
 import AccommodationReportModal from '../components/student/AccommodationReportModal'
 import AccommodationReportEditModal from '../components/student/AccommodationReportEditModal'
 
 export default function AccommodationDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, isLoadingAuth, showToast, setAuthPromptOpen, setRedirectAfterLogin, businessProfile } = useApp()
   const [listing, setListing] = useState<AccommodationListing | null>(null)
   const [reviews, setReviews] = useState<AccommodationReview[]>([])
@@ -22,8 +24,12 @@ export default function AccommodationDetail() {
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [showReportEditModal, setShowReportEditModal] = useState(false)
+  const [showNoWebsite, setShowNoWebsite] = useState(false)
+  const [showChatLocked, setShowChatLocked] = useState(false)
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([])
   const [savingUniversities, setSavingUniversities] = useState(false)
+
+  const routeExampleListing = (location.state as { exampleListing?: AccommodationListing } | null)?.exampleListing
 
   useEffect(() => {
     setSelectedUniversities(listing?.active_universities ?? [])
@@ -32,13 +38,31 @@ export default function AccommodationDetail() {
   useEffect(() => {
     if (!id || isLoadingAuth) return
     setLoading(true)
-    getAccommodationListingById(id, currentUser?.id).then(setListing).catch(() => showToast('Could not load accommodation. Please try again.', 'error')).finally(() => setLoading(false))
-  }, [id, currentUser?.id, isLoadingAuth])
+
+    const localExample = routeExampleListing?.id === id && isExampleAccommodationListing(routeExampleListing)
+      ? routeExampleListing
+      : getExampleAccommodationById(id)
+
+    if (localExample) {
+      setListing(localExample)
+      setLoading(false)
+      return
+    }
+
+    getAccommodationListingById(id, currentUser?.id)
+      .then(setListing)
+      .catch(() => showToast('Could not load accommodation. Please try again.', 'error'))
+      .finally(() => setLoading(false))
+  }, [id, currentUser?.id, isLoadingAuth, routeExampleListing, showToast])
 
   useEffect(() => {
     if (!id) return
+    if (isExampleAccommodationId(id)) {
+      setReviews([])
+      return
+    }
     getAccommodationReviews(id).then(setReviews).catch(() => showToast('Could not load reviews. Please refresh.', 'error'))
-  }, [id])
+  }, [id, showToast])
 
   const isOwner = currentUser?.id === listing?.seller_id
   const canReply = isOwner && businessProfile?.is_accommodation && businessProfile.accommodation_plan !== 'accommodation_free'
@@ -49,9 +73,14 @@ export default function AccommodationDetail() {
   if (loading) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   if (!listing) return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Accommodation not found.</div>
 
+  const isExample = isExampleAccommodationListing(listing)
+  const websiteHref = listing.seller_website
+    ? (/^https?:\/\//i.test(listing.seller_website) ? listing.seller_website : `https://${listing.seller_website}`)
+    : null
   const maxUniversities = listing.max_universities ?? 1
-  const needsUniversitySelection = isOwner && (listing.universities.length > maxUniversities
+  const needsUniversitySelection = !isExample && isOwner && (listing.universities.length > maxUniversities
     || (listing.active_universities?.length ?? 0) < listing.universities.length)
+
   const saveUniversities = async () => {
     setSavingUniversities(true)
     try {
@@ -67,11 +96,16 @@ export default function AccommodationDetail() {
   }
 
   const handleReportClick = () => {
+    if (isExample) return
     if (!currentUser) { setAuthPromptOpen(true); return }
     setShowReportModal(true)
   }
 
   const handleChat = async () => {
+    if (isExample || ('chat_locked' in listing && listing.chat_locked)) {
+      setShowChatLocked(true)
+      return
+    }
     if (!listing.seller_id) return
     if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return }
     if (currentUser.account_type !== 'student') { showToast('Accommodation chat is available to students.', 'info'); return }
@@ -81,6 +115,7 @@ export default function AccommodationDetail() {
   }
 
   const handleReview = async () => {
+    if (isExample) { showToast('Reviews are unavailable on example listings.', 'info'); return }
     if (!currentUser) { setAuthPromptOpen(true); return }
     if (currentUser.account_type !== 'student') { showToast('Only students can review accommodation.', 'info'); return }
     if (reviewStars < 1) { showToast('Choose a star rating first.', 'info'); return }
@@ -114,7 +149,7 @@ export default function AccommodationDetail() {
         <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream"><ArrowLeft size={20} /></button>
         {isOwner ? (
           <button onClick={() => navigate(`/accommodation/${listing.id}/edit`)} className="text-teal-light hover:text-cream text-sm font-semibold flex items-center gap-1.5"><PencilLine size={14} /> Edit listing</button>
-        ) : !listing.guest_submission ? (
+        ) : !isExample && !listing.guest_submission ? (
           <button onClick={handleReportClick} className="text-cream-muted hover:text-red-400 text-sm flex items-center gap-1.5"><Flag size={14} /> Report</button>
         ) : null}
       </div>
@@ -161,6 +196,9 @@ export default function AccommodationDetail() {
               {listing.video_url ? (
                 <video src={listing.video_url} controls poster={listing.image_urls?.[0] || undefined} className="w-full h-full object-cover bg-black" />
               ) : listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
+              {isExample && (
+                <span className="absolute top-3 left-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-700 shadow-sm">Example listing</span>
+              )}
               {average > 0 && (
                 <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-deep/90 border border-gold/40 text-gold text-xs font-bold px-2.5 py-1 rounded-full">
                   <Star size={13} className="fill-amber-400 text-amber-400" /> {average.toFixed(1)} ({reviews.length})
@@ -172,13 +210,22 @@ export default function AccommodationDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-serif text-2xl text-cream">{listing.title}</h1>
                 <span className="px-2.5 py-1 rounded-full bg-teal-faint text-teal-light text-xs font-bold">Accommodation</span>
-                <span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span>
+                {!isExample && <span className="px-2.5 py-1 rounded-full bg-slate-deep text-cream-muted text-xs font-bold">{listing.plan_tier === 'accommodation_premium' ? 'Premium' : listing.plan_tier === 'accommodation_featured' ? 'Featured' : 'Free'}</span>}
               </div>
               {listing.monthly_rent != null ? <p className="text-teal-light font-extrabold text-xl">From R{listing.monthly_rent.toLocaleString('en-ZA')} <span className="text-cream-muted text-sm font-semibold">/ month</span></p> : <p className="text-cream-muted text-sm font-semibold">Pricing available by room type</p>}
               <p className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> {listing.address}</p>
               {listing.building_addresses?.map((addr, i) => addr ? <p key={i} className="text-cream-muted text-sm flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0" /> <span><span className="font-semibold text-cream">Building {i + 2}:</span> {addr}</span></p> : null)}
               <p className="text-cream-muted text-sm"><span className="font-semibold text-cream">Buildings:</span> {listing.building_count}</p>
-              {listing.seller_website && <a href={/^https?:\/\//i.test(listing.seller_website) ? listing.seller_website : `https://${listing.seller_website}`} target="_blank" rel="noopener noreferrer" className="text-teal-light text-sm flex items-center gap-1.5 hover:underline w-fit break-all"><Globe size={15} className="flex-shrink-0" /> {listing.seller_website}</a>}
+              <button
+                type="button"
+                onClick={() => {
+                  if (websiteHref) window.open(websiteHref, '_blank', 'noopener,noreferrer')
+                  else setShowNoWebsite(true)
+                }}
+                className="text-teal-light text-sm flex items-center gap-1.5 hover:underline w-fit text-left"
+              >
+                <Globe size={15} className="flex-shrink-0" /> {websiteHref ? 'Visit residence website' : 'Residence website'}
+              </button>
               {listing.description && <p className="text-cream-muted text-sm leading-relaxed whitespace-pre-wrap mt-1">{listing.description}</p>}
             </div>
           </div>
@@ -231,21 +278,25 @@ export default function AccommodationDetail() {
         {!listing.guest_submission && !isOwner && currentUser?.account_type !== 'business' && <button onClick={handleChat} className="mt-4 w-full bg-teal-primary hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"><MessageCircle size={17} /> Message accommodation</button>}
 
         {listing.guest_submission && <div className="mt-5 bg-slate-card border border-slate-border rounded-xl p-5 text-cream space-y-3"><h2 className="font-bold">Contact the property</h2><p className="text-cream-muted text-sm">This provider accepts enquiries by phone. In-app messaging becomes available once the provider links an account.</p><a className="text-teal-light underline" href={`tel:${listing.contact_number?.replace(/[^+0-9]/g,'')}`}>{listing.contact_number}</a></div>}
-        {<section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
-          <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="flex items-center gap-3"><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-amber-400 text-amber-400" /> {average ? average.toFixed(1) : '—'}</div>{!isOwner && (!currentUser || (currentUser.account_type === 'student' && !reviews.some(r => r.student_id === currentUser.id))) && <button onClick={() => { if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return } setShowReviewForm(v => !v) }} aria-label="Write a review" className="w-8 h-8 rounded-full bg-gold hover:bg-gold/90 text-slate-deep flex items-center justify-center transition-colors flex-shrink-0"><Plus size={16} strokeWidth={2.5} /></button>}</div></div>
-          {showReviewForm && !isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><p className="text-cream-muted text-sm mb-3">Your name, {currentUser.full_name}, will be displayed publicly with this review.</p><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-amber-400' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} maxLength={3000} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
+        <section className="mt-6 bg-slate-card border border-slate-border rounded-3xl p-5 sm:p-7">
+          <div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Reviews</p><h2 className="text-2xl font-extrabold text-cream">What students say</h2></div><div className="flex items-center gap-3"><div className="text-gold flex items-center gap-1 text-sm"><Star size={16} className="fill-amber-400 text-amber-400" /> {average ? average.toFixed(1) : '—'}</div>{!isExample && !isOwner && (!currentUser || (currentUser.account_type === 'student' && !reviews.some(r => r.student_id === currentUser.id))) && <button onClick={() => { if (!currentUser) { setRedirectAfterLogin(`/accommodation/${listing.id}`); setAuthPromptOpen(true); return } setShowReviewForm(v => !v) }} aria-label="Write a review" className="w-8 h-8 rounded-full bg-gold hover:bg-gold/90 text-slate-deep flex items-center justify-center transition-colors flex-shrink-0"><Plus size={16} strokeWidth={2.5} /></button>}</div></div>
+          {showReviewForm && !isExample && !isOwner && currentUser?.account_type === 'student' && <div className="border border-slate-border rounded-2xl p-4 mb-5"><p className="text-cream-muted text-sm mb-3">Your name, {currentUser.full_name}, will be displayed publicly with this review.</p><div className="flex items-center gap-1 mb-3">{[1,2,3,4,5].map(s => <button key={s} onClick={() => setReviewStars(s)} className={s <= reviewStars ? 'text-amber-400' : 'text-slate-border'}><Star size={19} className={s <= reviewStars ? 'fill-current' : ''} /></button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} maxLength={3000} placeholder="Share your experience" className="w-full bg-slate-deep border border-slate-border rounded-xl p-3 text-cream text-sm placeholder:text-cream-muted resize-none" /><button onClick={handleReview} disabled={saving} className="mt-3 inline-flex items-center gap-2 bg-teal-primary text-white font-bold px-4 py-2.5 rounded-xl text-sm"><Send size={14} /> Post review</button></div>}
           <div className="space-y-4">
-            {reviews.length === 0 ? <p className="text-cream-muted text-sm">No reviews yet.</p> : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.reviewer_name || review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
+            {isExample ? (
+              <p className="text-cream-muted text-sm">Reviews are unavailable on example listings.</p>
+            ) : reviews.length === 0 ? (
+              <p className="text-cream-muted text-sm">No reviews yet.</p>
+            ) : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.reviewer_name || review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
           </div>
-        </section>}
+        </section>
       </main>
-      {showReportModal && (
+      {showReportModal && !isExample && (
         <AccommodationReportModal
           accommodationListingId={listing.id}
           onClose={() => setShowReportModal(false)}
         />
       )}
-      {showReportEditModal && reportedField && (
+      {showReportEditModal && reportedField && !isExample && (
         <AccommodationReportEditModal
           listing={listing}
           field={reportedField}
@@ -256,6 +307,34 @@ export default function AccommodationDetail() {
             showToast('Correction saved. The 3-day warning has been cleared.', 'success')
           }}
         />
+      )}
+      {showNoWebsite && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" onClick={() => setShowNoWebsite(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="accommodation-no-website" className="w-full max-w-sm rounded-2xl border border-slate-border bg-slate-card p-5 shadow-xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="accommodation-no-website" className="text-cream font-bold text-base">No website provided</h2>
+                <p className="mt-2 text-cream-muted text-sm leading-relaxed">This accommodation did not provide a website.</p>
+              </div>
+              <button type="button" onClick={() => setShowNoWebsite(false)} className="text-cream-muted hover:text-cream" aria-label="Close"><X size={18} /></button>
+            </div>
+            <button type="button" onClick={() => setShowNoWebsite(false)} className="mt-4 w-full rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1D4ED8] transition-colors">Close</button>
+          </div>
+        </div>
+      )}
+      {showChatLocked && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" onClick={() => setShowChatLocked(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="accommodation-chat-locked" className="w-full max-w-sm rounded-2xl border border-slate-border bg-slate-card p-5 shadow-xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="accommodation-chat-locked" className="text-cream font-bold text-base">Chat unavailable</h2>
+                <p className="mt-2 text-cream-muted text-sm leading-relaxed">This accommodation has locked their chat.</p>
+              </div>
+              <button type="button" onClick={() => setShowChatLocked(false)} className="text-cream-muted hover:text-cream" aria-label="Close"><X size={18} /></button>
+            </div>
+            <button type="button" onClick={() => setShowChatLocked(false)} className="mt-4 w-full rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1D4ED8] transition-colors">Close</button>
+          </div>
+        </div>
       )}
     </div>
   )
