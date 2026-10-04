@@ -105,6 +105,35 @@ html.dark-mode [class*="border-[#d7e1ee]"] {
   border-color: rgb(var(--atriumx-border-rgb)) !important;
 }
 
+/* The current entrance page uses a few fixed light-palette utilities. Keep
+   those surfaces and text aligned with the shared dark theme when enabled. */
+html.dark-mode [class*="bg-[#F7FAFF]"],
+html.dark-mode [class*="bg-[#F8FBFF]"],
+html.dark-mode [class*="bg-[#EDF5FF]"] {
+  background-color: rgb(var(--atriumx-bg-deep-rgb)) !important;
+}
+
+html.dark-mode [class*="border-[#E6EDF7]"],
+html.dark-mode [class*="border-[#E5ECF5]"],
+html.dark-mode [class*="border-[#E5ECF6]"],
+html.dark-mode [class*="border-[#E3EAF4]"],
+html.dark-mode [class*="border-[#C9D8EE]"],
+html.dark-mode [class*="border-[#D8E8FF]"] {
+  border-color: rgb(var(--atriumx-border-rgb)) !important;
+}
+
+html.dark-mode [class*="text-[#07152F]"],
+html.dark-mode [class*="text-[#0F172A]"],
+html.dark-mode [class*="text-[#1E293B]"],
+html.dark-mode [class*="text-[#334155]"] {
+  color: rgb(var(--atriumx-cream-rgb)) !important;
+}
+
+html.dark-mode [class*="text-[#52637B]"],
+html.dark-mode [class*="text-[#64748B]"] {
+  color: rgb(var(--atriumx-cream-muted-rgb)) !important;
+}
+
 /* Focus Mode decorative bubbles use the same AtriumX theme variables, so they
    automatically follow the current light/dark site palette without introducing
    a second page-specific color system. */
