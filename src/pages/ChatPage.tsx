@@ -153,7 +153,7 @@ useEffect(() => {
         </div>
 <div className="flex flex-1 min-h-0 overflow-hidden md:p-4 md:gap-4">
           {/* Conversation list — hidden on mobile when a convo is open */}
-          <div className={`w-full md:w-80 flex-shrink-0 min-h-0 flex-col md:rounded-3xl md:bg-white md:border md:border-slate-100 md:shadow-[0_8px_24px_rgba(15,23,42,0.06)] overflow-hidden ${active && isMobile ? 'hidden' : 'flex'} md:flex`}>
+          <div className={`w-full md:w-80 flex-shrink-0 min-h-0 flex-col md:rounded-3xl md:bg-slate-card md:border md:border-slate-border md:shadow-[0_8px_24px_rgba(15,23,42,0.06)] overflow-hidden ${active && isMobile ? 'hidden' : 'flex'} md:flex`}>
             <div className="hidden md:flex items-center gap-3 px-5 pt-5 pb-3 flex-shrink-0">
               <button onClick={() => navigate(-1)} className="text-cream-muted hover:text-cream" aria-label="Go back">
                 <ArrowLeft size={20} />
@@ -233,14 +233,14 @@ return (
                 )
               })
             )}
-            <div className="mt-2 border-t border-slate-100">
+            <div className="mt-2 border-t border-slate-border">
               <LegalFooter />
             </div>
             </div>
           </div>
 
           {/* Chat window */}
-         <div className={`flex-1 overflow-hidden min-h-0 ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col md:rounded-3xl md:border md:border-slate-100 md:shadow-[0_8px_24px_rgba(15,23,42,0.06)]`}>
+         <div className={`flex-1 overflow-hidden min-h-0 ${!active && isMobile ? 'hidden' : 'flex flex-col'} md:flex md:flex-col md:rounded-3xl md:border md:border-slate-border md:shadow-[0_8px_24px_rgba(15,23,42,0.06)]`}>
             {active ? (
               <ChatWindow
                 conversation={active}

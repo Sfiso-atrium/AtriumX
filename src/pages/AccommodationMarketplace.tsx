@@ -147,7 +147,7 @@ export default function AccommodationMarketplace() {
                 <PenLine size={17} /> Write a review
               </Link>
               <img
-                src="/atriumx-accommodation-hero-illustration.jpg"
+                src="/atriumx-accommodation-hero-illustration.png"
                 alt="Illustration of student accommodation buildings"
                 className="w-full max-w-[470px] object-contain object-bottom"
               />
