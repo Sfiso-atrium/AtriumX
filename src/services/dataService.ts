@@ -1231,6 +1231,8 @@ export async function uploadEventPoster(
 
 // ── ACCOMMODATION ───────────────────────────────────────────────────────────
 
+export const MAX_ACCOMMODATION_VIDEO_BYTES = 50 * 1024 * 1024
+
 export async function uploadAccommodationImage(file: File, userId: string): Promise<{ url: string | null; error: string | null }> {
   const ext = file.name.split('.').pop()
   const filename = `accommodation/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
@@ -1241,6 +1243,9 @@ export async function uploadAccommodationImage(file: File, userId: string): Prom
 }
 
 export async function uploadAccommodationVideo(file: File, userId: string): Promise<{ url: string | null; error: string | null }> {
+  if (file.size > MAX_ACCOMMODATION_VIDEO_BYTES) {
+    return { url: null, error: 'Video must be 50 MB or smaller.' }
+  }
   const ext = file.name.split('.').pop() || 'mp4'
   const filename = `accommodation-videos/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
   const { error: uploadError } = await supabase.storage.from('listing-images').upload(filename, file, { upsert: false })
