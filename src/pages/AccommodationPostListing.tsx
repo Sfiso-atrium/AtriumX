@@ -585,8 +585,8 @@ export default function AccommodationPostListing() {
                 <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{maxUniversities}</span> universit{maxUniversities === 1 ? 'y' : 'ies'}</div>
               </div>
               {plan !== 'accommodation_premium' && (
-                <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-2.5 rounded-xl transition-colors mt-3">
-                  View upgrade options
+                <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-2.5 rounded-xl transition-colors mt-3 shadow-sm">
+                  Upgrade plan
                 </button>
               )}
             </section>

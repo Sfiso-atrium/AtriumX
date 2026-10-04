@@ -295,7 +295,14 @@ export default function AccommodationEditListing() {
             <h1 className="font-serif text-3xl text-cream">Edit your listing</h1>
             <p className="text-cream-muted text-sm mt-2">Update the property students see. Existing content above a downgraded plan limit is preserved unless you remove it.</p>
           </div>
-          <span className="text-cream font-bold text-sm bg-slate-card border border-slate-border px-3 py-2 rounded-xl">{ACCOMMODATION_PLANS[plan].label}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-cream font-bold text-sm bg-slate-card border border-slate-border px-3 py-2 rounded-xl">{ACCOMMODATION_PLANS[plan].label}</span>
+            {plan !== 'accommodation_premium' && (
+              <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors shadow-sm">
+                Upgrade plan
+              </button>
+            )}
+          </div>
         </div>
 
         {listing.report_required_field && listing.report_edit_deadline_at && (
