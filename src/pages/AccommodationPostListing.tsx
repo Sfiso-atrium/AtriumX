@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, ImagePlus, Plus, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, MAX_ACCOMMODATION_VIDEO_BYTES, completeBusinessProfileForCurrentUser, createAccommodationListing, getAccommodationListingsBySeller, getBusinessProfile, roomTypeLabel, startAccommodationPlanPayment, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
+import { ACCOMMODATION_PLANS, AccommodationPlanKey, AccommodationRoomPricing, completeBusinessProfileForCurrentUser, createAccommodationListing, getAccommodationListingsBySeller, getBusinessProfile, roomTypeLabel, startAccommodationPlanPayment, uploadAccommodationImage, uploadAccommodationVideo } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
 import AddressAutocomplete from '../components/common/AddressAutocomplete'
@@ -143,10 +143,6 @@ export default function AccommodationPostListing() {
 
   const handleVideoFile = async (file: File | undefined) => {
     if (!file || !currentUser || plan !== 'accommodation_premium') return
-    if (file.size > MAX_ACCOMMODATION_VIDEO_BYTES) {
-      showToast('Video must be 50 MB or smaller.', 'error')
-      return
-    }
     setUploadingVideo(true)
     const { url, error: uploadError } = await uploadAccommodationVideo(file, currentUser.id)
     setUploadingVideo(false)
@@ -499,7 +495,7 @@ export default function AccommodationPostListing() {
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h3 className="text-cream font-bold text-sm">Property video</h3>
-                    <p className="text-cream-muted text-xs mt-1">Optional. Video is available on the Premium accommodation plan. Maximum size: 50 MB.</p>
+                    <p className="text-cream-muted text-xs mt-1">Optional. Video is available on the Premium accommodation plan.</p>
                   </div>
                   {plan === 'accommodation_premium' ? (
                     <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold">
@@ -589,8 +585,8 @@ export default function AccommodationPostListing() {
                 <div className="bg-slate-deep border border-slate-border rounded-xl p-3"><span className="block text-cream font-bold">{maxUniversities}</span> universit{maxUniversities === 1 ? 'y' : 'ies'}</div>
               </div>
               {plan !== 'accommodation_premium' && (
-                <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-2.5 rounded-xl transition-colors mt-3 shadow-sm">
-                  Upgrade plan
+                <button type="button" onClick={() => navigate('/accommodation/plan-select')} className="w-full border border-gold text-gold hover:bg-gold/10 font-bold py-2.5 rounded-xl transition-colors mt-3">
+                  View upgrade options
                 </button>
               )}
             </section>
