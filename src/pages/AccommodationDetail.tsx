@@ -15,6 +15,7 @@ export default function AccommodationDetail() {
   const [listing, setListing] = useState<AccommodationListing | null>(null)
   const [reviews, setReviews] = useState<AccommodationReview[]>([])
   const [activeImage, setActiveImage] = useState(0)
+  const [mediaMode, setMediaMode] = useState<'video' | 'photos'>('video')
   const [reviewStars, setReviewStars] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
@@ -193,9 +194,31 @@ export default function AccommodationDetail() {
         <div className="bg-slate-card border border-slate-border rounded-3xl overflow-hidden">
           <div className="md:flex md:gap-6 md:items-stretch">
             <div className="relative w-full aspect-video md:w-[420px] md:aspect-video md:flex-shrink-0 bg-slate-deep overflow-hidden">
-              {listing.video_url ? (
+              {listing.video_url && (mediaMode === 'video' || !listing.image_urls?.length) ? (
                 <video src={listing.video_url} controls poster={listing.image_urls?.[0] || undefined} className="w-full h-full object-cover bg-black" />
-              ) : listing.image_urls?.length ? <img src={listing.image_urls[activeImage]} alt={listing.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>}
+              ) : listing.image_urls?.length ? (
+                <img src={listing.image_urls[activeImage]} alt={`${listing.title} photo ${activeImage + 1}`} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-cream-muted">No photo</div>
+              )}
+              {listing.video_url && listing.image_urls.length > 0 && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-xl bg-black/65 p-1 shadow-sm backdrop-blur-sm">
+                  <button
+                    type="button"
+                    onClick={() => setMediaMode('video')}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors ${mediaMode === 'video' ? 'bg-white text-slate-900' : 'text-white hover:bg-white/15'}`}
+                  >
+                    Video
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaMode('photos')}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors ${mediaMode === 'photos' ? 'bg-white text-slate-900' : 'text-white hover:bg-white/15'}`}
+                  >
+                    Photos ({listing.image_urls.length})
+                  </button>
+                </div>
+              )}
               {isExample && (
                 <span className="absolute top-3 left-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-700 shadow-sm">Example listing</span>
               )}
@@ -204,7 +227,13 @@ export default function AccommodationDetail() {
                   <Star size={13} className="fill-amber-400 text-amber-400" /> {average.toFixed(1)} ({reviews.length})
                 </span>
               )}
-              {!listing.video_url && listing.image_urls.length > 1 && <><button onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button><button onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button></>}
+              {mediaMode === 'photos' && listing.image_urls.length > 1 && (
+                <>
+                  <button type="button" aria-label="Previous accommodation photo" onClick={() => setActiveImage(i => (i - 1 + listing.image_urls.length) % listing.image_urls.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronLeft size={18} /></button>
+                  <button type="button" aria-label="Next accommodation photo" onClick={() => setActiveImage(i => (i + 1) % listing.image_urls.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"><ChevronRight size={18} /></button>
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white">{activeImage + 1} / {listing.image_urls.length}</span>
+                </>
+              )}
             </div>
             <div className="p-5 md:p-7 md:flex-1 md:min-w-0 flex flex-col justify-center gap-2">
               <div className="flex flex-wrap items-center gap-2">

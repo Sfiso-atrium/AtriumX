@@ -7,6 +7,7 @@ import {
   AccommodationListing,
   AccommodationPlanKey,
   AccommodationRoomPricing,
+  MAX_ACCOMMODATION_VIDEO_BYTES,
   getAccommodationListingById,
   roomTypeLabel,
   updateAccommodationListing,
@@ -188,6 +189,10 @@ export default function AccommodationEditListing() {
 
   const handleVideoFile = async (file: File | undefined) => {
     if (!file || !currentUser || plan !== 'accommodation_premium') return
+    if (file.size > MAX_ACCOMMODATION_VIDEO_BYTES) {
+      setError('Video must be 50 MB or smaller.')
+      return
+    }
     setUploadingVideo(true)
     setError('')
     const upload = await uploadAccommodationVideo(file, currentUser.id)
@@ -393,7 +398,7 @@ export default function AccommodationEditListing() {
 
           <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
             <div className="flex items-start justify-between gap-4 mb-4">
-              <div><h2 className="text-cream font-bold text-base">Property video</h2><p className="text-cream-muted text-xs mt-1">Premium accounts can replace or remove the property video.</p></div>
+              <div><h2 className="text-cream font-bold text-base">Property video</h2><p className="text-cream-muted text-xs mt-1">Premium accounts can replace or remove the property video. Maximum size: 50 MB.</p></div>
               {plan === 'accommodation_premium' && <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold">Replace video<input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={event => handleVideoFile(event.target.files?.[0])} disabled={uploadingVideo} className="hidden" /></label>}
             </div>
             {plan !== 'accommodation_premium' ? (
