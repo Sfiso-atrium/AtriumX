@@ -2,17 +2,22 @@ import { Building2, ExternalLink, Globe, MapPin, Star, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import type { AccommodationListing } from '../../services/dataService'
+import { isExampleAccommodationListing } from '../../data/exampleAccommodations'
 
 export default function AccommodationCard({ listing }: { listing: AccommodationListing }) {
   const navigate = useNavigate()
   const [showNoWebsite, setShowNoWebsite] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const isExample = isExampleAccommodationListing(listing)
 
   const websiteHref = listing.seller_website
     ? (/^https?:\/\//i.test(listing.seller_website) ? listing.seller_website : `https://${listing.seller_website}`)
     : null
 
-  const handleCardClick = () => navigate(`/accommodation/${listing.id}`)
+  const handleCardClick = () => navigate(
+    `/accommodation/${listing.id}`,
+    isExample ? { state: { exampleListing: listing } } : undefined
+  )
 
   const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -30,7 +35,7 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
         tabIndex={0}
         className="group text-left flex-shrink-0 w-[300px] bg-slate-card border border-slate-border rounded-2xl overflow-hidden hover:border-teal-light hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
       >
-        <div className="h-44 bg-slate-deep overflow-hidden">
+        <div className="relative h-44 bg-slate-deep overflow-hidden">
           {listing.image_urls?.length ? (
             <img src={listing.image_urls[0]} alt={listing.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
           ) : listing.video_url ? (
@@ -53,6 +58,11 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
               <Building2 size={34} />
             </div>
           )}
+          {isExample && (
+            <span className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-700 shadow-sm">
+              Example listing
+            </span>
+          )}
         </div>
 
         <div className="p-4 space-y-3">
@@ -73,8 +83,6 @@ export default function AccommodationCard({ listing }: { listing: AccommodationL
               </span>
             ) : null}
           </div>
-
-
 
           {listing.building_count > 1 && (
             <div className="text-cream-muted text-xs">
