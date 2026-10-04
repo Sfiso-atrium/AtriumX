@@ -31,6 +31,8 @@ interface AppContextType {
   partner: Partner | null
   businessProfile: BusinessProfile | null
   refreshBusinessProfile: () => Promise<void>
+  darkMode: boolean
+  toggleDarkMode: () => void
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -47,6 +49,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoadingBusinessProfile, setIsLoadingBusinessProfile] = useState(false)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
+  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('atriumx_dark') === '1')
 
   const setCurrentUser = useCallback((user: Profile | null) => {
     setCurrentUserState(user)
@@ -123,10 +126,12 @@ useEffect(() => {
   }, [setCurrentUser])
 
   useEffect(() => {
-    // Dark mode is disabled for the application. Remove any legacy preference
-    // so an earlier setting cannot re-enable the dark theme.
-    document.documentElement.classList.remove('dark-mode')
-    localStorage.removeItem('atriumx_dark')
+    document.documentElement.classList.toggle('dark-mode', darkMode)
+    localStorage.setItem('atriumx_dark', darkMode ? '1' : '0')
+  }, [darkMode])
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode(previous => !previous)
   }, [])
 
   const showToast = useCallback((message: string, type: Toast['type']) => {
@@ -151,6 +156,7 @@ useEffect(() => {
       partner,
       businessProfile,
       refreshBusinessProfile,
+      darkMode, toggleDarkMode,
     }}>
       {children}
     </AppContext.Provider>
