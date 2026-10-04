@@ -98,11 +98,11 @@ export default function FocusMode() {
         breakImage: '/images/focus/break-pink.png',
         studyLabel: '#C2185B',
         breakLabel: '#8B5FBF',
-        cardBg: 'bg-white/80 border-[#F3B6CE]',
+        cardBg: 'bg-[rgba(255,255,255,0.80)] border-[#F3B6CE]',
         activeCard: 'border-[#C2185B]/30',
-        statBg: 'bg-white/90 border-[#F3B6CE]',
+        statBg: 'bg-[rgba(255,255,255,0.90)] border-[#F3B6CE]',
         progressTrack: '#F6C9DB',
-        controlBg: 'bg-white/90',
+        controlBg: 'bg-[rgba(255,255,255,0.90)]',
         bubbles: [],
       }
     : visualMode === 'cozy'
@@ -118,11 +118,11 @@ export default function FocusMode() {
           breakImage: '/images/focus/break-neutral.png',
           studyLabel: '#C98A1D',
           breakLabel: '#8B5FBF',
-          cardBg: 'bg-white/80 border-[#EADFC4]',
+          cardBg: 'bg-[rgba(255,255,255,0.80)] border-[#EADFC4]',
           activeCard: 'border-[#C98A1D]/30',
-          statBg: 'bg-white/90 border-[#EADFC4]',
+          statBg: 'bg-[rgba(255,255,255,0.90)] border-[#EADFC4]',
           progressTrack: '#F1E2C0',
-          controlBg: 'bg-white/90',
+          controlBg: 'bg-[rgba(255,255,255,0.90)]',
           bubbles: [],
         }
       : {
@@ -161,6 +161,7 @@ export default function FocusMode() {
       style={{
         backgroundColor: theme.pageBg,
         ...(theme.pageImage ? { backgroundImage: `url(${theme.pageImage})` } : {}),
+        ...(visualMode !== 'atriumx' ? { colorScheme: 'light' as const } : {}),
       }}
     >
       {theme.pageImage && (
