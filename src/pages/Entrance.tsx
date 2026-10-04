@@ -163,7 +163,14 @@ export default function Entrance() {
               alt="University campus"
               className="absolute inset-0 h-full w-full object-cover lg:[clip-path:ellipse(78%_76%_at_72%_46%)]"
             />
-            <div className="absolute inset-0 hidden bg-gradient-to-r from-white via-white/10 to-transparent lg:block" />
+            <div
+              className="absolute inset-0 hidden lg:block"
+              style={{
+                backgroundImage: darkMode
+                  ? 'linear-gradient(to right, rgb(var(--atriumx-bg-card-rgb)) 0%, rgb(var(--atriumx-bg-card-rgb) / 0.92) 18%, rgb(var(--atriumx-bg-card-rgb) / 0.48) 38%, transparent 62%)'
+                  : 'linear-gradient(to right, #FFFFFF 0%, rgba(255, 255, 255, 0.92) 18%, rgba(255, 255, 255, 0.48) 38%, transparent 62%)',
+              }}
+            />
             <div className="absolute right-7 top-[36%] hidden max-w-[150px] rotate-[-5deg] text-center font-serif text-[21px] italic leading-tight text-[#1565F9] xl:block">
               A stronger campus, together.
             </div>
