@@ -116,8 +116,8 @@ export default function AccommodationMarketplace() {
           </div>
         )}
         <section className="overflow-hidden rounded-[28px] border border-slate-border bg-slate-card px-5 py-6 sm:px-7 sm:py-7 lg:px-9 lg:py-8">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)] lg:items-center">
-            <div className="min-w-0">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
               <p className="text-teal-light text-xs font-bold uppercase tracking-[0.18em] mb-2">Accommodation</p>
               <h1 className="font-serif text-4xl sm:text-5xl text-cream leading-tight">Find your place</h1>
               <p className="text-cream-muted text-sm sm:text-base mt-2 max-w-xl">Browse accommodation and read students' experiences.</p>
@@ -142,16 +142,9 @@ export default function AccommodationMarketplace() {
               </div>
             </div>
 
-            <div className="relative min-h-[170px] sm:min-h-[210px] lg:min-h-[245px] flex items-end justify-center lg:justify-end">
-              <Link to="/accommodations/review" className="hidden sm:inline-flex absolute right-0 top-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm z-10">
-                <PenLine size={17} /> Write a review
-              </Link>
-              <img
-                src="/atriumx-accommodation-hero-illustration.jpg"
-                alt="Illustration of student accommodation buildings"
-                className="w-full max-w-[470px] object-contain object-bottom"
-              />
-            </div>
+            <Link to="/accommodations/review" className="hidden sm:inline-flex shrink-0 items-center gap-2 rounded-xl bg-teal-primary text-white px-5 py-3 text-sm font-bold shadow-sm">
+              <PenLine size={17} /> Write a review
+            </Link>
           </div>
 
           {!nearUniversity ? (
