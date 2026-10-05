@@ -18,6 +18,7 @@ import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 import CategoryChips, { CategoryOption } from '../components/common/CategoryChips'
+import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 
 const EVENT_FILTER_OPTIONS: CategoryOption[] = [
   { id: 'all', label: 'All' },
@@ -221,12 +222,26 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [guestUniversity, setGuestUniversity] = useState(() => {
+    const requested = new URLSearchParams(window.location.hash.split('?')[1] || '').get('university')
+    if (requested && SOUTH_AFRICAN_UNIVERSITIES.includes(requested)) return requested
+    const stored = localStorage.getItem('atriumx_guest_university')
+    return stored && SOUTH_AFRICAN_UNIVERSITIES.includes(stored) ? stored : ''
+  })
 
   // Event access follows the account's university list, independently of its
   // paid listing reach.
   const [businessUniversities, setBusinessUniversities] = useState<string[]>([])
   const [businessUniversitiesLoading, setBusinessUniversitiesLoading] = useState(false)
   const requestedUniversity = new URLSearchParams(location.search).get('university')
+
+  useEffect(() => {
+    if (currentUser) return
+    if (requestedUniversity && SOUTH_AFRICAN_UNIVERSITIES.includes(requestedUniversity)) {
+      setGuestUniversity(requestedUniversity)
+      localStorage.setItem('atriumx_guest_university', requestedUniversity)
+    }
+  }, [currentUser, requestedUniversity])
 
   useEffect(() => {
     if (currentUser?.account_type !== 'business') {
@@ -259,7 +274,13 @@ export default function EventsPage() {
       ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
           ? [requestedUniversity]
           : businessUniversities)
-      : undefined
+      : currentUser?.account_type === 'student'
+        ? (currentUser.university ? [currentUser.university] : [])
+        : currentUser
+          ? undefined
+          : guestUniversity
+            ? [guestUniversity]
+            : []
 
     getAllEvents(selectedUniversities)
       .then(data => {
@@ -267,7 +288,7 @@ export default function EventsPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [currentUser, businessUniversities, businessUniversitiesLoading, requestedUniversity])
+  }, [currentUser, businessUniversities, businessUniversitiesLoading, requestedUniversity, guestUniversity])
 
   const visible = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -318,6 +339,12 @@ export default function EventsPage() {
     showToast('Event cancelled.', 'success')
   }
 
+  const changeGuestUniversity = (university: string) => {
+    setGuestUniversity(university)
+    localStorage.setItem('atriumx_guest_university', university)
+    navigate(`/events?university=${encodeURIComponent(university)}`, { replace: true })
+  }
+
   const handleShareEventInvite = async () => {
     const url = `${window.location.origin}${window.location.pathname}#/student?mode=register&next=%2Fpost-event`
     const title = 'Put this event where students can find it'
@@ -345,11 +372,38 @@ export default function EventsPage() {
             <p className="text-cream-muted text-sm mt-1">Explore the existing marketplace and events.</p>
           </div>
 
+          {!currentUser && (
+            <div className="mx-4 mt-2 mb-3 rounded-2xl border border-slate-border bg-slate-card p-4">
+              <label className="block text-sm font-semibold text-cream">
+                Choose your university
+                <select
+                  value={guestUniversity}
+                  onChange={e => changeGuestUniversity(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-border bg-slate-deep px-3 py-3 text-sm text-cream outline-none focus:border-teal-light"
+                >
+                  <option value="" disabled>Select a university</option>
+                  {SOUTH_AFRICAN_UNIVERSITIES.map(university => (
+                    <option key={university} value={university}>{university}</option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-2 text-xs leading-relaxed text-cream-muted">
+                {guestUniversity
+                  ? `Showing events for ${guestUniversity}.`
+                  : 'Choose a university to start browsing its events.'}
+              </p>
+            </div>
+          )}
+
           <div className="px-4 pt-2 pb-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch border-b border-[#e8eef6]">
             <div className="flex h-12 bg-white border border-slate-border rounded-xl p-1">
               <button
                 type="button"
-                onClick={() => navigate('/feed')}
+                onClick={() => navigate(currentUser
+                  ? '/feed'
+                  : guestUniversity
+                    ? `/feed?university=${encodeURIComponent(guestUniversity)}`
+                    : '/feed')}
                 className="flex-1 h-full text-cream-muted hover:text-blue-600 hover:bg-blue-50/60 rounded-lg text-sm font-medium transition-colors"
               >
                 Marketplace
@@ -401,7 +455,13 @@ export default function EventsPage() {
             </div>
           )}
 
-          {loading ? (
+          {!currentUser && !guestUniversity ? (
+            <div className="text-center py-16 px-6">
+              <CalendarDays size={34} className="text-cream-muted mx-auto mb-3 opacity-50" />
+              <p className="text-cream font-bold text-sm mb-1">Choose a university to view events</p>
+              <p className="text-cream-muted text-xs">AtriumX will only show events relevant to the university you select.</p>
+            </div>
+          ) : loading ? (
             <p className="text-cream-muted text-sm">Loading events…</p>
           ) : visible.length === 0 ? (
             <div className="text-center py-16">
