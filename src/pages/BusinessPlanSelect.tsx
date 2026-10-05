@@ -56,9 +56,10 @@ export default function BusinessPlanSelect() {
   const hasPendingDraft = !!sessionStorage.getItem('atriumx_pending_business_draft')
 
   const plans = BUSINESS_PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [BusinessPlanKey, typeof PLAN_TIERS[BusinessPlanKey]])
-  const currentPlan = currentUser?.plan as PlanKey | undefined
-  const paidPlanIsActive = !!currentPlan && currentPlan !== 'noticeboard' &&
+  const storedPlan = currentUser?.plan as PlanKey | undefined
+  const paidPlanIsActive = !!storedPlan && storedPlan !== 'noticeboard' &&
     !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+  const currentPlan: PlanKey | undefined = paidPlanIsActive ? storedPlan : (currentUser ? 'noticeboard' : undefined)
   const planIsActive = currentPlan === 'noticeboard' || paidPlanIsActive
 
   useEffect(() => {
