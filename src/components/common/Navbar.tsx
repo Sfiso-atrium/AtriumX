@@ -127,6 +127,12 @@ export default function Navbar() {
   const businessUniversityLimit = isAccommodationBusiness ? accommodationUniversityLimit : normalBusinessUniversityLimit
   const businessUniversities = isAccommodationBusiness ? accommodationUniversities : (businessProfile?.universities ?? [])
   const visibleBusinessUniversities = businessUniversities.slice(0, businessUniversityLimit)
+  const requestedBusinessUniversity = new URLSearchParams(location.search).get('university')
+  const currentAccommodationUniversity = isAccommodationBusiness
+    ? (requestedBusinessUniversity && visibleBusinessUniversities.includes(requestedBusinessUniversity)
+        ? requestedBusinessUniversity
+        : visibleBusinessUniversities[0] ?? null)
+    : null
   const isLargestBusinessPlan = isAccommodationBusiness
     ? businessProfile?.accommodation_plan === 'accommodation_premium'
     : effectiveBusinessPlan === 'campus_partner'
@@ -200,19 +206,31 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="flex flex-col gap-2">
-                          {visibleBusinessUniversities.map(university => (
-                            <button
-                              key={university}
-                              type="button"
-                              onClick={() => {
-                                setUniversityMenuOpen(false)
-                                navigate(`/feed?university=${encodeURIComponent(university)}`)
-                              }}
-                              className="w-full text-left px-3 py-2 rounded-xl bg-slate-deep border border-slate-border text-cream text-sm hover:border-teal-light hover:bg-teal-faint transition-colors"
-                            >
-                              {university}
-                            </button>
-                          ))}
+                          {visibleBusinessUniversities.map(university => {
+                            const isCurrent = isAccommodationBusiness && currentAccommodationUniversity === university
+                            return (
+                              <button
+                                key={university}
+                                type="button"
+                                onClick={() => {
+                                  setUniversityMenuOpen(false)
+                                  navigate(isAccommodationBusiness
+                                    ? `/accommodation?university=${encodeURIComponent(university)}`
+                                    : `/feed?university=${encodeURIComponent(university)}`)
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-xl border text-sm transition-colors ${
+                                  isCurrent
+                                    ? 'bg-teal-faint border-teal-light text-teal-light font-bold'
+                                    : 'bg-slate-deep border-slate-border text-cream hover:border-teal-light hover:bg-teal-faint'
+                                }`}
+                              >
+                                <span className="flex items-center justify-between gap-3">
+                                  <span>{university}</span>
+                                  {isCurrent && <span className="text-[10px] uppercase tracking-wide">Current</span>}
+                                </span>
+                              </button>
+                            )
+                          })}
                           {visibleBusinessUniversities.length === 0 && (
                             <p className="text-cream-muted text-xs">No university has been selected yet.</p>
                           )}
