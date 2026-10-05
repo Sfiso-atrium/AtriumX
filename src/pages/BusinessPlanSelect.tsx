@@ -45,7 +45,10 @@ const PLAN_COLORS: Record<BusinessPlanKey, string> = {
 export default function BusinessPlanSelect() {
   const navigate = useNavigate()
   const location = useLocation()
-  const forcePlans = !!(location.state as { forcePlans?: boolean } | null)?.forcePlans
+  const routeState = location.state as { forcePlans?: boolean; managePlan?: boolean; renewalListingId?: string } | null
+  const forcePlans = !!routeState?.forcePlans
+  const managePlan = !!routeState?.managePlan
+  const renewalListingId = routeState?.renewalListingId ?? null
   const { currentUser, showToast, isLoadingAuth } = useApp()
   const [selected, setSelected] = useState<PlanKey | null>(null)
   const [paying, setPaying] = useState(false)
@@ -54,10 +57,9 @@ export default function BusinessPlanSelect() {
 
   const plans = BUSINESS_PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [BusinessPlanKey, typeof PLAN_TIERS[BusinessPlanKey]])
   const currentPlan = currentUser?.plan as PlanKey | undefined
-  const planIsActive = !!currentPlan && (
-    currentPlan === 'noticeboard' ||
-    (!!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date())
-  )
+  const paidPlanIsActive = !!currentPlan && currentPlan !== 'noticeboard' &&
+    !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+  const planIsActive = currentPlan === 'noticeboard' || paidPlanIsActive
 
   useEffect(() => {
     if (isLoadingAuth || !currentUser) return
@@ -88,36 +90,39 @@ export default function BusinessPlanSelect() {
   }, [currentUser, isLoadingAuth, navigate, forcePlans])
 
   const handleSelectPlan = async (key: PlanKey) => {
-    if (planIsActive && currentPlan === key) {
-      navigate(hasPendingDraft ? '/business/post?resume=1' : '/business/post', { state: { plan: key } })
+    const currentRank = currentPlan ? BUSINESS_PLAN_ORDER.indexOf(currentPlan) : -1
+    const targetRank = BUSINESS_PLAN_ORDER.indexOf(key)
+
+    if (paidPlanIsActive && currentPlan && targetRank < currentRank) {
+      showToast(
+        `Your ${PLAN_TIERS[currentPlan].label} plan stays active until ${new Date(currentUser!.plan_expires_at!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}. AtriumX does not renew it automatically. After it ends, you can choose this lower plan.`,
+        'info'
+      )
       return
     }
-    if (planIsActive && currentPlan) {
-      const currentRank = BUSINESS_PLAN_ORDER.indexOf(currentPlan)
-      const targetRank = BUSINESS_PLAN_ORDER.indexOf(key)
-      if (targetRank < currentRank) {
-        showToast(
-          `You're on the ${PLAN_TIERS[currentPlan].label} plan until ${new Date(currentUser!.plan_expires_at!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}. You can't switch to a lower plan while it's still active.`,
-          'error'
-        )
-        return
-      }
-    }
+
     setSelected(key)
 
-    // Already paid for this exact plan and it's still running — they're
-    // just carrying on to post, not buying again.
     const alreadyOnThisPlan = planIsActive && currentPlan === key
+    const wantsRenewal = paidPlanIsActive && currentPlan === key && (managePlan || !!renewalListingId)
+    const wantsUpgrade = paidPlanIsActive && currentPlan != null && targetRank > currentRank
 
-    if (isPaidPlan(key) && !alreadyOnThisPlan) {
+    if (isPaidPlan(key) && (!alreadyOnThisPlan || wantsRenewal)) {
       setPaying(true)
-      const { error } = await startPlanPayment(key)
+      const { error } = await startPlanPayment(key, {
+        intent: wantsRenewal ? 'renewal' : wantsUpgrade ? 'upgrade' : 'purchase',
+        listingId: renewalListingId,
+      })
       if (error) {
         setPaying(false)
         setSelected(null)
         showToast(error, 'error')
       }
-      // On success the browser is already on its way to PayFast.
+      return
+    }
+
+    if (managePlan && alreadyOnThisPlan) {
+      showToast('This is already your active free plan. It does not renew or charge automatically.', 'info')
       return
     }
 
@@ -181,10 +186,20 @@ export default function BusinessPlanSelect() {
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-8 pb-24">
-<h1 className="font-serif text-3xl text-cream mb-1">Choose Your Plan</h1>
+<h1 className="font-serif text-3xl text-cream mb-1">{managePlan || renewalListingId ? 'Manage Your Plan' : 'Choose Your Plan'}</h1>
           <p className="text-cream-muted text-sm mb-4">
-            Select a plan for this listing. You can change plans anytime.
+            Paid plans are one-time purchases. AtriumX never renews or charges them automatically.
           </p>
+          {paidPlanIsActive && currentUser?.plan_expires_at && (
+            <div className="mb-5 rounded-2xl border border-slate-border bg-slate-card p-4">
+              <p className="text-cream text-sm font-semibold">
+                {PLAN_TIERS[currentPlan!].label} is active until {new Date(currentUser.plan_expires_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              </p>
+              <p className="text-cream-muted text-xs mt-1">
+                Renewing requires a new PayFast payment. If you do nothing, the paid plan ends and the account falls back to Noticeboard automatically.
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4">
             {plans.map(([key, tier]) => {
@@ -231,13 +246,24 @@ export default function BusinessPlanSelect() {
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-4 ml-8 text-xs font-semibold text-sapphire-light">
+                    {paidPlanIsActive && currentPlan && BUSINESS_PLAN_ORDER.indexOf(key) < BUSINESS_PLAN_ORDER.indexOf(currentPlan)
+                      ? 'Available after your current paid period ends'
+                      : isCurrent && paidPlanIsActive && (managePlan || renewalListingId)
+                        ? `Renew — ${tier.price} one-time payment`
+                        : paidPlanIsActive && currentPlan && BUSINESS_PLAN_ORDER.indexOf(key) > BUSINESS_PLAN_ORDER.indexOf(currentPlan)
+                          ? `Upgrade — ${tier.price} one-time payment`
+                          : tier.priceNum > 0
+                            ? `Choose — ${tier.price} one-time payment`
+                            : 'Free plan · no automatic billing'}
+                  </p>
                 </button>
               )
             })}
           </div>
 
           <p className="text-cream-muted text-xs text-center mt-6">
-            Tap a plan above to go straight to the listing form.
+            Choosing a paid option opens PayFast. Your plan changes only after PayFast confirms the payment.
           </p>
         </div>
       </div>
