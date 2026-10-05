@@ -19,7 +19,7 @@ const PLAN_FEATURES: Record<StudentPlanKey, string[]> = {
     '10 messages per conversation',
     '"Spotted" badge on your listings',
     '7-day visibility',
-    'Listing renewal',
+    'Manual renewal — no automatic billing',
   ],
   loud: [
     'Up to 2 photos per listing',
@@ -239,7 +239,7 @@ className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                       <span className="text-cream font-bold text-lg">{tier.label}</span>
                       {isCurrent && (
                         <span className="text-xs bg-teal-faint text-teal-light px-2 py-0.5 rounded-full font-medium">
-                          Current
+                          {key === 'ghost' || planIsActive ? 'Current' : 'Expired'}
                         </span>
                       )}
                     </div>
