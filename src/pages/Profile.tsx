@@ -195,6 +195,9 @@ export default function Profile() {
                     </button>
                   ) : (
                     <div className="flex flex-wrap gap-2">
+                      <button onClick={() => navigate('/accommodation/plan-select', { state: { managePlan: true } })} className="inline-flex items-center gap-2 border border-slate-border text-cream font-bold px-4 py-2.5 rounded-xl text-sm hover:border-teal-light">
+                        Manage plan
+                      </button>
                       <button onClick={() => navigate(`/accommodation/${accommodationListings[0].id}/edit`)} className="inline-flex items-center gap-2 border border-teal-primary text-teal-light font-bold px-4 py-2.5 rounded-xl text-sm">
                         <PencilLine size={16} /> Edit listing
                       </button>
@@ -274,7 +277,18 @@ export default function Profile() {
               <p className="text-cream-muted text-xs uppercase tracking-wide">Your AtriumX</p>
               <h2 className="text-cream font-bold text-lg">My Listings</h2>
             </div>
-            <span className="text-cream-muted text-xs transition-transform duration-300 group-hover/section:scale-110">{activeListings.filter(l => l.plan_visible !== false).length} active</span>
+            <div className="flex items-center gap-2">
+              <span className="text-cream-muted text-xs transition-transform duration-300 group-hover/section:scale-110">{activeListings.filter(l => l.plan_visible !== false).length} active</span>
+              {isOwn && currentUser && (
+                <button
+                  type="button"
+                  onClick={() => navigate(currentUser.account_type === 'business' ? '/business/plan-select' : '/plan-select', { state: { forcePlans: true, managePlan: true } })}
+                  className="rounded-lg border border-slate-border px-2.5 py-1.5 text-[11px] font-bold text-teal-light hover:border-teal-light"
+                >
+                  Manage plan
+                </button>
+              )}
+            </div>
           </div>
 
           {activeListings.length === 0 ? (
