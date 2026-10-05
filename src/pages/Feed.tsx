@@ -9,7 +9,6 @@ import ListingCard from '../components/common/ListingCard'
 import BottomNav from '../components/common/BottomNav'
 import LegalFooter from '../components/common/LegalFooter'
 import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
-const GUEST_UNIVERSITY = 'University of the Witwatersrand'
 const BUSINESS_CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'restaurant', label: 'Restaurant' },
@@ -66,11 +65,18 @@ const { activeCategory, setActiveCategory, showToast, currentUser, setAuthPrompt
   const searchParams = new URLSearchParams(location.search)
   const requestedUniversity = searchParams.get('university')
   const requestedTab = searchParams.get('tab')
+  const [guestUniversity, setGuestUniversity] = useState(() => {
+    if (requestedUniversity && SOUTH_AFRICAN_UNIVERSITIES.includes(requestedUniversity)) {
+      return requestedUniversity
+    }
+    const stored = localStorage.getItem('atriumx_guest_university')
+    return stored && SOUTH_AFRICAN_UNIVERSITIES.includes(stored) ? stored : ''
+  })
   const [feedTab, setFeedTab] = useState<'marketplace' | 'business'>('marketplace')
   useEffect(() => { localStorage.setItem('feed_last_tab', feedTab) }, [feedTab])
   useEffect(() => {
-    // Admins can deliberately inspect either marketplace at any university.
-    if (currentUser?.is_admin && (requestedTab === 'marketplace' || requestedTab === 'business')) {
+    // Admins and guests can deliberately inspect either marketplace tab.
+    if ((currentUser?.is_admin || !currentUser) && (requestedTab === 'marketplace' || requestedTab === 'business')) {
       setFeedTab(requestedTab)
       return
     }
@@ -81,6 +87,14 @@ const { activeCategory, setActiveCategory, showToast, currentUser, setAuthPrompt
       setFeedTab('marketplace')
     }
   }, [currentUser?.account_type, currentUser?.is_admin, requestedTab])
+
+  useEffect(() => {
+    if (currentUser) return
+    if (requestedUniversity && SOUTH_AFRICAN_UNIVERSITIES.includes(requestedUniversity)) {
+      setGuestUniversity(requestedUniversity)
+      localStorage.setItem('atriumx_guest_university', requestedUniversity)
+    }
+  }, [currentUser, requestedUniversity])
   const [localSearch, setLocalSearch] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [dbLoading, setDbLoading] = useState(true)
@@ -147,10 +161,27 @@ const [fetchError, setFetchError] = useState(false)
       ? (requestedUniversity && businessUniversities.includes(requestedUniversity)
           ? requestedUniversity
           : businessUniversities[0] ?? null)
-      : currentUser?.university ?? null
+      : currentUser?.account_type === 'student'
+        ? currentUser.university ?? null
+        : guestUniversity || null
+
+  const guestNeedsUniversity = !currentUser && !marketplaceUniversity
 
   useEffect(() => {
     if (!currentUser?.is_admin && currentUser?.account_type === 'business' && businessUniversitiesLoading) return
+
+    if (!currentUser && !marketplaceUniversity) {
+      setListings([])
+      setBusinessListings([])
+      setWantedPosts([])
+      setResidenceOptions([])
+      setDbLoading(false)
+      setBusinessLoading(false)
+      setWantedPostsLoading(false)
+      setFetchError(false)
+      setBusinessFetchError(false)
+      return
+    }
 
     setDbLoading(true)
     setBusinessLoading(true)
@@ -159,7 +190,7 @@ const [fetchError, setFetchError] = useState(false)
 
     getListings({ currentUser, university: marketplaceUniversity })
       .then(data => {
-        setListings(currentUser ? data : data.filter(listing => listing.seller?.university === GUEST_UNIVERSITY))
+        setListings(currentUser ? data : data.filter(listing => listing.seller?.university === marketplaceUniversity))
         setDbLoading(false)
       })
       .catch(() => {
@@ -169,12 +200,12 @@ const [fetchError, setFetchError] = useState(false)
 
     getResidences().then(setResidenceOptions)
     setWantedPostsLoading(true)
-    getWantedPosts(currentUser?.is_admin ? marketplaceUniversity : undefined)
+    getWantedPosts(currentUser?.is_admin || !currentUser ? marketplaceUniversity : undefined)
       .then(data => { setWantedPosts(data); setWantedPostsLoading(false) })
       .catch(() => setWantedPostsLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
       .then(data => {
-        setBusinessListings(currentUser ? data : data.filter(listing => (listing.universities ?? []).includes(GUEST_UNIVERSITY)))
+        setBusinessListings(currentUser ? data : data.filter(listing => (listing.universities ?? []).includes(marketplaceUniversity!)))
         setBusinessLoading(false)
       })
       .catch(() => {
@@ -306,9 +337,15 @@ const filteredBusiness = useMemo(() => {
     navigate(`/feed?university=${encodeURIComponent(university)}&tab=${feedTab}`, { replace: true })
   }
 
+  const changeGuestUniversity = (university: string) => {
+    setGuestUniversity(university)
+    localStorage.setItem('atriumx_guest_university', university)
+    navigate(`/feed?university=${encodeURIComponent(university)}&tab=${feedTab}`, { replace: true })
+  }
+
   const changeFeedTab = (nextTab: 'marketplace' | 'business') => {
     setFeedTab(nextTab)
-    if (currentUser?.is_admin && marketplaceUniversity) {
+    if ((currentUser?.is_admin || !currentUser) && marketplaceUniversity) {
       navigate(`/feed?university=${encodeURIComponent(marketplaceUniversity)}&tab=${nextTab}`, { replace: true })
     }
   }
@@ -348,6 +385,29 @@ const filteredBusiness = useMemo(() => {
             </div>
           )}
 
+          {!currentUser && (
+            <div className="mx-4 mt-2 mb-3 rounded-2xl border border-slate-border bg-slate-card p-4">
+              <label className="block text-sm font-semibold text-cream">
+                Choose your university
+                <select
+                  value={guestUniversity}
+                  onChange={e => changeGuestUniversity(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-border bg-slate-deep px-3 py-3 text-sm text-cream outline-none focus:border-teal-light"
+                >
+                  <option value="" disabled>Select a university</option>
+                  {SOUTH_AFRICAN_UNIVERSITIES.map(university => (
+                    <option key={university} value={university}>{university}</option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-2 text-xs leading-relaxed text-cream-muted">
+                {guestUniversity
+                  ? `Showing student listings, businesses and wanted posts for ${guestUniversity}.`
+                  : 'Choose a university to start browsing its marketplace.'}
+              </p>
+            </div>
+          )}
+
           <div className="px-4 pt-2 pb-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)] gap-2 items-stretch border-b border-[#e8eef6]">
             <div className="flex h-12 bg-white border border-slate-border rounded-xl p-1">
               <button
@@ -358,7 +418,7 @@ const filteredBusiness = useMemo(() => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(currentUser?.account_type === 'business' && requestedUniversity ? `/events?university=${encodeURIComponent(requestedUniversity)}` : '/events')}
+                onClick={() => navigate(marketplaceUniversity ? `/events?university=${encodeURIComponent(marketplaceUniversity)}` : '/events')}
                 className="flex-1 h-full text-cream-muted hover:text-blue-600 hover:bg-blue-50/60 rounded-lg text-sm font-medium transition-colors"
               >
                 Events
@@ -438,7 +498,7 @@ const filteredBusiness = useMemo(() => {
 
           <div className="px-4 pt-3 pb-2">
             <p className="text-cream-muted text-xs">
-              {dbLoading ? 'Loading...' : fetchError ? 'Could not load listings' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}
+              {guestNeedsUniversity ? 'Choose a university to view listings' : dbLoading ? 'Loading...' : fetchError ? 'Could not load listings' : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''} found`}
             </p>
           </div>
 
@@ -549,8 +609,8 @@ const filteredBusiness = useMemo(() => {
           {otherListings.length === 0 ? (
             featuredListings.length === 0 && verifiedListings.length === 0 && spottedListings.length === 0 && (
               <EmptyState
-                message={fetchError ? 'Could not load listings. Check your connection and try again.' : dbLoading ? 'Loading listings...' : currentUser ? 'Nothing here yet. Be the first to post.' : 'Nothing here yet. Know someone with something students are looking for?'}
-                actionLabel={dbLoading || fetchError ? undefined : currentUser ? 'Post a Listing' : 'Send them the posting link'}
+                message={guestNeedsUniversity ? 'Choose a university above to start browsing.' : fetchError ? 'Could not load listings. Check your connection and try again.' : dbLoading ? 'Loading listings...' : currentUser ? 'Nothing here yet. Be the first to post.' : 'Nothing here yet. Know someone with something students are looking for?'}
+                actionLabel={guestNeedsUniversity || dbLoading || fetchError ? undefined : currentUser ? 'Post a Listing' : 'Send them the posting link'}
                 onAction={() => currentUser
                   ? navigate('/plan-select')
                   : handleShareInvite('/student?mode=register&next=%2Fpost', 'Put it where students can find it', 'Students are already browsing AtriumX for items, services and offers. You can sign in and post yours here:')}
@@ -613,7 +673,7 @@ const filteredBusiness = useMemo(() => {
             )}
             <div className="px-4 pb-2">
               <p className="text-cream-muted text-xs">
-                {businessLoading ? 'Loading...' : businessFetchError ? 'Could not load businesses' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
+                {guestNeedsUniversity ? 'Choose a university to view businesses' : businessLoading ? 'Loading...' : businessFetchError ? 'Could not load businesses' : `${filteredBusiness.length} business${filteredBusiness.length !== 1 ? 'es' : ''} found`}
               </p>
             </div>
 
@@ -631,13 +691,15 @@ const filteredBusiness = useMemo(() => {
                 message={
                   businessFetchError
                     ? 'Could not load businesses. Check your connection and try again.'
+                    : guestNeedsUniversity
+                    ? 'Choose a university above to start browsing.'
                     : businessLoading
                     ? 'Loading businesses...'
                     : businessListings.length === 0
                     ? 'No businesses listed yet. Know a business students already use?'
                     : 'No businesses match your search.'
                 }
-                actionLabel={businessLoading || businessFetchError || businessListings.length > 0 || currentUser ? undefined : 'Send the business invite'}
+                actionLabel={guestNeedsUniversity || businessLoading || businessFetchError || businessListings.length > 0 || currentUser ? undefined : 'Send the business invite'}
                 onAction={() => handleShareInvite('/business/post?plan=noticeboard', 'Put your business in front of students', 'Students are already browsing AtriumX for nearby businesses. You can add your business first and create your account at the end:')}
               />
             ) : (
