@@ -282,12 +282,16 @@ export function getEffectiveBusinessPlan(profile: Profile | null | undefined): P
 
 // ── PAYMENTS (PayFast) ─────────────────────────────────────────────────────
 
+export type PlanPaymentIntent = 'purchase' | 'upgrade' | 'renewal'
+
 export interface PaymentRecord {
   id: string
   m_payment_id: string
   pf_payment_id: string | null
   plan_key: string
   amount: number
+  intent: PlanPaymentIntent
+  listing_id: string | null
   status: 'pending' | 'complete' | 'failed' | 'cancelled'
   created_at: string
   completed_at: string | null
@@ -301,10 +305,15 @@ export interface PaymentRecord {
 //
 // On success this navigates away from the app entirely (a real form POST
 // to PayFast), so nothing after the submit() runs.
-export async function startPlanPayment(planKey: PlanKey): Promise<{ error: string | null }> {
+export async function startPlanPayment(
+  planKey: PlanKey,
+  options: { intent?: PlanPaymentIntent; listingId?: string | null } = {}
+): Promise<{ error: string | null }> {
+  const intent = options.intent ?? 'purchase'
   sessionStorage.setItem('atriumx_payment_type', 'business')
+  sessionStorage.setItem('atriumx_payment_intent', intent)
   const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
-    body: { planKey },
+    body: { planKey, intent, listingId: options.listingId ?? null },
   })
 
   if (error) return { error: 'Could not reach the payment service. Please try again.' }
@@ -333,10 +342,14 @@ export async function startPlanPayment(planKey: PlanKey): Promise<{ error: strin
 }
 
 
-export async function startAccommodationPlanPayment(planKey: Exclude<AccommodationPlanKey, 'accommodation_free'>): Promise<{ error: string | null }> {
+export async function startAccommodationPlanPayment(
+  planKey: Exclude<AccommodationPlanKey, 'accommodation_free'>,
+  intent: PlanPaymentIntent = 'purchase'
+): Promise<{ error: string | null }> {
   sessionStorage.setItem('atriumx_payment_type', 'accommodation')
+  sessionStorage.setItem('atriumx_payment_intent', intent)
   const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
-    body: { planKey },
+    body: { planKey, intent },
   })
 
   if (error) return { error: 'Could not reach the payment service. Please try again.' }
@@ -367,7 +380,7 @@ export async function startAccommodationPlanPayment(planKey: Exclude<Accommodati
 export async function getLatestPayment(userId: string): Promise<PaymentRecord | null> {
   const { data, error } = await supabase
     .from('payments')
-    .select('id, m_payment_id, pf_payment_id, plan_key, amount, status, created_at, completed_at')
+    .select('id, m_payment_id, pf_payment_id, plan_key, amount, intent, listing_id, status, created_at, completed_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -1056,23 +1069,13 @@ export async function markListingAsSold(
 }
 
 export async function renewListing(
-  listingId: string,
-  planTier: PlanKey
+  _listingId: string,
+  _planTier: PlanKey
 ): Promise<{ error: string | null }> {
-  const days = PLAN_TIERS[planTier].days
-  const expiresAt = new Date(Date.now() + days * 86400000).toISOString()
-  const { data, error } = await supabase
-    .from('listings')
-    .update({ status: 'active', expires_at: expiresAt })
-    .eq('id', listingId)
-    .neq('status', 'suspended')
-    .neq('status', 'sold')
-    .select('id')
-  if (error) return { error: error.message }
-  if (!data || data.length === 0) {
-    return { error: 'This listing was suspended by a moderator and cannot be renewed.' }
-  }
-  return { error: null }
+  // Paid listing expiry is deliberately not writable from the browser.
+  // Renewal must start a one-time PayFast checkout and the verified ITN
+  // callback extends the account/listing period server-side.
+  return { error: 'Renew this plan through the plan page so payment can be verified first.' }
 }
 
 export async function reportListing(
