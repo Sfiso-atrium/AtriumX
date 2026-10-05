@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
       m_payment_id: mPaymentId,
       amount: plan.amount.toFixed(2),
       item_name: `AtriumX ${plan.label} plan`,
-      item_description: `${plan.days}-day ${plan.label} plan on AtriumX — one-time payment, no automatic renewal`,
+      item_description: `${plan.days}-day ${plan.label} plan on AtriumX - one-time payment, no automatic renewal`,
       // Echoed back untouched on the ITN, so the callback knows who and
       // what without trusting anything else in the payload.
       custom_str1: user.id,
