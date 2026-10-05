@@ -200,7 +200,7 @@ const [fetchError, setFetchError] = useState(false)
 
     getResidences().then(setResidenceOptions)
     setWantedPostsLoading(true)
-    getWantedPosts(currentUser?.is_admin || !currentUser ? marketplaceUniversity : undefined)
+    getWantedPosts(marketplaceUniversity)
       .then(data => { setWantedPosts(data); setWantedPostsLoading(false) })
       .catch(() => setWantedPostsLoading(false))
     getBusinessListings(currentUser, marketplaceUniversity)
