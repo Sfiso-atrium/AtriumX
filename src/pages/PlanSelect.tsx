@@ -204,7 +204,7 @@ useEffect(() => {
                 {PLAN_TIERS[currentPlan!].label} is active until {new Date(currentUser.plan_expires_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}.
               </p>
               <p className="text-cream-muted text-xs mt-1">
-                Renewing requires a new PayFast payment. If you do nothing, the paid plan ends and your account falls back to Ghost automatically.
+                Renewing requires a new PayFast payment. If you do nothing, the paid period ends, the listing stops being public, and AtriumX will not charge you automatically.
               </p>
             </div>
           )}
