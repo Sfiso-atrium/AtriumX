@@ -36,6 +36,11 @@ export default function PaymentResult() {
     outcome === 'cancelled' ? 'cancelled' : 'confirming'
   )
   const [planKey, setPlanKey] = useState<string | null>(null)
+  const [paymentIntent, setPaymentIntent] = useState<'purchase' | 'upgrade' | 'renewal'>(() => {
+    const stored = sessionStorage.getItem('atriumx_payment_intent')
+    return stored === 'upgrade' || stored === 'renewal' ? stored : 'purchase'
+  })
+  const [renewalListingId, setRenewalListingId] = useState<string | null>(null)
   const [paymentType, setPaymentType] = useState<'business' | 'accommodation'>(() => sessionStorage.getItem('atriumx_payment_type') === 'accommodation' ? 'accommodation' : 'business')
   const hasPendingAccommodationDraft = !!sessionStorage.getItem('atriumx_pending_accommodation_draft')
   const hasPendingBusinessDraft = !!sessionStorage.getItem('atriumx_pending_business_draft')
@@ -54,6 +59,8 @@ export default function PaymentResult() {
 
       if (payment?.status === 'complete') {
         setPlanKey(payment.plan_key)
+        setPaymentIntent(payment.intent ?? 'purchase')
+        setRenewalListingId(payment.listing_id ?? null)
         setPaymentType(payment.plan_key.startsWith('accommodation_') ? 'accommodation' : 'business')
         // Pull the profile fresh before showing the continue button so the
         // resumed listing sees the paid plan immediately.
@@ -93,15 +100,34 @@ export default function PaymentResult() {
       case 'complete': {
         const resumeAccommodation = paymentType === 'accommodation' && hasPendingAccommodationDraft
         const resumeBusiness = paymentType === 'business' && hasPendingBusinessDraft
+        const label = planKey
+          ? (planKey.startsWith('accommodation_')
+              ? ACCOMMODATION_PLANS[planKey as AccommodationPlanKey]?.label
+              : PLAN_TIERS[planKey as PlanKey]?.label)
+          : 'your plan'
+
+        if (paymentIntent === 'renewal') {
+          return {
+            icon: <CheckCircle2 size={44} className="text-teal-light" />,
+            title: `${label} renewed`,
+            text: 'Your one-time renewal is confirmed. AtriumX will not charge you again automatically.',
+            action: renewalListingId
+              ? { label: 'Back to listing', to: `/listing/${renewalListingId}` }
+              : { label: 'Go to my profile', to: `/profile/${currentUser?.id ?? ''}` },
+          }
+        }
+
         return {
           icon: <CheckCircle2 size={44} className="text-teal-light" />,
-          title: `You're on ${planKey ? (planKey.startsWith('accommodation_') ? ACCOMMODATION_PLANS[planKey as AccommodationPlanKey]?.label : PLAN_TIERS[planKey as PlanKey]?.label) : 'your new plan'}`,
-          text: resumeAccommodation || resumeBusiness ? 'Your plan is active. Your listing draft is ready exactly where you left it.' : 'Your plan is active and its features are ready to use.',
+          title: paymentIntent === 'upgrade' ? `You're now on ${label}` : `You're on ${label}`,
+          text: resumeAccommodation || resumeBusiness
+            ? 'Your plan is active. Your listing draft is ready exactly where you left it.'
+            : 'Your one-time payment is confirmed and the plan features are active. There is no automatic renewal.',
           action: resumeAccommodation
             ? { label: 'Continue your listing', to: '/accommodation/post?resume=1' }
             : resumeBusiness
             ? { label: 'Continue your listing', to: '/business/post?resume=1' }
-            : { label: 'Post a listing', to: paymentType === 'accommodation' ? '/accommodation/post' : (currentUser?.account_type === 'business' ? '/business/post' : '/post') },
+            : { label: 'Go to my profile', to: `/profile/${currentUser?.id ?? ''}` },
         }
       }
       case 'slow':
