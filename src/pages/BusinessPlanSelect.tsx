@@ -229,7 +229,7 @@ export default function BusinessPlanSelect() {
                       <span className="text-cream font-bold text-lg">{tier.label}</span>
                       {isCurrent && (
                         <span className="text-xs bg-sapphire-light/10 text-sapphire-light px-2 py-0.5 rounded-full font-medium">
-                          Current
+                          {key === 'noticeboard' || paidPlanIsActive ? 'Current' : 'Expired'}
                         </span>
                       )}
                     </div>
