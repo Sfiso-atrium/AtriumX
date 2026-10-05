@@ -113,11 +113,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unknown payment intent.' }, { status: 400, headers: CORS })
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name, email, account_type')
       .eq('id', user.id)
       .single()
+
+    if (profileError || !profile) {
+      return Response.json({ error: 'Your AtriumX profile could not be loaded.' }, { status: 403, headers: CORS })
+    }
 
     const { data: accommodationProfile } = await supabase
       .from('business_profiles')
