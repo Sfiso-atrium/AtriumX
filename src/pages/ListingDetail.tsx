@@ -11,7 +11,7 @@ import ReportModal from '../components/student/ReportModal'
 import {
   Listing, Profile, Rating, RecentBuyer, getListingById,
   startConversation, markListingAsSold,
-  renewListing, getRecentBuyers, sendRatingInvite,
+  getRecentBuyers, sendRatingInvite,
   getConversationsForListing, getSellerRatings,
   PLAN_TIERS, PlanKey,
   BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview,
@@ -177,14 +177,16 @@ const expiry = timeLeft(listing.expires_at)
     }
   }
 
-  const handleRenew = async () => {
+  const handleRenew = () => {
     if (!id) return
-    setActionLoading(true)
-    const { error } = await renewListing(id, plan)
-    setActionLoading(false)
-    if (error) { showToast(error, 'error'); return }
-    showToast('Listing renewed.', 'success')
-    navigate('/feed')
+    const planPath = seller?.account_type === 'business' ? '/business/plan-select' : '/plan-select'
+    navigate(planPath, {
+      state: {
+        forcePlans: true,
+        managePlan: true,
+        renewalListingId: id,
+      },
+    })
   }
 
   const handleReportClick = () => {
@@ -464,7 +466,7 @@ const expiry = timeLeft(listing.expires_at)
                       className="flex-1 flex items-center justify-center gap-2 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl disabled:opacity-40 transition-colors"
                     >
                       <RefreshCw size={16} />
-                      Renew
+                      Renew plan
                     </button>
                   )}
                 </div>
