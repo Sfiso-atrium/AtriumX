@@ -147,26 +147,96 @@ Deno.serve(async (req) => {
     }
 
     // Everything checks out -- activate the correct kind of plan.
-    // Accommodation plans live on business_profiles and deliberately do not
-    // touch the ordinary business/student plan column.
-    const expiresAt = new Date(Date.now() + payment.plan_days * 24 * 60 * 60 * 1000).toISOString()
+    // Renewing the SAME still-active plan preserves any remaining paid time:
+    // the new period starts after the existing expiry. An upgrade/different
+    // plan starts a fresh paid period from the confirmation time.
+    const now = Date.now()
+    let expiresAt: string
 
     if (String(payment.plan_key).startsWith('accommodation_')) {
-      await supabase
+      const { data: currentAccommodation } = await supabase
+        .from('business_profiles')
+        .select('accommodation_plan, accommodation_plan_expires_at')
+        .eq('id', payment.user_id)
+        .single()
+
+      const currentExpiry = currentAccommodation?.accommodation_plan_expires_at
+        ? new Date(currentAccommodation.accommodation_plan_expires_at).getTime()
+        : 0
+      const sameActivePlan = currentAccommodation?.accommodation_plan === payment.plan_key && currentExpiry > now
+      const base = sameActivePlan ? currentExpiry : now
+      expiresAt = new Date(base + payment.plan_days * 24 * 60 * 60 * 1000).toISOString()
+
+      const { error: planError } = await supabase
         .from('business_profiles')
         .update({ accommodation_plan: payment.plan_key, accommodation_plan_expires_at: expiresAt })
         .eq('id', payment.user_id)
+
+      if (planError) {
+        console.error('Accommodation plan activation failed:', planError)
+        return ok()
+      }
     } else {
-      await supabase
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('plan, plan_expires_at')
+        .eq('id', payment.user_id)
+        .single()
+
+      const currentExpiry = currentProfile?.plan_expires_at
+        ? new Date(currentProfile.plan_expires_at).getTime()
+        : 0
+      const sameActivePlan = currentProfile?.plan === payment.plan_key && currentExpiry > now
+      const base = sameActivePlan ? currentExpiry : now
+      expiresAt = new Date(base + payment.plan_days * 24 * 60 * 60 * 1000).toISOString()
+
+      const { error: planError } = await supabase
         .from('profiles')
         .update({ plan: payment.plan_key, plan_expires_at: expiresAt })
         .eq('id', payment.user_id)
 
-      await supabase
+      if (planError) {
+        console.error('Plan activation failed:', planError)
+        return ok()
+      }
+
+      // A paid plan is account-wide. Keep every currently active/pending
+      // listing aligned with the newly verified plan period.
+      const { error: listingError } = await supabase
         .from('listings')
-        .update({ plan_tier: payment.plan_key })
+        .update({ plan_tier: payment.plan_key, expires_at: expiresAt })
         .eq('seller_id', payment.user_id)
         .in('status', ['active', 'pending'])
+
+      if (listingError) {
+        console.error('Listing plan alignment failed:', listingError)
+        return ok()
+      }
+
+      // If this checkout came from an explicit renewal of an expired listing,
+      // the verified payment may reactivate that one row. Sold/suspended rows
+      // are rejected earlier by payfast-create-payment.
+      if (payment.listing_id) {
+        const { data: renewalListing } = await supabase
+          .from('listings')
+          .select('status')
+          .eq('id', payment.listing_id)
+          .eq('seller_id', payment.user_id)
+          .maybeSingle()
+
+        if (renewalListing?.status === 'expired') {
+          const { error: reactivateError } = await supabase
+            .from('listings')
+            .update({ status: 'active', plan_tier: payment.plan_key, expires_at: expiresAt })
+            .eq('id', payment.listing_id)
+            .eq('seller_id', payment.user_id)
+
+          if (reactivateError) {
+            console.error('Paid listing reactivation failed:', reactivateError)
+            return ok()
+          }
+        }
+      }
     }
 
     await supabase
