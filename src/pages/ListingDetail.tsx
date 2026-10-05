@@ -459,14 +459,14 @@ const expiry = timeLeft(listing.expires_at)
                     <CheckCircle size={16} />
                     {listing.status === 'sold' ? 'Sold' : 'Mark as Sold'}
                   </button>
-                  {PLAN_TIERS[plan].canRenew && listing.status !== 'suspended' && listing.status !== 'sold' && (
+                  {(PLAN_TIERS[plan].canRenew || listing.status === 'expired') && listing.status !== 'suspended' && listing.status !== 'sold' && (
                     <button
                       onClick={handleRenew}
                       disabled={actionLoading}
                       className="flex-1 flex items-center justify-center gap-2 bg-ember hover:bg-ember-dark text-white font-bold py-3 rounded-xl disabled:opacity-40 transition-colors"
                     >
                       <RefreshCw size={16} />
-                      Renew plan
+                      {listing.status === 'expired' ? 'Reactivate with a plan' : 'Renew plan'}
                     </button>
                   )}
                 </div>
