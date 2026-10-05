@@ -59,9 +59,10 @@ export default function PlanSelect() {
   const [view, setView] = useState<'checking' | 'grid' | 'upgrade' | 'maxed'>('checking')
 
   const plans = PLAN_ORDER.map(k => [k, PLAN_TIERS[k]] as [StudentPlanKey, typeof PLAN_TIERS[StudentPlanKey]])
-  const currentPlan = currentUser?.plan as PlanKey | undefined
-  const planIsActive = !!currentPlan && currentPlan !== 'ghost' &&
+  const storedPlan = currentUser?.plan as PlanKey | undefined
+  const planIsActive = !!storedPlan && storedPlan !== 'ghost' &&
     !!currentUser?.plan_expires_at && new Date(currentUser.plan_expires_at) > new Date()
+  const currentPlan: PlanKey | undefined = planIsActive ? storedPlan : (currentUser ? 'ghost' : undefined)
 
 useEffect(() => {
     if (isLoadingAuth || !currentUser) return
