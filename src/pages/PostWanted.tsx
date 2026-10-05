@@ -98,15 +98,16 @@ export default function PostWanted() {
     <>
       <div className="min-h-screen bg-slate-deep">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-36">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-36">
           <PostTypeSwitcher current="wanted" />
 
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl text-cream">Post What You're Looking For</h1>
-            <span className="text-xs text-teal-light font-medium">Free to post · visible to your university</span>
-          </div>
+          <div className="max-w-lg mx-auto">
+            <div className="mb-6">
+              <h1 className="font-serif text-2xl text-cream">Post What You're Looking For</h1>
+              <span className="text-xs text-teal-light font-medium">Free to post · visible to your university</span>
+            </div>
 
-          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5">
 
             {/* TITLE */}
             <div>
@@ -236,8 +237,9 @@ export default function PostWanted() {
             >
               {loading ? 'Posting...' : 'Post'}
             </button>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
       <BottomNav />
     </>
