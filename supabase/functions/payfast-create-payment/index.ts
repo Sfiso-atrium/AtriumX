@@ -41,14 +41,16 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 // importing it -- the client copy is for display only and can be edited
 // by anyone with devtools. If you change a price, change it in BOTH
 // places, and treat this one as the real one.
-const PLAN_PRICES: Record<string, { amount: number; days: number; label: string; accommodation?: boolean }> = {
-  visible:        { amount: 29,  days: 7,  label: 'Visible' },
-  loud:           { amount: 79,  days: 14, label: 'Loud' },
-  unmissable:     { amount: 149, days: 30, label: 'Unmissable' },
-  featured:       { amount: 199, days: 30, label: 'Featured' },
-  campus_partner: { amount: 349, days: 30, label: 'Campus Partner' },
-  accommodation_featured: { amount: 199, days: 30, label: 'Accommodation Featured', accommodation: true },
-  accommodation_premium: { amount: 399, days: 30, label: 'Accommodation Premium', accommodation: true },
+type PlanAudience = 'student' | 'business' | 'accommodation'
+
+const PLAN_PRICES: Record<string, { amount: number; days: number; label: string; audience: PlanAudience }> = {
+  visible:        { amount: 29,  days: 7,  label: 'Visible', audience: 'student' },
+  loud:           { amount: 79,  days: 14, label: 'Loud', audience: 'student' },
+  unmissable:     { amount: 149, days: 30, label: 'Unmissable', audience: 'student' },
+  featured:       { amount: 199, days: 30, label: 'Featured', audience: 'business' },
+  campus_partner: { amount: 349, days: 30, label: 'Campus Partner', audience: 'business' },
+  accommodation_featured: { amount: 199, days: 30, label: 'Accommodation Featured', audience: 'accommodation' },
+  accommodation_premium: { amount: 399, days: 30, label: 'Accommodation Premium', audience: 'accommodation' },
 }
 
 const CORS = {
@@ -101,28 +103,49 @@ Deno.serve(async (req) => {
     }
     const user = authData.user
 
-    const { planKey } = await req.json()
+    const { planKey, intent = 'purchase', listingId = null } = await req.json()
     const plan = PLAN_PRICES[planKey]
     if (!plan) {
       return Response.json({ error: 'Unknown or free plan.' }, { status: 400, headers: CORS })
     }
 
-    if (plan.accommodation) {
-      const { data: accommodationProfile } = await supabase
-        .from('business_profiles')
-        .select('is_accommodation')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (!accommodationProfile?.is_accommodation) {
-        return Response.json({ error: 'Accommodation plans are only available to accommodation accounts.' }, { status: 403, headers: CORS })
-      }
+    if (!['purchase', 'upgrade', 'renewal'].includes(intent)) {
+      return Response.json({ error: 'Unknown payment intent.' }, { status: 400, headers: CORS })
     }
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name, email, account_type')
       .eq('id', user.id)
       .single()
+
+    const { data: accommodationProfile } = await supabase
+      .from('business_profiles')
+      .select('is_accommodation')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const actualAudience: PlanAudience = accommodationProfile?.is_accommodation
+      ? 'accommodation'
+      : profile?.account_type === 'business'
+        ? 'business'
+        : 'student'
+
+    if (plan.audience !== actualAudience) {
+      return Response.json({ error: 'This plan is not available for this account type.' }, { status: 403, headers: CORS })
+    }
+
+    if (listingId) {
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('id, seller_id, status')
+        .eq('id', listingId)
+        .maybeSingle()
+
+      if (!listing || listing.seller_id !== user.id || ['sold', 'suspended'].includes(listing.status)) {
+        return Response.json({ error: 'This listing cannot be renewed.' }, { status: 400, headers: CORS })
+      }
+    }
 
     // Our reference. Unique per attempt, so an abandoned payment that's
     // retried later gets its own row rather than colliding.
@@ -134,6 +157,8 @@ Deno.serve(async (req) => {
       plan_key: planKey,
       plan_days: plan.days,
       amount: plan.amount,
+      intent,
+      listing_id: listingId,
       status: 'pending',
     })
     if (insertError) {
@@ -148,8 +173,8 @@ Deno.serve(async (req) => {
     const fields: Record<string, string> = {
       merchant_id: PAYFAST_MERCHANT_ID,
       merchant_key: PAYFAST_MERCHANT_KEY,
-      return_url: `${SITE_URL}/payment/success`,
-      cancel_url: `${SITE_URL}/payment/cancelled`,
+      return_url: `${SITE_URL}/#/payment/success`,
+      cancel_url: `${SITE_URL}/#/payment/cancelled`,
       notify_url: `${SUPABASE_URL}/functions/v1/payfast-itn`,
       name_first: nameParts[0] || '',
       name_last: nameParts.slice(1).join(' ') || '',
@@ -157,12 +182,13 @@ Deno.serve(async (req) => {
       m_payment_id: mPaymentId,
       amount: plan.amount.toFixed(2),
       item_name: `AtriumX ${plan.label} plan`,
-      item_description: `${plan.days}-day ${plan.label} plan on AtriumX`,
+      item_description: `${plan.days}-day ${plan.label} plan on AtriumX — one-time payment, no automatic renewal`,
       // Echoed back untouched on the ITN, so the callback knows who and
       // what without trusting anything else in the payload.
       custom_str1: user.id,
       custom_str2: planKey,
-      custom_str3: plan.accommodation ? 'accommodation' : 'business',
+      custom_str3: plan.audience,
+      custom_str4: intent,
     }
 
     fields.signature = signPayload(fields)
