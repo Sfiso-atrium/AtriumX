@@ -1,9 +1,9 @@
 import ResidenceDirectory from '../components/common/ResidenceDirectory'
 import { Building2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { AccommodationListing, getAccommodationListings, AccommodationPlanKey } from '../services/dataService'
+import { AccommodationListing, getAccommodationListings, getAccommodationListingsBySeller, AccommodationPlanKey } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 import AccommodationCard from '../components/common/AccommodationCard'
@@ -21,20 +21,79 @@ const SECTION_ORDER: AccommodationPlanKey[] = ['accommodation_premium', 'accommo
 // from here or from a listing's own page.
 export default function AccommodationHome() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   const [listings, setListings] = useState<AccommodationListing[]>([])
+  const [allowedUniversities, setAllowedUniversities] = useState<string[]>([])
+  const [selectedUniversity, setSelectedUniversity] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     if (!currentUser?.id || !businessProfile?.is_accommodation) return
-    // Includes this account's own listing mixed in with everyone else's —
-    // an accommodation account browses the same market it's part of.
-    getAccommodationListings(null).then(data => {
-      setListings(data)
+
+    let cancelled = false
+
+    const loadUniversityMarketplace = async () => {
+      setLoading(true)
       setLoadError(false)
-    }).catch(() => setLoadError(true)).finally(() => setLoading(false))
-  }, [currentUser?.id, businessProfile?.is_accommodation])
+
+      try {
+        const ownListings = await getAccommodationListingsBySeller(currentUser.id)
+        if (cancelled) return
+
+        const universityLimit = businessProfile.accommodation_plan === 'accommodation_premium'
+          ? 3
+          : businessProfile.accommodation_plan === 'accommodation_featured'
+            ? 2
+            : 1
+
+        const listingUniversities = ownListings.flatMap(listing =>
+          listing.active_universities?.length
+            ? listing.active_universities
+            : listing.universities
+        )
+        const sourceUniversities = listingUniversities.length
+          ? listingUniversities
+          : (businessProfile.universities ?? [])
+        const allowed = Array.from(new Set(sourceUniversities)).slice(0, universityLimit)
+        if (cancelled) return
+
+        setAllowedUniversities(allowed)
+
+        const requestedUniversity = new URLSearchParams(location.search).get('university')
+        const nextUniversity = requestedUniversity && allowed.includes(requestedUniversity)
+          ? requestedUniversity
+          : allowed[0] ?? ''
+
+        setSelectedUniversity(nextUniversity)
+
+        if (!nextUniversity) {
+          setListings([])
+          setLoading(false)
+          return
+        }
+
+        if (requestedUniversity !== nextUniversity) {
+          navigate(`/accommodation?university=${encodeURIComponent(nextUniversity)}`, { replace: true })
+        }
+
+        const data = await getAccommodationListings(nextUniversity)
+        if (cancelled) return
+        setListings(data)
+      } catch {
+        if (!cancelled) {
+          setListings([])
+          setLoadError(true)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void loadUniversityMarketplace()
+    return () => { cancelled = true }
+  }, [currentUser?.id, businessProfile?.is_accommodation, businessProfile?.accommodation_plan, location.search, navigate])
 
   // This page previously just rendered nothing at all for anyone who wasn't
   // signed in as an accommodation account — a dead end for a student, a
@@ -76,18 +135,28 @@ export default function AccommodationHome() {
           <div>
             <p className="text-teal-light text-xs font-bold uppercase tracking-[0.16em] mb-2">Accommodation</p>
             <h1 className="font-serif text-3xl sm:text-4xl text-cream">Accommodation</h1>
-            <p className="text-cream-muted text-sm mt-2">See what's listed on AtriumX, including your own.</p>
+            <p className="text-cream-muted text-sm mt-2">
+              {selectedUniversity
+                ? `Showing accommodation available to ${selectedUniversity}, including your own.`
+                : 'Your accommodation marketplace follows your active university access.'}
+            </p>
           </div>
           <Building2 className="hidden sm:block text-teal-light" size={30} />
         </div>
 
         {loading ? (
           <p className="text-cream-muted text-sm py-16 text-center">Loading accommodation...</p>
-        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : listings.length === 0 ? (
+        ) : loadError ? (<p role="alert" className="text-red-400 py-10 text-center">Could not load accommodation. <button onClick={() => window.location.reload()} className="underline">Try again</button></p>) : allowedUniversities.length === 0 ? (
           <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
             <Building2 size={36} className="mx-auto text-cream-muted mb-4" />
-            <p className="text-cream font-semibold">No accommodation is listed yet.</p>
-            <p className="text-cream-muted text-sm mt-2">Check back as more properties join AtriumX.</p>
+            <p className="text-cream font-semibold">No university access is active yet.</p>
+            <p className="text-cream-muted text-sm mt-2">Add or update your accommodation listing to choose the university it serves.</p>
+          </div>
+        ) : listings.length === 0 ? (
+          <div className="bg-slate-card border border-slate-border rounded-3xl py-20 px-6 text-center">
+            <Building2 size={36} className="mx-auto text-cream-muted mb-4" />
+            <p className="text-cream font-semibold">No accommodation is listed for {selectedUniversity} yet.</p>
+            <p className="text-cream-muted text-sm mt-2">Only accommodation available to this university is shown here.</p>
           </div>
         ) : (
           <div className="space-y-9">
@@ -126,7 +195,7 @@ export default function AccommodationHome() {
             })}
           </div>
         )}
-        <ResidenceDirectory />
+        <ResidenceDirectory university={selectedUniversity || undefined} />
       </main>
       <BottomNav />
     </div>
