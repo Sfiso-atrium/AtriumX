@@ -1,5 +1,6 @@
+import AdminVisitMonitor from '../components/admin/AdminVisitMonitor'
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
@@ -32,13 +33,15 @@ import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 
-type Tab = 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
+type Tab = 'monitor' | 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
 type StatusFilter = 'all' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
   const navigate = useNavigate()
+  const [monitorParams] = useSearchParams()
   const { currentUser, showToast, isLoadingAuth } = useApp()
-  const [tab, setTab] = useState<Tab>('all')
+  const [tab, setTab] = useState<Tab>(new URLSearchParams(window.location.hash.split('?')[1] || '').get('tab') === 'monitor' ? 'monitor' : 'all')
+  useEffect(() => { if (monitorParams.get('tab') === 'monitor') setTab('monitor') }, [monitorParams])
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [editedListings, setEditedListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -212,7 +215,7 @@ const handleClearReports = async (id: string) => {
 const activeList =
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
-    tab === 'partners' || tab === 'suggestions' || tab === 'accommodationSubmissions' ? [] :
+    tab === 'monitor' || tab === 'partners' || tab === 'suggestions' || tab === 'accommodationSubmissions' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -258,8 +261,10 @@ const activeList =
           </div>
         </section>
 
+        {tab === 'monitor' && <AdminVisitMonitor />}
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
         <div className="flex flex-wrap gap-2 mb-6">
+          <button onClick={() => setTab('monitor')} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-border text-cream">Visit monitor</button>
           <button onClick={() => setTab('accommodationSubmissions')} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-border text-cream">Accommodation submissions</button>
           <button
             onClick={() => setTab('all')}
@@ -352,7 +357,7 @@ const activeList =
             </div>
           )
         )}
-{tab !== 'accommodationSubmissions' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
+{tab !== 'monitor' && tab !== 'accommodationSubmissions' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'edited' ? 'No listings have unreviewed edits.' :

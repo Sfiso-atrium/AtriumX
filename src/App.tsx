@@ -1,3 +1,4 @@
+import VisitMonitor from './components/common/VisitMonitor'
 import AccommodationReviewPage from './pages/AccommodationReview'
 import ResidenceDetail from './pages/ResidenceDetail'
 import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
@@ -124,6 +125,7 @@ export default function App() {
   return (
     <AppProvider>
       <HashRouter>
+        <VisitMonitor />
         <ToastLayer />
         <ModalLayer />
         <PushPermissionPrompt />
