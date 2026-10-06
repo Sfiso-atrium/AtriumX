@@ -10,6 +10,7 @@ import {
 import ListingCard from '../components/common/ListingCard'
 import AccommodationCard from '../components/common/AccommodationCard'
 import BottomNav from '../components/common/BottomNav'
+import BusinessReviews from '../components/common/BusinessReviews'
 
 export default function Profile() {
   const { userId } = useParams<{ userId: string }>()
@@ -388,6 +389,7 @@ export default function Profile() {
           )}
             </>
           )}
+          {profile.account_type === 'business' && !ownBusiness?.is_accommodation && <BusinessReviews businessId={profile.id} hideEmpty />}
         </div>
       </div>
       <BottomNav />

@@ -24,6 +24,7 @@ import RetailerSignup from './pages/RetailerSignup'
 import BusinessPostListing from './pages/BusinessPostListing'
 import BusinessPlanSelect from './pages/BusinessPlanSelect'
 import MySpace from './pages/MySpace'
+import OwnerHome from './pages/OwnerHome'
 import PartnerDashboard from './pages/Partnerdashboard'
 import PushPermissionPrompt from './components/common/PushPermissionPrompt'
 import StudyGroupChat from './pages/StudyGroupChat'
@@ -105,6 +106,12 @@ function StudentOnlyGuard({ children }: { children: ReactNode }) {
   return <Navigate to="/" replace />
 }
 
+function SpaceHome() {
+  const { currentUser, isLoadingAuth } = useApp()
+  if (isLoadingAuth) return null
+  return currentUser?.account_type === 'business' ? <OwnerHome /> : <StudentOnlyGuard><MySpace /></StudentOnlyGuard>
+}
+
 function NotFound() {
   const navigate = useNavigate()
   return (
@@ -146,7 +153,8 @@ export default function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/retailer" element={<RetailerLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/space" element={<StudentOnlyGuard><MySpace /></StudentOnlyGuard>} />
+          <Route path="/home" element={<OwnerHome />} />
+          <Route path="/space" element={<SpaceHome />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/retailer/signup" element={<RetailerSignup />} />

@@ -94,7 +94,7 @@ export default function RetailerSignup() {
         setCurrentUser(user)
         if (user.account_type === 'business') {
           const profile = await getBusinessProfile(user.id)
-          navigate(profile?.is_accommodation ? (searchParams.get('submission') === '1' ? '/accommodation/claim' : '/accommodation') : '/feed')
+          navigate(profile?.is_accommodation && searchParams.get('submission') === '1' ? '/accommodation/claim' : '/home')
         } else {
           navigate('/feed')
         }
@@ -186,7 +186,7 @@ export default function RetailerSignup() {
     if (err) return setError(err)
     if (user) {
       setCurrentUser(user)
-      navigate(isAccommodation ? (searchParams.get('submission') === '1' ? '/accommodation/claim' : '/accommodation') : '/feed')
+      navigate(isAccommodation && searchParams.get('submission') === '1' ? '/accommodation/claim' : '/home')
     }
   }
 

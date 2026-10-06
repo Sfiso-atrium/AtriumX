@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GraduationCap, Briefcase, ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { loginWithEmail, registerWithEmail, joinStudyGroup, getBusinessProfile } from '../services/dataService'
+import { loginWithEmail, registerWithEmail, joinStudyGroup } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
 import LegalFooter from '../components/common/LegalFooter'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
@@ -62,8 +62,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
         }
         let defaultDest = '/space'
         if (user.account_type === 'business') {
-          const businessProfile = await getBusinessProfile(user.id)
-          defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
+          defaultDest = '/home'
         }
         const dest = redirectAfterLogin || safeNext || defaultDest
         setRedirectAfterLogin(null)
@@ -91,8 +90,7 @@ if (user) {
         if (user.is_admin) {
           defaultDest = '/admin'
         } else if (user.account_type === 'business') {
-          const businessProfile = await getBusinessProfile(user.id)
-          defaultDest = businessProfile?.is_accommodation ? '/accommodation' : '/feed'
+          defaultDest = '/home'
         }
         const dest = redirectAfterLogin || safeNext || defaultDest
         setRedirectAfterLogin(null)
