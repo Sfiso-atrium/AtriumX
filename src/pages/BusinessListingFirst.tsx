@@ -143,7 +143,7 @@ export default function BusinessListingFirst() {
     if (description.trim().length < 20) return 'Description needs at least 20 characters.'
     if (selectedUniversities.length === 0) return 'Choose at least one university.'
     if (selectedUniversities.length > maxUniversities) return `${tier.label} allows up to ${maxUniversities} universit${maxUniversities === 1 ? 'y' : 'ies'}.`
-    if (images.length > maxPhotos) return `${tier.label} allows up to ${maxPhotos} photo${maxPhotos === 1 ? '' : 's'}.`
+    if (images.length > maxPhotos) return `${tier.label} allows up to ${maxPhotos} photo${Number(maxPhotos) === 1 ? '' : 's'}.`
     return null
   }
 

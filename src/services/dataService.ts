@@ -1,3 +1,4 @@
+import { recordVisitSubmission } from './visitMonitor'
 import { getResidenceForListing, getResidenceReviews, postResidenceReview } from './residenceReviews'
 import { getGuestAccommodationListings } from './accommodationIntake'
 import { supabase } from './supabaseClient'
@@ -927,6 +928,7 @@ export async function createListing(payload: {
       p_variants: payload.variants,
       p_universities: payload.universities || [],
     })
+    if (!error && data) void recordVisitSubmission('listing', data)
     return { id: data || null, error: error ? error.message : null }
   }
 
@@ -994,6 +996,7 @@ export async function createListing(payload: {
       .in('status', ['active', 'pending'])
   }
 
+  void recordVisitSubmission('listing', data.id)
   return { id: data.id, error: null }
 }
 export async function updateListing(
@@ -1285,6 +1288,7 @@ export async function createAccommodationListing(payload: {
     p_video_url: payload.videoUrl || null,
     p_building_addresses: payload.buildingAddresses ?? [],
   })
+  if (!error && data) void recordVisitSubmission('accommodation', data)
   return { id: data || null, error: error ? error.message : null }
 }
 
