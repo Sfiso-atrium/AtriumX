@@ -1,7 +1,7 @@
 import AdminVisitMonitor from '../components/admin/AdminVisitMonitor'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2 } from 'lucide-react'
+import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2, Activity, ListChecks, Lightbulb } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Listing,
@@ -219,12 +219,41 @@ const activeList =
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
-      <div className="sticky top-0 z-50 bg-slate-deep border-b border-slate-border h-14 flex items-center px-4">
-        <span className="text-cream font-bold text-lg">Admin Panel</span>
-      </div>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-24">
-        <h1 className="font-serif text-3xl text-cream mb-1">Admin Panel</h1>
+        <h1 className="font-serif text-2xl text-cream mb-1">Admin Panel</h1>
         <p className="text-cream-muted text-sm mb-6">Manage listings and reports.</p>
+
+        {(() => {
+          const TABS: { id: Tab; label: string; icon: typeof Flag; count?: number }[] = [
+            { id: 'monitor', label: 'Visits', icon: Activity },
+            { id: 'accommodationSubmissions', label: 'Submissions', icon: Building2 },
+            { id: 'all', label: 'Listings', icon: ListChecks, count: allListings.length },
+            { id: 'edited', label: 'Edited', icon: PencilLine, count: editedListings.length },
+            { id: 'reports', label: 'Reports', icon: Flag, count: reportedListings.length + accommodationReports.length },
+            { id: 'chatReports', label: 'Chats', icon: MessageSquareText, count: chatReports.length },
+            { id: 'partners', label: 'Partners', icon: Handshake, count: partners.length },
+            { id: 'suggestions', label: 'Ideas', icon: Lightbulb, count: suggestions.filter(s => !s.is_read).length },
+          ]
+          return (
+            <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+              {TABS.map(({ id, label, icon: Icon, count }) => (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    tab === id
+                      ? 'bg-teal-primary border-teal-light text-cream'
+                      : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {label}
+                  {count !== undefined && <span className="opacity-80">({count})</span>}
+                </button>
+              ))}
+            </div>
+          )
+        })()}
 
         <section className="mb-6 rounded-2xl border border-slate-border bg-slate-card p-4 sm:p-5">
           <div className="flex flex-col gap-4">
@@ -263,70 +292,6 @@ const activeList =
 
         {tab === 'monitor' && <AdminVisitMonitor />}
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setTab('monitor')} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-border text-cream">Visit monitor</button>
-          <button onClick={() => setTab('accommodationSubmissions')} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-border text-cream">Accommodation submissions</button>
-          <button
-            onClick={() => setTab('all')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'all'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            All Listings ({allListings.length})
-          </button>
-<button
-            onClick={() => setTab('edited')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'edited'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Edited ({editedListings.length})
-          </button>
-          <button
-            onClick={() => setTab('reports')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'reports'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Reported ({reportedListings.length + accommodationReports.length})
-          </button>
-          <button
-            onClick={() => setTab('chatReports')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'chatReports'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Chat Reports ({chatReports.length})
-          </button>
-          <button
-            onClick={() => setTab('partners')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'partners'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Partners ({partners.length})
-          </button>
-          <button
-            onClick={() => setTab('suggestions')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-              tab === 'suggestions'
-                ? 'bg-teal-primary border-teal-light text-cream'
-                : 'bg-slate-card border-slate-border text-cream-muted hover:border-teal-primary'
-            }`}
-          >
-            Suggestions ({suggestions.filter(s => !s.is_read).length})
-          </button>
-        </div>
         {tab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">
             {(['all', 'active', 'sold', 'expired', 'suspended'] as StatusFilter[]).map(s => (
