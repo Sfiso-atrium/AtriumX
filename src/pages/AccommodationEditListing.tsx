@@ -16,6 +16,7 @@ import {
 } from '../services/dataService'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
 import Navbar from '../components/common/Navbar'
+import useEditSection from '../hooks/useEditSection'
 import AddressAutocomplete from '../components/common/AddressAutocomplete'
 
 const AMENITY_OPTIONS = [
@@ -272,6 +273,8 @@ export default function AccommodationEditListing() {
     }
   }
 
+  useEditSection(!isLoadingAuth && !isLoadingBusinessProfile && !loading && !!listing)
+
   if (isLoadingAuth || isLoadingBusinessProfile || loading) {
     return <div className="min-h-screen bg-slate-deep flex items-center justify-center text-cream-muted">Loading...</div>
   }
@@ -342,7 +345,7 @@ export default function AccommodationEditListing() {
             </div>
           </section>
 
-          <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
+          <section id="edit-pricing" tabIndex={-1} className="scroll-mt-24 bg-slate-card border border-slate-border rounded-2xl p-5">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div><h2 className="text-cream font-bold text-base">Room pricing</h2><p className="text-cream-muted text-xs mt-1">Keep, add or remove the room types and funding prices students see.</p></div>
               <button type="button" onClick={addRoomType} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold"><Plus size={14} /> Add room type</button>
@@ -374,7 +377,7 @@ export default function AccommodationEditListing() {
             )}
           </section>
 
-          <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
+          <section id="edit-universities" tabIndex={-1} className="scroll-mt-24 bg-slate-card border border-slate-border rounded-2xl p-5">
             <div className="flex items-center justify-between gap-3 mb-4"><h2 className="text-cream font-bold text-base">Universities</h2><span className="text-cream-muted text-xs">Current plan: up to {maxUniversities}</span></div>
             {originalUniversities.current.length > maxUniversities && sameStringSet(originalUniversities.current, selectedUniversities) && <p className="text-cream-muted text-xs mb-3">Your previously saved university reach is preserved. If you change it, the new selection must fit the current plan.</p>}
             <input value={universitySearch} onChange={event => setUniversitySearch(event.target.value)} placeholder="Search for a university" className="w-full bg-slate-deep border border-slate-border rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted focus:outline-none focus:border-teal-light mb-3" />
@@ -410,7 +413,7 @@ export default function AccommodationEditListing() {
             )}
           </section>
 
-          <section className="bg-slate-card border border-slate-border rounded-2xl p-5">
+          <section id="edit-photos" tabIndex={-1} className="scroll-mt-24 bg-slate-card border border-slate-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4"><div><h2 className="text-cream font-bold text-base">Property photos</h2><p className="text-cream-muted text-xs mt-1">Your current plan displays up to {maxPhotos} photos. Saved extras from an earlier plan stay preserved.</p></div><label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-faint text-teal-light text-xs font-bold"><ImagePlus size={15} /> Add photos<input type="file" accept="image/*" multiple onChange={event => handleImageFiles(event.target.files)} disabled={uploadingImages || busy} className="hidden" /></label></div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {images.map(url => <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-slate-deep"><img src={url} alt="" className="w-full h-full object-cover" /><button type="button" onClick={() => setImages(previous => previous.filter(item => item !== url))} className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center" aria-label="Remove property photo"><X size={14} /></button></div>)}

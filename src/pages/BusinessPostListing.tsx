@@ -7,6 +7,7 @@ import {
   getEffectiveBusinessPlan, PLAN_TIERS, PlanKey, BusinessProfile, Listing
 } from '../services/dataService'
 import Navbar from '../components/common/Navbar'
+import useEditSection from '../hooks/useEditSection'
 import BottomNav from '../components/common/BottomNav'
 import ImageCropModal from '../components/common/ImageCropModal'
 import { SOUTH_AFRICAN_UNIVERSITIES, UNIVERSITY_ALIASES } from '../data/universities'
@@ -100,6 +101,8 @@ useEffect(() => {
       }
     })
   }, [currentUser, isLoadingAuth, navigate, plan, editListing, searchParams])
+
+  useEditSection(!isLoadingAuth && !checkingBusiness && !!currentUser && !!plan && !atLimit && !submitted)
 
   if (!isLoadingAuth && !currentUser) return <BusinessListingFirst />
   if (isLoadingAuth || checkingBusiness || !currentUser || !plan) return null
@@ -313,7 +316,7 @@ const sharedFields = {
 
           <div className="grid md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 md:gap-5 items-start">
             <div className="space-y-4">
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+              <section id="edit-details" tabIndex={-1} className="scroll-mt-24 bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
                 <div className="mb-3">
                   <h2 className="text-cream font-bold text-base">Listing details</h2>
                   <p className="text-cream-muted text-xs mt-1">The main information students will see first.</p>
@@ -412,7 +415,7 @@ const sharedFields = {
                 </div>
               </details>
 
-              <section className="bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
+              <section id="edit-photos" tabIndex={-1} className="scroll-mt-24 bg-slate-card border border-slate-border rounded-2xl p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h2 className="text-cream font-bold text-base">Media</h2>

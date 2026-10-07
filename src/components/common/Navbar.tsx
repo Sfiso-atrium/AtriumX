@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
-  Home,
   Bell,
   Building2,
   BellOff,
@@ -184,7 +183,6 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             {currentUser ? (
               <>
-                {currentUser.account_type === 'business' && <button onClick={() => navigate('/home')} aria-label="Home" title="Home" className="w-9 h-9 rounded-full flex items-center justify-center text-cream border border-slate-border hover:border-teal-light transition-colors"><Home className="w-5 h-5" /></button>}
                 {currentUser.account_type === 'business' && (
                   <div className="relative">
                     <button
