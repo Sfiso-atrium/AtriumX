@@ -97,6 +97,7 @@ export default function BottomNav() {
     if (currentUser.account_type === 'business') {
       if (businessProfile?.is_accommodation) {
         tabs = [
+          { label: 'Home', icon: DiscoverIcon, path: '/home', onClick: () => navigate('/home') },
           { label: 'Accommodation', icon: HomeIcon, path: '/accommodation', onClick: () => navigate('/accommodation') },
           { label: 'Post', icon: PostIcon, path: '/accommodation/post', onClick: () => setChooserOpen(true), action: true },
           { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
@@ -104,6 +105,7 @@ export default function BottomNav() {
         ]
       } else {
         tabs = [
+          { label: 'Home', icon: HomeIcon, path: '/home', onClick: () => navigate('/home') },
           { label: 'Discover', icon: DiscoverIcon, path: '/feed', onClick: () => navigate('/feed') },
           { label: 'Post', icon: PostIcon, path: '/plan-select', onClick: () => setChooserOpen(true), action: true },
           { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
@@ -129,9 +131,7 @@ export default function BottomNav() {
 
 
   // The Post button is a blue circle only when it truly sits in the middle
-  // of the bar (odd-length tab lists: 5 for students, 3 when logged out).
-  // In the 4-tab business layout it's off-centre, so it stays a plain dark
-  // icon like the others instead of standing out in blue.
+  // of the bar (5 tabs for signed-in accounts, 3 when logged out).
   const actionIndex = tabs.findIndex(t => t.action)
   const actionIsCentered = tabs.length % 2 === 1 && actionIndex === (tabs.length - 1) / 2
 

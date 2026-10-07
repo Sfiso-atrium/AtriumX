@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext'
 import { BusinessReview, getBusinessReviews, getEffectiveBusinessPlan } from '../../services/dataService'
 import ReviewReply from './ReviewReply'
 
-export default function BusinessReviews({ businessId, hideEmpty = false }: { businessId: string; hideEmpty?: boolean }) {
+export default function BusinessReviews({ businessId, hideEmpty = false, unboxed = false }: { businessId: string; hideEmpty?: boolean; unboxed?: boolean }) {
   const { currentUser } = useApp()
   const [reviews, setReviews] = useState<BusinessReview[]>([])
   const [loading, setLoading] = useState(true)
@@ -18,7 +18,7 @@ export default function BusinessReviews({ businessId, hideEmpty = false }: { bus
     return () => { active = false }
   }, [businessId, revision])
   if (hideEmpty && !loading && !error && !reviews.length) return null
-  return <section aria-label="Business reviews" className="bg-slate-card border border-slate-border rounded-2xl p-5">
+  return <section aria-label="Business reviews" className={unboxed ? "py-4" : "bg-slate-card border border-slate-border rounded-2xl p-5"}>
     <h2 className="text-cream font-bold text-lg">Student reviews</h2>
     {loading ? <p className="text-cream-muted text-sm mt-3">Loading reviews…</p> : error ? <p role="alert" className="text-cream-muted mt-3">Could not load reviews. <button className="underline" onClick={() => setRevision(n => n + 1)}>Try again</button></p> : !reviews.length ? <p className="text-cream-muted text-sm mt-3">No student reviews yet.</p> : <>
       <p className="text-cream-muted text-sm mt-1">{(reviews.reduce((n, r) => n + r.stars, 0) / reviews.length).toFixed(1)} / 5 · {reviews.length} review{reviews.length === 1 ? '' : 's'}</p>
