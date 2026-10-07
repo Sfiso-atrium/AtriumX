@@ -1,3 +1,5 @@
+import { getEffectiveBusinessPlan } from '../services/dataService'
+import ReviewReply from '../components/common/ReviewReply'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -14,7 +16,7 @@ import {
   getRecentBuyers, sendRatingInvite,
   getConversationsForListing, getSellerRatings,
   PLAN_TIERS, PlanKey,
-  BusinessReview, getBusinessReviews, submitBusinessReview, replyToBusinessReview,
+  BusinessReview, getBusinessReviews, submitBusinessReview,
   PublicBusinessProfile, getPublicBusinessProfile
 } from '../services/dataService'
 function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -85,8 +87,6 @@ const [showReportModal, setShowReportModal] = useState(false)
   const [reviewComment, setReviewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewError, setReviewError] = useState('')
-const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
-  const [submittingReplyId, setSubmittingReplyId] = useState<string | null>(null)
   const [businessProfile, setBusinessProfile] = useState<PublicBusinessProfile | null>(null)
   useEffect(() => {
     if (!id) return
@@ -253,17 +253,6 @@ const expiry = timeLeft(listing.expires_at)
     showToast('Review posted.', 'success')
   }
 
-  const handleSubmitReply = async (reviewId: string) => {
-    const reply = (replyDrafts[reviewId] || '').trim()
-    if (!reply) return
-    setSubmittingReplyId(reviewId)
-    const { error } = await replyToBusinessReview(reviewId, reply)
-    setSubmittingReplyId(null)
-    if (error) { showToast(error, 'error'); return }
-    setReplyDrafts(prev => ({ ...prev, [reviewId]: '' }))
-    loadBusinessReviews()
-    showToast('Reply posted.', 'success')
-  }
 
   return (
     <>
@@ -628,35 +617,7 @@ const expiry = timeLeft(listing.expires_at)
                         </div>
                       )}
 
-                      {isSeller && !r.reply && plan === 'campus_partner' && (
-                        <div className="mt-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={replyDrafts[r.id] || ''}
-                            onChange={e => setReplyDrafts(prev => ({ ...prev, [r.id]: e.target.value }))}
-                            placeholder="Reply to this review"
-                            className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-1.5 text-cream text-xs placeholder:text-cream-muted focus:outline-none focus:border-teal-light"
-                          />
-                          <button
-                            onClick={() => handleSubmitReply(r.id)}
-                            disabled={submittingReplyId === r.id}
-                            className="bg-teal-primary hover:bg-teal-light disabled:opacity-40 text-cream text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      )}
-                      {isSeller && !r.reply && plan !== 'campus_partner' && (
-                        <div className="mt-2 flex items-center justify-between gap-2 bg-slate-deep rounded-xl px-3 py-2">
-                          <p className="text-cream-muted text-xs">Replying requires Campus Partner.</p>
-                          <button
-                            onClick={() => navigate('/retailer')}
-                            className="flex-shrink-0 bg-gold text-slate-deep text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-gold/90 transition-colors"
-                          >
-                            Upgrade
-                          </button>
-                        </div>
-                      )}
+                      {isSeller && <ReviewReply reviewId={r.id} existingReply={r.reply} allowed={getEffectiveBusinessPlan(currentUser) === 'campus_partner'} onSaved={loadBusinessReviews} />}
                     </div>
                   ))}
                 </div>

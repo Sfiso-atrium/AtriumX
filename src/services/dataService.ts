@@ -665,14 +665,16 @@ export async function selectPlanListings(listingIds: string[]): Promise<{ error:
   return { error: error?.message ?? null }
 }
 
-export async function getUserListings(userId: string): Promise<Listing[]> {
+export async function getUserListings(userId: string, strict = false): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')
     .select('*')
     .eq('seller_id', userId)
     .order('created_at', { ascending: false })
+  if (error && strict) throw error
   if (error || !data) return []
   const { data: authData, error: authError } = await supabase.auth.getSession()
+  if (authError && strict) throw authError
   if (authError) return []
   const viewerId = authData.session?.user.id
   if (viewerId === userId) return withListingPlanDisplay(data as Listing[])
@@ -1401,13 +1403,15 @@ export async function getAccommodationListings(university?: string | null): Prom
 // management panel (moved there from the old AccommodationHome dashboard).
 // Same shape and review stats as getAccommodationListings(), just scoped to
 // one seller instead of "active, everywhere" or "active, one university".
-export async function getAccommodationListingsBySeller(sellerId: string): Promise<AccommodationListing[]> {
-  const { data, error } = await supabase
+export async function getAccommodationListingsBySeller(sellerId: string, ownerDashboard = false): Promise<AccommodationListing[]> {
+  let query = supabase
     .from('accommodation_listings')
     .select(`*, seller:profiles_public(*)`)
     .eq('seller_id', sellerId)
-    .eq('status', 'active')
     .order('created_at', { ascending: false })
+  if (!ownerDashboard) query = query.eq('status', 'active')
+  const { data, error } = await query
+  if (error && ownerDashboard) throw error
   if (error || !data) return []
   const websites = await getBusinessWebsites((data as any[]).map(item => item.seller_id))
   const reviews = await supabase.from('accommodation_reviews').select('accommodation_listing_id, stars')
@@ -1635,7 +1639,7 @@ export async function startWantedConversation(
 }
 
 export async function getConversationsForUser(
-  userId: string
+  userId: string, strict = false
 ): Promise<Conversation[]> {
   const { data, error } = await supabase
     .from('conversations')
@@ -1652,6 +1656,7 @@ buyer:profiles_public!buyer_id(id, full_name, avatar_initials, avatar_color, acc
     .order('sent_at', { ascending: false, foreignTable: 'messages' })
     .limit(1, { foreignTable: 'messages' })
 
+  if (error && strict) throw error
   if (error || !data) return []
 
   const conversations = data as unknown as (Conversation & { messages?: Message[] })[]
@@ -2325,12 +2330,13 @@ export interface BusinessReview {
   student?: { full_name: string; avatar_initials: string; avatar_color: string }
 }
 
-export async function getBusinessReviews(businessId: string): Promise<BusinessReview[]> {
+export async function getBusinessReviews(businessId: string, strict = false): Promise<BusinessReview[]> {
   const { data, error } = await supabase
     .from('business_reviews')
     .select('*, student:profiles_public!student_id(full_name, avatar_initials, avatar_color)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
+  if (error && strict) throw error
   if (error || !data) return []
   return data as BusinessReview[]
 }

@@ -1,8 +1,9 @@
+import ReviewReply from '../components/common/ReviewReply'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Globe, MapPin, MessageCircle, PencilLine, Plus, Send, Star, Tag, X } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, selectAccommodationUniversities, startAccommodationConversation, submitAccommodationReview, replyToAccommodationReview, roomTypeLabel } from '../services/dataService'
+import { AccommodationListing, AccommodationReportField, AccommodationReview, getAccommodationListingById, getAccommodationReviews, selectAccommodationUniversities, startAccommodationConversation, submitAccommodationReview, roomTypeLabel } from '../services/dataService'
 import { getExampleAccommodationById, isExampleAccommodationId, isExampleAccommodationListing } from '../data/exampleAccommodations'
 import AccommodationReportModal from '../components/student/AccommodationReportModal'
 import AccommodationReportEditModal from '../components/student/AccommodationReportEditModal'
@@ -18,7 +19,6 @@ export default function AccommodationDetail() {
   const [mediaMode, setMediaMode] = useState<'video' | 'photos'>('video')
   const [reviewStars, setReviewStars] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
@@ -132,17 +132,6 @@ export default function AccommodationDetail() {
     showToast('Review posted.', 'success')
   }
 
-  const handleReply = async (reviewId: string) => {
-    const reply = (replyDrafts[reviewId] || '').trim()
-    if (!reply) return
-    setSaving(true)
-    const { error } = await replyToAccommodationReview(reviewId, reply)
-    setSaving(false)
-    if (error) { showToast(error, 'error'); return }
-    setReplyDrafts(prev => ({ ...prev, [reviewId]: '' }))
-    getAccommodationReviews(listing.id).then(setReviews).catch(() => showToast('Could not refresh reviews.', 'error'))
-    showToast('Reply posted.', 'success')
-  }
 
   return (
     <div className="min-h-screen bg-slate-deep pb-24">
@@ -315,7 +304,7 @@ export default function AccommodationDetail() {
               <p className="text-cream-muted text-sm">Reviews are unavailable on example listings.</p>
             ) : reviews.length === 0 ? (
               <p className="text-cream-muted text-sm">No reviews yet.</p>
-            ) : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.reviewer_name || review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && !review.reply && (canReply ? <div className="mt-3 flex gap-2"><input value={replyDrafts[review.id] || ''} onChange={e => setReplyDrafts(prev => ({ ...prev, [review.id]: e.target.value }))} placeholder="Reply to this review" className="flex-1 bg-slate-deep border border-slate-border rounded-xl px-3 py-2.5 text-cream text-sm placeholder:text-cream-muted" /><button onClick={() => handleReply(review.id)} disabled={saving} className="px-3 rounded-xl bg-teal-primary text-white"><Send size={15} /></button></div> : <p className="mt-3 text-cream-muted text-xs">Upgrade to Featured (R199) or Premium (R399) to reply to reviews.</p>)}</div>)}
+            ) : reviews.map(review => <div key={review.id} className="border-t border-slate-border pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-cream font-semibold text-sm">{review.reviewer_name || review.student?.full_name || 'Student'}</p><div className="flex items-center gap-0.5 text-amber-400 mt-1">{[1,2,3,4,5].map(s => <Star key={s} size={13} className={s <= review.stars ? 'fill-current' : ''} />)}</div></div><span className="text-cream-muted text-xs">{new Date(review.created_at).toLocaleDateString()}</span></div><p className="text-cream-muted text-sm leading-relaxed mt-2">{review.comment || 'No comment.'}</p>{review.reply && <div className="mt-3 ml-4 border-l-2 border-teal-light pl-3"><p className="text-teal-light text-xs font-bold">Accommodation reply</p><p className="text-cream-muted text-sm mt-1">{review.reply}</p></div>}{isOwner && <ReviewReply reviewId={review.id} existingReply={review.reply} accommodation allowed={!!canReply} onSaved={() => { if (id) getAccommodationReviews(id).then(setReviews).catch(() => showToast('Could not refresh reviews.', 'error')) }} />}</div>)}
           </div>
         </section>
       </main>
