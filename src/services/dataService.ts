@@ -1,3 +1,4 @@
+import { checkoutPlan } from './paymentCheckout'
 import { recordVisitSubmission } from './visitMonitor'
 import { getResidenceForListing, getResidenceReviews, postResidenceReview } from './residenceReviews'
 import { getGuestAccommodationListings } from './accommodationIntake'
@@ -293,7 +294,7 @@ export interface PaymentRecord {
   amount: number
   intent: PlanPaymentIntent
   listing_id: string | null
-  status: 'pending' | 'complete' | 'failed' | 'cancelled'
+  status: 'pending' | 'complete' | 'failed' | 'cancelled' | 'review_required'
   created_at: string
   completed_at: string | null
 }
@@ -313,33 +314,7 @@ export async function startPlanPayment(
   const intent = options.intent ?? 'purchase'
   sessionStorage.setItem('atriumx_payment_type', 'business')
   sessionStorage.setItem('atriumx_payment_intent', intent)
-  const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
-    body: { planKey, intent, listingId: options.listingId ?? null },
-  })
-
-  if (error) return { error: 'Could not reach the payment service. Please try again.' }
-  if (data?.error) return { error: data.error }
-  if (!data?.url || !data?.fields) return { error: 'Could not start payment. Please try again.' }
-
-  // PayFast expects a normal form POST, not a fetch/redirect — building
-  // and submitting a hidden form is the documented way to hand off.
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = data.url
-  form.style.display = 'none'
-
-  for (const [name, value] of Object.entries(data.fields as Record<string, string>)) {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = name
-    input.value = value
-    form.appendChild(input)
-  }
-
-  document.body.appendChild(form)
-  form.submit()
-
-  return { error: null }
+  return checkoutPlan(planKey, intent, options.listingId ?? null)
 }
 
 
@@ -349,43 +324,22 @@ export async function startAccommodationPlanPayment(
 ): Promise<{ error: string | null }> {
   sessionStorage.setItem('atriumx_payment_type', 'accommodation')
   sessionStorage.setItem('atriumx_payment_intent', intent)
-  const { data, error } = await supabase.functions.invoke('payfast-create-payment', {
-    body: { planKey, intent },
-  })
-
-  if (error) return { error: 'Could not reach the payment service. Please try again.' }
-  if (data?.error) return { error: data.error }
-  if (!data?.url || !data?.fields) return { error: 'Could not start payment. Please try again.' }
-
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = data.url
-  form.style.display = 'none'
-
-  for (const [name, value] of Object.entries(data.fields as Record<string, string>)) {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = name
-    input.value = value
-    form.appendChild(input)
-  }
-
-  document.body.appendChild(form)
-  form.submit()
-  return { error: null }
+  return checkoutPlan(planKey, intent)
 }
 
 // Used by the post-payment screen to poll for the ITN having landed.
 // Reads only — RLS restricts this to the person's own rows, and nothing
 // client-side can write here.
-export async function getLatestPayment(userId: string): Promise<PaymentRecord | null> {
-  const { data, error } = await supabase
+export async function getLatestPayment(userId: string, paymentId?: string | null): Promise<PaymentRecord | null> {
+  let query = supabase
     .from('payments')
     .select('id, m_payment_id, pf_payment_id, plan_key, amount, intent, listing_id, status, created_at, completed_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle()
+
+  if (paymentId) query = query.eq('id', paymentId)
+  const { data, error } = await query.maybeSingle()
 
   if (error || !data) return null
   return data as PaymentRecord
