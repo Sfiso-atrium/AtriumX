@@ -263,7 +263,7 @@ className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                       : isCurrent && planIsActive && (managePlan || renewalListingId)
                         ? `Renew — ${tier.price} one-time payment`
                         : planIsActive && currentPlan && PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan)
-                          ? `Upgrade — ${tier.price} one-time payment`
+                          ? `Upgrade — review credit`
                           : tier.priceNum > 0
                             ? `Choose — ${tier.price} one-time payment`
                             : 'Use free plan'}
@@ -274,7 +274,7 @@ className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
           </div>
 
 <p className="text-cream-muted text-xs text-center mt-6">
-            Choosing a paid option opens PayFast. Your plan changes only after PayFast confirms the payment.
+            Choosing a paid option shows your price and any unused-time credit before PayFast. Your plan changes only after PayFast confirms the payment.
           </p>
         </div>
     </div>

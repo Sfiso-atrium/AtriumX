@@ -74,9 +74,8 @@ async function serverConfirm(rawBody: string): Promise<boolean> {
 }
 
 Deno.serve(async (req) => {
-  // Always answer 200, even on rejection. A non-200 makes PayFast retry
-  // the same notification for up to 48 hours, which would bury real
-  // problems under repeats of ones we've already deliberately refused.
+  // Reject invalid notifications without changing a payment record. Temporary
+  // provider verification or activation failures return an error for retry.
   const ok = () => new Response('OK', { status: 200 })
 
   try {
@@ -105,13 +104,10 @@ Deno.serve(async (req) => {
     // Idempotency. PayFast can legitimately deliver the same notification
     // more than once; without this, a repeat would extend the person's
     // plan expiry a second time off a single payment.
-    if (payment.status === 'complete') return ok()
+    if (payment.status === 'complete' || payment.status === 'review_required') return ok()
 
     if (!verifySignature(pairs, data.signature || '')) {
       console.error('ITN signature mismatch for', mPaymentId)
-      await supabase.from('payments')
-        .update({ status: 'failed', itn_payload: data })
-        .eq('id', payment.id)
       return ok()
     }
 
@@ -119,20 +115,14 @@ Deno.serve(async (req) => {
     // is what catches a tampered payment form.
     const paid = parseFloat(data.amount_gross || '0')
     const expected = parseFloat(String(payment.amount))
-    if (Math.abs(paid - expected) > 0.01) {
+    if (!Number.isFinite(paid) || !Number.isFinite(expected) || Math.abs(paid - expected) > 0.01) {
       console.error(`ITN amount mismatch for ${mPaymentId}: paid ${paid}, expected ${expected}`)
-      await supabase.from('payments')
-        .update({ status: 'failed', itn_payload: data })
-        .eq('id', payment.id)
       return ok()
     }
 
     if (!(await serverConfirm(rawBody))) {
       console.error('ITN not confirmed by PayFast for', mPaymentId)
-      await supabase.from('payments')
-        .update({ status: 'failed', itn_payload: data })
-        .eq('id', payment.id)
-      return ok()
+      return new Response('Verification unavailable', { status: 503 })
     }
 
     if (data.payment_status !== 'COMPLETE') {

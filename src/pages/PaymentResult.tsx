@@ -22,7 +22,7 @@ import { getLatestPayment, getUserById, PLAN_TIERS, ACCOMMODATION_PLANS, PlanKey
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
-type Status = 'confirming' | 'complete' | 'slow' | 'cancelled' | 'failed'
+type Status = 'confirming' | 'complete' | 'slow' | 'cancelled' | 'failed' | 'review_required'
 
 const POLL_INTERVAL_MS = 2500
 const MAX_POLLS = 12 // ~30 seconds before we stop and explain
@@ -55,7 +55,7 @@ export default function PaymentResult() {
       if (cancelled) return
       polls += 1
 
-      const payment = await getLatestPayment(currentUser.id)
+      const payment = await getLatestPayment(currentUser.id, sessionStorage.getItem('atriumx_payment_id'))
 
       if (payment?.status === 'complete') {
         setPlanKey(payment.plan_key)
@@ -70,6 +70,8 @@ export default function PaymentResult() {
         setStatus('complete')
         return
       }
+
+      if (payment?.status === 'review_required') { setStatus('review_required'); return }
 
       if (payment?.status === 'failed' || payment?.status === 'cancelled') {
         setStatus('failed')
@@ -143,6 +145,13 @@ export default function PaymentResult() {
           title: 'Payment cancelled',
           text: "Nothing was charged. Your plan hasn't changed — you can pick one again whenever you're ready.",
           action: { label: 'Back to plans', to: paymentType === 'accommodation' ? '/accommodation/plan-select' : (currentUser?.account_type === 'business' ? '/business/plan-select' : '/plan-select') },
+        }
+      case 'review_required':
+        return {
+          icon: <Clock size={44} className="text-gold" />,
+          title: 'Payment received — review needed',
+          text: 'Your payment was received, but the upgrade quote expired or your plan changed during checkout. The admin has been notified. Please do not pay again; contact AtriumX with your payment reference if you need help.',
+          action: { label: 'Go to my profile', to: `/profile/${currentUser?.id ?? ''}` },
         }
       case 'failed':
         return {

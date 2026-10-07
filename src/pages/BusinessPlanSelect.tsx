@@ -253,7 +253,7 @@ export default function BusinessPlanSelect() {
                       : isCurrent && paidPlanIsActive && (managePlan || renewalListingId)
                         ? `Renew — ${tier.price} one-time payment`
                         : paidPlanIsActive && currentPlan && BUSINESS_PLAN_ORDER.indexOf(key) > BUSINESS_PLAN_ORDER.indexOf(currentPlan)
-                          ? `Upgrade — ${tier.price} one-time payment`
+                          ? `Upgrade — review credit`
                           : tier.priceNum > 0
                             ? `Choose — ${tier.price} one-time payment`
                             : 'Free plan · no automatic billing'}
@@ -264,7 +264,7 @@ export default function BusinessPlanSelect() {
           </div>
 
           <p className="text-cream-muted text-xs text-center mt-6">
-            Choosing a paid option opens PayFast. Your plan changes only after PayFast confirms the payment.
+            Choosing a paid option shows your price and any unused-time credit before PayFast. Your plan changes only after PayFast confirms the payment.
           </p>
         </div>
       </div>

@@ -154,7 +154,7 @@ export default function AccommodationPlanSelect() {
           })}
         </div>
         <p className="text-cream-muted text-xs text-center mt-6">
-          Choosing a paid option opens PayFast. Your accommodation plan changes only after PayFast confirms the payment.
+          Choosing a paid option shows your price and any unused-time credit before PayFast. Your accommodation plan changes only after PayFast confirms the payment.
         </p>
       </main>
       {currentUser && <BottomNav />}

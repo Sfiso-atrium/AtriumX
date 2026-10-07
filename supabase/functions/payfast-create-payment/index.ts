@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     }
     const user = authData.user
 
-    const { planKey, intent = 'purchase', listingId = null } = await req.json()
+    const { planKey, intent = 'purchase', listingId = null, mode = 'checkout', paymentId = null } = await req.json()
     const plan = PLAN_PRICES[planKey]
     if (!plan) {
       return Response.json({ error: 'Unknown or free plan.' }, { status: 400, headers: CORS })
@@ -115,11 +115,11 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, email, account_type')
+      .select('full_name, email, account_type, is_blocked')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile) {
+    if (profileError || !profile || profile.is_blocked) {
       return Response.json({ error: 'Your AtriumX profile could not be loaded.' }, { status: 403, headers: CORS })
     }
 
@@ -151,23 +151,53 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Our reference. Unique per attempt, so an abandoned payment that's
-    // retried later gets its own row rather than colliding.
-    const mPaymentId = `${user.id.slice(0, 8)}-${Date.now()}`
-
-    const { error: insertError } = await supabase.from('payments').insert({
-      user_id: user.id,
-      m_payment_id: mPaymentId,
-      plan_key: planKey,
-      plan_days: plan.days,
-      amount: plan.amount,
-      intent,
-      listing_id: listingId,
-      status: 'pending',
-    })
-    if (insertError) {
-      return Response.json({ error: 'Could not start payment.' }, { status: 500, headers: CORS })
+    if (!['quote', 'checkout', 'cancel'].includes(mode)) {
+      return Response.json({ error: 'Unknown checkout action.' }, { status: 400, headers: CORS })
     }
+    let payment: any
+    if (paymentId) {
+      const { data, error } = await supabase.from('payments').select('*')
+        .eq('id', paymentId).eq('user_id', user.id).maybeSingle()
+      if (error || !data || data.plan_key !== planKey || data.pricing_version !== 1) {
+        return Response.json({ error: 'This payment quote is unavailable.' }, { status: 400, headers: CORS })
+      }
+      payment = data
+    } else {
+      const { data, error } = await supabase.rpc('prepare_plan_payment', {
+        p_user: user.id, p_plan: planKey, p_listing: listingId,
+      })
+      if (error || !data) {
+        return Response.json({ error: error?.message || 'Could not prepare checkout.' }, { status: 400, headers: CORS })
+      }
+      payment = data
+    }
+    if (mode === 'cancel') {
+      await supabase.from('payments').update({ status: 'cancelled' }).eq('id', payment.id).eq('user_id', user.id).eq('status', 'pending').is('checkout_started_at', null)
+      return Response.json({ cancelled: true }, { headers: CORS })
+    }
+    if (payment.status !== 'pending' || new Date(payment.quote_expires_at).getTime() <= Date.now()) {
+      return Response.json({ error: 'This quote has expired or has already been used. Please choose your plan again.' }, { status: 400, headers: CORS })
+    }
+    const quote = {
+      paymentId: payment.id, planLabel: plan.label, listPrice: Number(payment.list_price),
+      credit: Number(payment.credit_amount), minimumTopup: Number(payment.minimum_topup || 0), amountDue: Number(payment.amount), days: payment.plan_days,
+      bonusDays: Number(payment.bonus_seconds || 0) / 86400, expiresAt: payment.quote_expires_at,
+      intent: payment.intent,
+    }
+    if (mode === 'quote') return Response.json({ quote }, { headers: CORS })
+    const { data: reserved, error: reservationError } = await supabase.from('payments')
+      .update({ checkout_started_at: new Date().toISOString() }).eq('id', payment.id).eq('status', 'pending').select('id').maybeSingle()
+    if (reservationError || !reserved) return Response.json({ error: 'This checkout is no longer available. Please choose your plan again.' }, { status: 400, headers: CORS })
+    if (Number(payment.amount) === 0) {
+      // No gateway transaction is needed when verified existing value covers it.
+      const { error } = await supabase.rpc('activate_verified_plan_payment', {
+        p_payment_id: payment.id, p_pf_payment_id: null,
+        p_itn_payload: { source: 'verified_unused_time_credit' },
+      })
+      if (error) return Response.json({ error: 'Could not apply the credit. Please try again.' }, { status: 400, headers: CORS })
+      return Response.json({ completed: true, quote }, { headers: CORS })
+    }
+    const mPaymentId = payment.m_payment_id
 
     const nameParts = (profile?.full_name || '').trim().split(' ')
 
@@ -184,7 +214,7 @@ Deno.serve(async (req) => {
       name_last: nameParts.slice(1).join(' ') || '',
       email_address: profile?.email || user.email || '',
       m_payment_id: mPaymentId,
-      amount: plan.amount.toFixed(2),
+      amount: Number(payment.amount).toFixed(2),
       item_name: `AtriumX ${plan.label} plan`,
       item_description: `${plan.days}-day ${plan.label} plan on AtriumX - one-time payment, no automatic renewal`,
       // Echoed back untouched on the ITN, so the callback knows who and
@@ -192,13 +222,13 @@ Deno.serve(async (req) => {
       custom_str1: user.id,
       custom_str2: planKey,
       custom_str3: plan.audience,
-      custom_str4: intent,
+      custom_str4: payment.intent,
     }
 
     fields.signature = signPayload(fields)
 
     return Response.json(
-      { url: PAYFAST_PROCESS_URL, fields },
+      { url: PAYFAST_PROCESS_URL, fields, quote },
       { headers: CORS }
     )
   } catch (err) {
