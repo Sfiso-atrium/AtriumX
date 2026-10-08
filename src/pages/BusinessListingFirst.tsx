@@ -1,3 +1,6 @@
+import BusinessHoursEditor from '../components/business/BusinessHoursEditor'
+import { saveBusinessHours } from '../services/businessHours'
+import { isValidHours, type BusinessHours } from '../utils/businessHours'
 import { useMemo, useRef, useState } from 'react'
 import { ImagePlus, Video, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -34,6 +37,7 @@ export default function BusinessListingFirst() {
   const [customType, setCustomType] = useState('')
   const [contactNumber, setContactNumber] = useState('')
   const [physicalAddress, setPhysicalAddress] = useState('')
+  const [hours, setHours] = useState<BusinessHours | null>(null)
   const [website, setWebsite] = useState('')
   const [email, setEmail] = useState('')
   const [title, setTitle] = useState('')
@@ -133,6 +137,7 @@ export default function BusinessListingFirst() {
   }
 
   const validateListing = () => {
+    if (hours !== null && !isValidHours(hours)) return 'Choose different opening and closing times.'
     if (!businessName.trim()) return 'Business name is required.'
     if (!businessType) return 'Select a business type.'
     if (businessType === 'Other' && !customType.trim()) return 'Please specify your business type.'
@@ -180,6 +185,9 @@ export default function BusinessListingFirst() {
         user = registeredUser
         setCreatedUser(registeredUser)
       }
+
+      const hoursError = await saveBusinessHours(user.id, hours)
+      if (hoursError) { setError(hoursError); return }
 
       const uploadedImages: string[] = []
       for (let index = 0; index < images.length; index += 1) {
@@ -283,6 +291,7 @@ export default function BusinessListingFirst() {
               <input type="tel" value={contactNumber} onChange={event => setContactNumber(event.target.value)} placeholder="Contact number" className={inputClass} />
               <AddressAutocomplete value={physicalAddress} onChange={setPhysicalAddress} placeholder="Physical address" />
               <input value={website} onChange={event => setWebsite(event.target.value)} placeholder="Website (optional)" className={inputClass} />
+              <BusinessHoursEditor value={hours} onChange={setHours} disabled={busy} />
               <input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Email address" className={inputClass} />
             </section>
 

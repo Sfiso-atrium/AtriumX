@@ -1,3 +1,4 @@
+import BusinessHoursDisplay from '../components/business/BusinessHoursDisplay'
 import { getEffectiveBusinessPlan } from '../services/dataService'
 import ReviewReply from '../components/common/ReviewReply'
 import { useState, useEffect } from 'react'
@@ -485,6 +486,8 @@ const expiry = timeLeft(listing.expires_at)
                 </button>
               </p>
             )}
+
+{seller?.account_type === 'business' && <BusinessHoursDisplay businessId={listing.seller_id} />}
 
 {seller?.account_type === 'business' && (businessProfile?.physical_address || businessProfile?.website) && (
               <div className="flex flex-col gap-1.5 text-sm">
