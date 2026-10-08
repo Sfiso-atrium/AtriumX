@@ -15,6 +15,9 @@ const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const requestedNext = searchParams.get('next')
   const safeNext = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : null
 
+  const studentOnly = searchParams.get('studentOnly') === '1'
+  const firstStep = studentOnly ? 'university' : 'type'
+
   const [mode, setMode] = useState<'login' | 'register'>(
     searchParams.get('mode') === 'register' ? 'register' : 'login'
   )
@@ -24,7 +27,7 @@ const { setCurrentUser, setRedirectAfterLogin } = useApp()
   const [confirmPassword, setConfirmPassword] = useState('')
   const [residence, setResidence] = useState('')
   const [university, setUniversity] = useState('')
-  const [step, setStep] = useState<'type' | 'university' | 'details'>('type')
+  const [step, setStep] = useState<'type' | 'university' | 'details'>(firstStep)
   const [accountType, setAccountType] = useState<'student' | 'business'>('student')
   const [universitySearch, setUniversitySearch] = useState('')
   const [error, setError] = useState('')
@@ -64,7 +67,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
         if (user.account_type === 'business') {
           defaultDest = '/home'
         }
-        const dest = redirectAfterLogin || safeNext || defaultDest
+        const dest = safeNext || redirectAfterLogin || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -92,7 +95,7 @@ if (user) {
         } else if (user.account_type === 'business') {
           defaultDest = '/home'
         }
-        const dest = redirectAfterLogin || safeNext || defaultDest
+        const dest = safeNext || redirectAfterLogin || defaultDest
         setRedirectAfterLogin(null)
         navigate(dest)
       }
@@ -131,8 +134,8 @@ if (user) {
   const handleBack = () => {
     setError('')
     if (step === 'details') setStep('university')
-    else if (step === 'university') setStep('type')
-    else navigate('/')
+    else if (step === 'university' && !studentOnly) setStep('type')
+    else navigate(studentOnly ? safeNext || '/' : '/')
   }
 
   const ACCOUNT_TYPE_OPTIONS = [
@@ -262,7 +265,7 @@ if (user) {
               </button>
 
               <button
-                onClick={() => { setStep('type'); setError('') }}
+                onClick={() => { if (studentOnly) navigate(safeNext || '/'); else setStep('type'); setError('') }}
                 className="text-cream-muted text-sm text-center"
               >
                 Back
@@ -388,7 +391,7 @@ if (user) {
 
         {mode === 'login' && (
           <button
-            onClick={() => { setMode('register'); setStep('type'); setError('') }}
+            onClick={() => { setMode('register'); setStep(firstStep); setError('') }}
             className="mt-auto pt-8 text-teal-light text-sm text-center underline"
           >
             Don't have an account? Register
