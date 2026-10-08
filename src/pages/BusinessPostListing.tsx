@@ -1,3 +1,6 @@
+import BusinessHoursEditor from '../components/business/BusinessHoursEditor'
+import { getBusinessHours, saveBusinessHours } from '../services/businessHours'
+import { isValidHours, type BusinessHours } from '../utils/businessHours'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ImagePlus, Video, X } from 'lucide-react'
@@ -20,6 +23,9 @@ export default function BusinessPostListing() {
 const { currentUser, isLoadingAuth, showToast, refreshBusinessProfile } = useApp()
   const { plan: statePlan, editListing } = (location.state as { plan?: PlanKey; editListing?: Listing } | null) || {}
   const plan = statePlan || (currentUser?.account_type === 'business' ? getEffectiveBusinessPlan(currentUser) : undefined)
+  const [hours, setHours] = useState<BusinessHours | null>(null)
+  const [hoursChanged, setHoursChanged] = useState(false)
+  const [hoursLoaded, setHoursLoaded] = useState(false)
   const [business, setBusiness] = useState<BusinessProfile | null>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
   const [atLimit, setAtLimit] = useState(false)
@@ -101,6 +107,16 @@ useEffect(() => {
       }
     })
   }, [currentUser, isLoadingAuth, navigate, plan, editListing, searchParams])
+
+  useEffect(() => {
+    if (!currentUser || currentUser.account_type !== 'business') return
+    let active = true
+    setHoursLoaded(false)
+    getBusinessHours(currentUser.id).then(value => {
+      if (active) { setHours(value); setHoursLoaded(true); setHoursChanged(false) }
+    }).catch(() => { if (active) setError('Operating hours could not be loaded. Reload to edit them.') })
+    return () => { active = false }
+  }, [currentUser?.id])
 
   useEditSection(!isLoadingAuth && !checkingBusiness && !!currentUser && !!plan && !atLimit && !submitted)
 
@@ -258,10 +274,15 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const handleSubmit = async () => {
     setError('')
+    if (hoursChanged && hours !== null && !isValidHours(hours)) return setError('Choose different opening and closing times.')
     if (!title.trim()) return setError('Give your listing a name.')
     if (description.trim().length < 20) return setError('Description needs at least 20 characters.')
 
 setLoading(true)
+if (hoursChanged) {
+  const hoursError = await saveBusinessHours(currentUser.id, hours)
+  if (hoursError) { setLoading(false); setError(hoursError); return }
+}
 const sharedFields = {
       title: title.trim(),
       description: description.trim(),
@@ -364,6 +385,7 @@ const sharedFields = {
                     </button>
                   </div>
 
+                  <BusinessHoursEditor value={hours} onChange={value => { setHours(value); setHoursChanged(true) }} disabled={!hoursLoaded || loading} />
                   <div className="sm:col-span-2">
                     <label className="text-cream-muted text-xs font-bold uppercase tracking-wide mb-2 block">
                       Description <span className="text-red-400">*</span>

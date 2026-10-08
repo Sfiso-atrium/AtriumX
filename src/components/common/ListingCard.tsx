@@ -1,3 +1,4 @@
+import BusinessHoursDisplay from '../business/BusinessHoursDisplay'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, Pencil, Heart, Image as ImageIcon, ExternalLink, Globe, X } from 'lucide-react'
@@ -169,6 +170,7 @@ const navigate = useNavigate()
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 capitalize">
             {listing.custom_category || listing.category}
           </span>
+          {isBusinessListing && <BusinessHoursDisplay businessId={listing.seller_id} compact />}
           {listing.is_negotiable && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
               Open to offers
