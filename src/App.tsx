@@ -1,3 +1,4 @@
+import BusinessReviewDirectory from './pages/BusinessReviewDirectory'
 import BusinessReviewPage from './pages/BusinessReview'
 import VisitMonitor from './components/common/VisitMonitor'
 import AccommodationReviewPage from './pages/AccommodationReview'
@@ -139,6 +140,7 @@ export default function App() {
         <PushPermissionPrompt />
 
         <Routes>
+          <Route path="/businesses/review" element={<StudentOnlyGuard><BusinessReviewDirectory /></StudentOnlyGuard>} />
           <Route path="/business/:businessId/review" element={<BusinessReviewPage />} />
           <Route path="/" element={<Entrance />} />
           <Route path="/student" element={<StudentAuth />} />
