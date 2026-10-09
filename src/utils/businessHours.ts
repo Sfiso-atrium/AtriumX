@@ -1,6 +1,5 @@
 export type BusinessHours = Record<string, { open: string; close: string }>
 export const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-export const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String(i % 4 * 15).padStart(2, '0')}`)
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3))
 export function isValidHours(value: unknown): value is BusinessHours {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
