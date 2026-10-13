@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Users, FileText, Wallet, Handshake, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Users, FileText, Wallet, Handshake, RefreshCw, ChevronDown, Link2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getPartnerStatus, type Partner } from '../services/dataService'
 import { getPartnerOverview, type PartnerOverview } from '../services/partnerReferral'
@@ -22,15 +22,13 @@ export function CopyLink({ label, url }: { label: string; url: string }) {
     catch { setCopied(false); setError(true) }
   }
   return <div className="bg-slate-card border border-slate-border rounded-xl p-3">
-    <label className="block text-cream-muted text-xs font-bold mb-1.5">
-      {label}
+    <p className="text-cream-muted text-xs font-bold mb-1.5">{label}</p>
       <div className="flex items-center gap-2 mt-2">
         <input aria-label={`${label} referral link`} readOnly value={url} onFocus={e => e.target.select()} className="bg-slate-deep text-cream text-xs flex-1 min-w-0 border border-slate-border rounded-lg p-2" />
         <button type="button" aria-label={`Copy ${label.toLowerCase()} link`} onClick={handleCopy} className="flex items-center gap-1 bg-gold text-black text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0">
           {copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-    </label>
     {error && <p role="alert" className="text-cream-muted text-xs mt-2">Copy was blocked. Select the link above and copy it manually.</p>}
   </div>
 }
@@ -75,9 +73,18 @@ export default function PartnerDashboard() {
       <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-cream-muted text-sm mb-4"><ArrowLeft size={16} /> Back</button>
       <div className="flex items-center gap-2.5 mb-2"><Handshake size={24} className="text-gold" /><h1 className="font-serif text-2xl text-cream">Your partner portal</h1></div>
       <p className="text-cream-muted text-sm mb-6">Choose the right form, copy your personal link and share it. Each link carries your referral code.</p>
-      <h2 className="text-cream font-bold mb-3">Your referral links</h2>
-      <div className="grid sm:grid-cols-2 gap-3 mb-6">{partnerLinks(partner.referral_code).map(link => <CopyLink key={link.label} {...link} />)}</div>
-      <p className="text-cream-muted text-xs mb-6">The first referral is kept for 30 days in the visitor’s browser and attached when they sign in or register. An existing referral cannot be overwritten. Existing paying customers and self-referrals do not qualify.</p>
+      <details className="group bg-slate-card border border-slate-border rounded-2xl mb-6">
+        <summary className="flex items-center gap-3 p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+          <span className="bg-slate-deep border border-slate-border rounded-xl p-2.5 text-gold"><Link2 size={20} aria-hidden="true" /></span>
+          <span className="flex-1 min-w-0"><span className="block text-cream font-bold">Your referral links</span><span className="block text-cream-muted text-xs mt-1">Choose a form and copy your link</span></span>
+          <span className="text-gold text-xs font-bold bg-slate-deep rounded-full px-2.5 py-1">{partnerLinks(partner.referral_code).length}</span>
+          <ChevronDown size={18} aria-hidden="true" className="text-cream-muted flex-shrink-0 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-slate-border p-3 sm:p-4">
+          <div className="flex flex-col gap-2.5 max-h-[28rem] overflow-y-auto overscroll-contain pr-1">{partnerLinks(partner.referral_code).map(link => <CopyLink key={link.label} {...link} />)}</div>
+          <p className="text-cream-muted text-xs mt-4">The first referral is kept for 30 days in the visitor’s browser and attached when they sign in or register. An existing referral cannot be overwritten. Existing paying customers and self-referrals do not qualify.</p>
+        </div>
+      </details>
       <div className="flex items-center justify-between mb-3"><h2 className="text-cream font-bold">Your progress</h2><button onClick={refresh} disabled={loading} className="flex items-center gap-1.5 text-gold text-sm disabled:opacity-50"><RefreshCw size={14} />{loading ? 'Refreshing…' : 'Refresh'}</button></div>
       {error && <p role="alert" className="text-red-300 text-sm mb-4">{error}</p>}
       {overview && <>
