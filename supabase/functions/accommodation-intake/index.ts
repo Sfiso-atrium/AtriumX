@@ -60,7 +60,7 @@ Deno.serve(async req => {
     const input=validateSubmission(body)
     const ip=req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown'
     const ipHash=await sha256(serviceKey+':'+ip)
-    const {data:id,error:reserveError}=await admin.rpc('reserve_accommodation_submission',{p_receipt_hash:receiptHash,p_ip_hash:ipHash,p_email:input.email,p_phone:input.phone,p_website:input.website,p_payload:input.payload})
+    const {data:id,error:reserveError}=await admin.rpc('reserve_accommodation_submission',{p_receipt_hash:receiptHash,p_ip_hash:ipHash,p_email:input.email,p_phone:input.phone,p_website:input.website,p_payload:{...input.payload,_ref_code:typeof body.refCode==='string' ? body.refCode.slice(0,64) : null}})
     if(reserveError)return reply({error:reserveError.message.includes('Too many')?reserveError.message:'Could not save your submission. Please try again.'},400)
     const {data:existing,error:readError}=await admin.from('accommodation_submissions').select('status').eq('id',id).single()
     if(readError)throw new Error('Could not confirm your submission. Please try again.')

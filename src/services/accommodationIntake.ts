@@ -1,3 +1,4 @@
+import { capturePartnerReferral } from '../utils/partnerReferral'
 import { recordVisitSubmission } from './visitMonitor'
 import { supabase } from './supabaseClient'
 import type { AccommodationListing } from './dataService'
@@ -24,7 +25,7 @@ export type AccommodationAccountContext = {
 
 export async function intakeRequest(body: Record<string,unknown>): Promise<{id?:string;status?:string;context?:AccommodationAccountContext;error?:string}> {
   try {
-    const {data,error}=await supabase.functions.invoke('accommodation-intake',{body})
+    const {data,error}=await supabase.functions.invoke('accommodation-intake',{body: { ...body, refCode: capturePartnerReferral() || null }})
     if(error){try { const response=await error.context.json();return {error:response.error||'Could not submit. Please try again.'} }catch{return {error:'Could not connect. Your form is kept; please try again.'}}}
     if (body.action === 'submit' && data?.id && !data?.error) void recordVisitSubmission('submission', data.id, body.receipt as string)
     return data

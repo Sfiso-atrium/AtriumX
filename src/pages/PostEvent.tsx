@@ -151,7 +151,7 @@ export default function PostEvent() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-deep flex items-center justify-center">
-        <p className="text-cream-muted text-sm">Sign in to post an event.</p>
+        <button className="bg-gold text-black font-bold rounded-xl px-5 py-3" onClick={() => navigate(`/student?next=${encodeURIComponent('/post-event' + (window.location.hash.split('/post-event')[1] || ''))}`)}>Sign in to post an event</button>
       </div>
     )
   }

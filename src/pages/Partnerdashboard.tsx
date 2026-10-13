@@ -1,159 +1,101 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Users, FileText, Wallet, Handshake } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Users, FileText, Wallet, Handshake, RefreshCw } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { ReferralEvent, getReferralCount, getReferralEvents, getEstimatedEarnings } from '../services/dataService'
-import { supabase } from '../services/supabaseClient'
+import { getPartnerStatus, type Partner } from '../services/dataService'
+import { getPartnerOverview, type PartnerOverview } from '../services/partnerReferral'
+import { partnerLinks } from '../utils/partnerReferral'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
 
-function CopyLink({ label, url }: { label: string; url: string }) {
+export function CopyLink({ label, url }: { label: string; url: string }) {
   const [copied, setCopied] = useState(false)
-  const handleCopy = () => {
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const [error, setError] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(timer)
+  }, [copied])
+  const handleCopy = async () => {
+    setError(false)
+    try { await navigator.clipboard.writeText(url); setCopied(true) }
+    catch { setCopied(false); setError(true) }
   }
-  return (
-    <div className="bg-slate-deep border border-slate-border rounded-xl p-3">
-      <p className="text-cream-muted text-xs font-bold mb-1.5">{label}</p>
-      <div className="flex items-center gap-2">
-        <p className="text-cream text-xs flex-1 min-w-0 truncate">{url}</p>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1 bg-gold hover:opacity-85 text-black text-xs font-bold px-2.5 py-1.5 rounded-lg transition-opacity flex-shrink-0"
-        >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? 'Copied' : 'Copy'}
+  return <div className="bg-slate-card border border-slate-border rounded-xl p-3">
+    <label className="block text-cream-muted text-xs font-bold mb-1.5">
+      {label}
+      <div className="flex items-center gap-2 mt-2">
+        <input aria-label={`${label} referral link`} readOnly value={url} onFocus={e => e.target.select()} className="bg-slate-deep text-cream text-xs flex-1 min-w-0 border border-slate-border rounded-lg p-2" />
+        <button type="button" aria-label={`Copy ${label.toLowerCase()} link`} onClick={handleCopy} className="flex items-center gap-1 bg-gold text-black text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0">
+          {copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-    </div>
-  )
+    </label>
+    {error && <p role="alert" className="text-cream-muted text-xs mt-2">Copy was blocked. Select the link above and copy it manually.</p>}
+  </div>
 }
+const money = (value: number) => `R${Number(value).toFixed(2)}`
+const labels: Record<string, string> = { listing: 'Listing published', accommodation: 'Accommodation published', accommodation_submission: 'Accommodation submitted for review', wanted: 'Wanted post published', event: 'Event published' }
 
 export default function PartnerDashboard() {
   const navigate = useNavigate()
-  const { currentUser, partner, isLoadingAuth } = useApp()
-  const [referredCount, setReferredCount] = useState(0)
-  const [events, setEvents] = useState<ReferralEvent[]>([])
+  const { currentUser, isLoadingAuth } = useApp()
+  const [partner, setPartner] = useState<Partner | null>(null)
+  const [overview, setOverview] = useState<PartnerOverview | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    try { setOverview(await getPartnerOverview()); setError('') }
+    catch { setError('Could not load your referral records. Please try again.'); setOverview(null) }
+    finally { setLoading(false) }
+  }, [])
   useEffect(() => {
     if (isLoadingAuth) return
-    if (!currentUser) { navigate('/student'); return }
-    if (!partner) { navigate('/feed'); return }
-
-    Promise.all([getReferralCount(currentUser.id), getReferralEvents(currentUser.id)]).then(([count, evts]) => {
-      setReferredCount(count)
-      setEvents(evts)
-      setLoading(false)
+    if (!currentUser) { navigate('/student?next=%2Fpartner'); return }
+    let active = true
+    // Session restoration finishes before AppContext's partner lookup. Wait for
+    // this lookup explicitly so refreshing /partner never redirects a member.
+    setPartner(null)
+    getPartnerStatus(currentUser.id).then(found => {
+      if (!active) return
+      if (!found) { navigate('/feed'); return }
+      setPartner(found)
+      void refresh()
     })
-  }, [currentUser, partner, isLoadingAuth, navigate])
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') void refresh() }, 60000)
+    return () => { active = false; clearInterval(timer) }
+  }, [currentUser?.id, isLoadingAuth, navigate, refresh])
 
-  // Realtime: new listings from referred users land here the moment the
-  // trigger writes them — same postgres_changes pattern NotificationBell
-  // already uses, just filtered to this partner's own events.
-  useEffect(() => {
-    if (!currentUser) return
-    const channel = supabase
-      .channel(`referral_events:${currentUser.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'referral_events', filter: `partner_id=eq.${currentUser.id}` },
-        () => {
-          getReferralEvents(currentUser.id).then(setEvents)
-          getReferralCount(currentUser.id).then(setReferredCount)
-        }
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [currentUser])
-
-  if (loading || !currentUser || !partner) {
-    return (
-      <div className="min-h-screen bg-slate-deep flex items-center justify-center">
-        <p className="text-cream-muted">Loading...</p>
-      </div>
-    )
-  }
-
-  const origin = window.location.origin + window.location.pathname
-  const studentLink = `${origin}#/student?mode=register&ref=${partner.referral_code}`
-  const businessLink = `${origin}#/retailer/signup?ref=${partner.referral_code}`
-  const earnings = getEstimatedEarnings(events)
-
-  return (
-    <div className="min-h-screen bg-slate-deep pb-24">
-      <Navbar />
-
-      <div className="max-w-2xl mx-auto px-4 pt-4">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-cream-muted hover:text-cream text-sm mb-4">
-          <ArrowLeft size={16} /> Back
-        </button>
-
-        <div className="flex items-center gap-2.5 mb-1">
-          <Handshake size={22} className="text-gold" />
-          <h1 className="font-serif text-2xl text-cream">Referral Partner Dashboard</h1>
-        </div>
-        <p className="text-cream-muted text-sm mb-6">
-          Share your link. When someone you referred posts a listing, it shows up here in real time — plan and all.
-        </p>
-
-        <div className="flex flex-col gap-2.5 mb-6">
-          <CopyLink label="Student sign-up link" url={studentLink} />
-          <CopyLink label="Business sign-up link" url={businessLink} />
-        </div>
-
-        <div className="grid grid-cols-3 gap-2.5 mb-6">
-          <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
-            <Users size={16} className="text-teal-light mb-2" />
-            <p className="text-cream font-serif text-2xl font-bold">{referredCount}</p>
-            <p className="text-cream-muted text-xs">Referred</p>
-          </div>
-          <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
-            <FileText size={16} className="text-sapphire-light mb-2" />
-            <p className="text-cream font-serif text-2xl font-bold">{events.length}</p>
-            <p className="text-cream-muted text-xs">Listings</p>
-          </div>
-          <div className="bg-slate-card border border-slate-border rounded-2xl p-4">
-            <Wallet size={16} className="text-gold mb-2" />
-            <p className="text-cream font-serif text-2xl font-bold">R{earnings.toFixed(0)}</p>
-            <p className="text-cream-muted text-xs">Est. earnings</p>
-          </div>
-        </div>
-
-        <h2 className="text-cream-muted text-xs font-bold uppercase tracking-wider mb-3">Activity</h2>
-        {events.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-cream-muted text-sm">No activity yet — share your link to get started.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {events.map(e => (
-              <div key={e.id} className="bg-slate-card border border-slate-border rounded-2xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-cream font-bold text-sm truncate">
-                      {e.referred_user?.full_name || 'A referred user'}
-                    </p>
-                    <p className="text-cream-muted text-xs mt-0.5 truncate">
-                      Listed "{e.listing?.title || 'a listing'}" on the <span className="capitalize">{e.plan_tier}</span> plan
-                    </p>
-                    <p className="text-cream-muted text-xs mt-0.5">
-                      {new Date(e.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                  </div>
-                  <span className="text-gold font-bold text-sm flex-shrink-0">
-                    +R{Number(e.amount).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <BottomNav />
-    </div>
-  )
+  if (isLoadingAuth || !currentUser || !partner) return <div className="min-h-screen bg-slate-deep text-cream-muted p-8">Loading...</div>
+  const totals = overview?.totals
+  return <div className="min-h-screen bg-slate-deep pb-24">
+    <Navbar />
+    <main className="max-w-3xl mx-auto px-4 pt-4">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-cream-muted text-sm mb-4"><ArrowLeft size={16} /> Back</button>
+      <div className="flex items-center gap-2.5 mb-2"><Handshake size={24} className="text-gold" /><h1 className="font-serif text-2xl text-cream">Your partner portal</h1></div>
+      <p className="text-cream-muted text-sm mb-6">Choose the right form, copy your personal link and share it. Each link carries your referral code.</p>
+      <h2 className="text-cream font-bold mb-3">Your referral links</h2>
+      <div className="grid sm:grid-cols-2 gap-3 mb-6">{partnerLinks(partner.referral_code).map(link => <CopyLink key={link.label} {...link} />)}</div>
+      <p className="text-cream-muted text-xs mb-6">The first referral is kept for 30 days in the visitor’s browser and attached when they sign in or register. An existing referral cannot be overwritten. Existing paying customers and self-referrals do not qualify.</p>
+      <div className="flex items-center justify-between mb-3"><h2 className="text-cream font-bold">Your progress</h2><button onClick={refresh} disabled={loading} className="flex items-center gap-1.5 text-gold text-sm disabled:opacity-50"><RefreshCw size={14} />{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+      {error && <p role="alert" className="text-red-300 text-sm mb-4">{error}</p>}
+      {overview && <>
+        <div className="grid grid-cols-2 gap-3 mb-5">{[
+          { title: 'Referred accounts', value: overview.referredCount, Icon: Users },
+          { title: 'Listings and submissions', value: overview.activityCount, Icon: FileText },
+        ].map(({ title, value, Icon }) => <div key={title} className="bg-slate-card border border-slate-border rounded-2xl p-4"><Icon size={18} className="text-teal-light mb-2" /><p className="font-serif text-cream text-2xl">{value}</p><p className="text-cream-muted text-xs">{title}</p></div>)}</div>
+        <section className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-6">
+          <h2 className="flex items-center gap-2 text-cream font-bold mb-3"><Wallet size={18} className="text-gold" />Earnings from verified payments</h2>
+          <div className="grid grid-cols-3 gap-2 mb-3">{(['pending', 'approved', 'paid'] as const).map(status => <div key={status}><p className="text-gold font-bold">{money(totals?.[status] || 0)}</p><p className="text-cream-muted text-xs capitalize">{status}</p></div>)}</div>
+          <p className="text-cream-muted text-xs">{overview.terms ? `Agreed rate: ${(overview.terms.rate * 100).toFixed(1)}% of eligible customer payments, before gateway fees, during your agreement period ending ${new Date(overview.terms.ends_at).toLocaleDateString()}.` : 'No active commission agreement is configured. Agree your rate and payment terms with AtriumX before starting paid referral work.'}</p>
+          <p className="text-cream-muted text-xs mt-2">Signups and free listings do not earn cash. Upgrade credit is not counted again. Pending amounts require review; “paid” means a payout has been recorded. Automatic PayFast payouts are not enabled.</p>
+        </section>
+        <h2 className="text-cream font-bold mb-3">Recent activity</h2>
+        {overview.activities.length === 0 ? <p className="text-cream-muted text-sm py-6">No listings or submissions yet. Your links are ready to share.</p> : <div className="space-y-2 mb-6">{overview.activities.map(a => <div key={a.id} className="bg-slate-card border border-slate-border rounded-xl p-3"><p className="text-cream text-sm font-bold">{a.title}</p><p className="text-cream-muted text-xs mt-1">{labels[a.kind] || a.kind} · {new Date(a.created_at).toLocaleString()}</p></div>)}</div>}
+        {overview.commissions.length > 0 && <><h2 className="text-cream font-bold mb-3">Recent commissions</h2><div className="space-y-2">{overview.commissions.map(c => <div key={c.id} className="bg-slate-card border border-slate-border rounded-xl p-3 flex justify-between gap-3"><div><p className="text-cream text-sm">{money(c.cash_amount)} customer payment · {(c.rate * 100).toFixed(1)}%</p><p className="text-cream-muted text-xs">{new Date(c.created_at).toLocaleDateString()} · <span className="capitalize">{c.status}</span></p></div><p className="text-gold font-bold text-sm">{money(c.amount)}</p></div>)}</div></>}
+      </>}
+    </main>
+    <BottomNav />
+  </div>
 }

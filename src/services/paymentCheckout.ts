@@ -1,3 +1,4 @@
+import { attachPartnerReferral } from './partnerReferral'
 import { supabase } from './supabaseClient'
 
 type Quote = { paymentId: string; planLabel: string; listPrice: number; credit: number; minimumTopup: number; amountDue: number; days: number; bonusDays: number; expiresAt: string; intent: string }
@@ -47,6 +48,7 @@ async function invoke(body: Record<string, unknown>) {
 }
 
 export async function checkoutPlan(planKey: string, intent: string, listingId: string | null = null): Promise<{ error: string | null }> {
+  await attachPartnerReferral().catch(() => {})
   const request = { planKey, intent, listingId }
   const prepared = await invoke({ ...request, mode: 'quote' })
   if (prepared.error) return { error: prepared.error }
