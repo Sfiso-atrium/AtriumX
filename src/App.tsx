@@ -1,9 +1,10 @@
 import BusinessReviewDirectory from './pages/BusinessReviewDirectory'
 import BusinessReviewPage from './pages/BusinessReview'
 import VisitMonitor from './components/common/VisitMonitor'
+import PartnerReferralCapture from './components/common/PartnerReferralCapture'
 import AccommodationReviewPage from './pages/AccommodationReview'
 import ResidenceDetail from './pages/ResidenceDetail'
-import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import Entrance from './pages/Entrance'
@@ -96,9 +97,10 @@ function StudentAccommodationGuard({ children }: { children: ReactNode }) {
 
 
 function StudentOnlyGuard({ children }: { children: ReactNode }) {
+  const location = useLocation()
   const { currentUser, businessProfile, isLoadingAuth, isLoadingBusinessProfile } = useApp()
   if (isLoadingAuth) return null
-  if (!currentUser) return <Navigate to="/student" replace />
+  if (!currentUser) return <Navigate to={`/student?next=${encodeURIComponent(location.pathname + location.search)}&ref=${encodeURIComponent(new URLSearchParams(location.search).get('ref') || '')}`} replace />
   if (currentUser.account_type === 'student') return <>{children}</>
   if (currentUser.account_type === 'business') {
     if (isLoadingBusinessProfile) return null
@@ -134,6 +136,7 @@ export default function App() {
   return (
     <AppProvider>
       <HashRouter>
+        <PartnerReferralCapture />
         <VisitMonitor />
         <ToastLayer />
         <ModalLayer />

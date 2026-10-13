@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:partner-referrals": "node tests/partner-referrals.test.mjs",
     "test:residence-reviews": "node tests/residence-reviews.test.mjs",
     "test:business-review-invites": "node tests/business-review-invites.test.mjs"
   },

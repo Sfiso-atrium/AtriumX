@@ -1,3 +1,5 @@
+import { capturePartnerReferral } from '../utils/partnerReferral'
+import { attachPartnerReferral } from './partnerReferral'
 import { checkoutPlan } from './paymentCheckout'
 import { recordVisitSubmission } from './visitMonitor'
 import { getResidenceForListing, getResidenceReviews, postResidenceReview } from './residenceReviews'
@@ -453,7 +455,7 @@ await supabase
         avatar_initials: initials,
         avatar_color: avatarColor,
         email,
-        ref_code: refCode || null,
+        ref_code: capturePartnerReferral() || refCode || null,
       },
     },
   })
@@ -861,6 +863,7 @@ export async function createListing(payload: {
   variants: { name: string; price: number }[]
   universities?: string[]
 }): Promise<{ id: string | null; error: string | null }> {
+  await attachPartnerReferral().catch(() => {})
   const tierConfig = PLAN_TIERS[payload.planTier]
   const expiresAt = new Date(
     Date.now() + tierConfig.days * 86400000
@@ -1230,6 +1233,7 @@ export async function createAccommodationListing(payload: {
   videoUrl?: string | null
   buildingAddresses?: string[]
 }): Promise<{ id: string | null; error: string | null }> {
+  await attachPartnerReferral().catch(() => {})
   const { data, error } = await supabase.rpc('create_accommodation_listing', {
     p_seller_id: payload.sellerId,
     p_title: payload.title,
@@ -2110,6 +2114,7 @@ export async function registerBusinessShellWithEmail(
         avatar_color: '#185FA5',
         account_type: 'business',
         email: normalizedEmail,
+        ref_code: capturePartnerReferral() || null,
       },
     },
   })
@@ -2203,7 +2208,7 @@ export async function registerBusinessWithEmail(
         account_type: 'business',
         university,
         email,
-        ref_code: refCode || null,
+        ref_code: capturePartnerReferral() || refCode || null,
       },
     },
   })
@@ -3258,7 +3263,7 @@ export async function getAllPartnersAdmin(): Promise<(Partner & { profile: Profi
   const [{ data: partners }, { data: referrals }, { data: events }] = await Promise.all([
     supabase.from('partners').select('*').order('created_at', { ascending: false }),
     supabase.from('referrals').select('partner_id'),
-    supabase.from('referral_events').select('partner_id, amount'),
+    supabase.from('partner_commissions').select('partner_id, amount').neq('status', 'reversed'),
   ])
   if (!partners) return []
 
@@ -3418,6 +3423,7 @@ export async function createEvent(payload: {
   imageUrl?: string | null
   universities: string[]
 }): Promise<{ id: string | null; error: string | null }> {
+  await attachPartnerReferral().catch(() => {})
   const { data, error } = await supabase
     .from('events')
     .insert({
@@ -3544,6 +3550,7 @@ export async function createWantedPost(payload: {
   residence?: string
   urgency: 'no_rush' | 'this_week' | 'urgent'
 }): Promise<{ id: string | null; error: string | null }> {
+  await attachPartnerReferral().catch(() => {})
   const { data, error } = await supabase
     .from('wanted_posts')
     .insert({
