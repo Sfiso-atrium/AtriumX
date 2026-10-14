@@ -1,4 +1,5 @@
 import AdminVisitMonitor from '../components/admin/AdminVisitMonitor'
+import PartnerPayfastAdmin from '../components/admin/PartnerPayfastAdmin'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2, Activity, ListChecks, Lightbulb } from 'lucide-react'
@@ -291,6 +292,7 @@ const activeList =
         </section>
 
         {tab === 'monitor' && <AdminVisitMonitor />}
+        {tab === 'partners' && <PartnerPayfastAdmin partners={partners} />}
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
         {tab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">

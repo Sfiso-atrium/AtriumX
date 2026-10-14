@@ -25,6 +25,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const PAYFAST_PASSPHRASE = Deno.env.get('PAYFAST_PASSPHRASE') || ''
 const PAYFAST_SANDBOX = Deno.env.get('PAYFAST_SANDBOX') === 'true'
+const PAYFAST_MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID') || ''
 
 const PAYFAST_VALIDATE_URL = PAYFAST_SANDBOX
   ? 'https://sandbox.payfast.co.za/eng/query/validate'
@@ -77,11 +78,16 @@ Deno.serve(async (req) => {
   // Reject invalid notifications without changing a payment record. Temporary
   // provider verification or activation failures return an error for retry.
   const ok = () => new Response('OK', { status: 200 })
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
 
   try {
     const rawBody = await req.text()
     const pairs: [string, string][] = []
-    for (const [k, v] of new URLSearchParams(rawBody).entries()) pairs.push([k, v])
+    const seen = new Set<string>()
+    for (const [k, v] of new URLSearchParams(rawBody).entries()) {
+      if (seen.has(k)) return ok()
+      seen.add(k); pairs.push([k, v])
+    }
     const data = Object.fromEntries(pairs) as Record<string, string>
 
     const mPaymentId = data.m_payment_id
@@ -90,11 +96,13 @@ Deno.serve(async (req) => {
       return ok()
     }
 
-    const { data: payment } = await supabase
+    const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('*')
       .eq('m_payment_id', mPaymentId)
       .single()
+
+    if (paymentError && paymentError.code !== 'PGRST116') return new Response('Payment lookup unavailable', { status: 503 })
 
     if (!payment) {
       console.error('ITN for unknown m_payment_id:', mPaymentId)
@@ -110,6 +118,7 @@ Deno.serve(async (req) => {
       console.error('ITN signature mismatch for', mPaymentId)
       return ok()
     }
+    if (!PAYFAST_MERCHANT_ID || data.merchant_id !== PAYFAST_MERCHANT_ID || !data.pf_payment_id) return ok()
 
     // The amount PayFast says was paid must match what we asked for. This
     // is what catches a tampered payment form.
@@ -126,13 +135,14 @@ Deno.serve(async (req) => {
     }
 
     if (data.payment_status !== 'COMPLETE') {
-      await supabase.from('payments')
+      const { error: updateError } = await supabase.from('payments')
         .update({
           status: data.payment_status === 'CANCELLED' ? 'cancelled' : 'failed',
           pf_payment_id: data.pf_payment_id || null,
           itn_payload: data,
         })
         .eq('id', payment.id)
+      if (updateError) return new Response('Payment update unavailable', { status: 503 })
       return ok()
     }
 
@@ -155,6 +165,6 @@ Deno.serve(async (req) => {
     return ok()
   } catch (err) {
     console.error('payfast-itn failed:', err)
-    return ok()
+    return new Response('Notification processing unavailable', { status: 503 })
   }
 })

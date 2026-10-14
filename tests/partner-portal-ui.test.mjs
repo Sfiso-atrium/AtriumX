@@ -16,6 +16,7 @@ const mocks={
  '../services/dataService':{getPartnerStatus:()=>new Promise(resolve=>{resolvePartner=resolve})},
  '../services/partnerReferral':{getPartnerOverview:async()=>{overviewCalls++;return {referredCount:2,activityCount:3,activities:[],commissions:[],totals:{pending:0,approved:0,paid:0},terms:null}}},
  '../utils/partnerReferral':{partnerLinks:()=>[{label:'Business listing',url:'https://atriumx.co.za/#/business/post?ref=PARTNER-A'}]},
+ '../components/partner/PartnerPayfast':{default:()=>null,__esModule:true},
  '../components/common/Navbar':{default:()=>null,__esModule:true},
  '../components/common/BottomNav':{default:()=>null,__esModule:true}
 }

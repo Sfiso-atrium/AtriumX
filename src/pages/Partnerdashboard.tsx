@@ -7,6 +7,7 @@ import { getPartnerOverview, type PartnerOverview } from '../services/partnerRef
 import { partnerLinks } from '../utils/partnerReferral'
 import Navbar from '../components/common/Navbar'
 import BottomNav from '../components/common/BottomNav'
+import PartnerPayfast from '../components/partner/PartnerPayfast'
 
 export function CopyLink({ label, url }: { label: string; url: string }) {
   const [copied, setCopied] = useState(false)
@@ -85,6 +86,7 @@ export default function PartnerDashboard() {
           <p className="text-cream-muted text-xs mt-4">The first referral is kept for 30 days in the visitor’s browser and attached when they sign in or register. An existing referral cannot be overwritten. Existing paying customers and self-referrals do not qualify.</p>
         </div>
       </details>
+      <PartnerPayfast />
       <div className="flex items-center justify-between mb-3"><h2 className="text-cream font-bold">Your progress</h2><button onClick={refresh} disabled={loading} className="flex items-center gap-1.5 text-gold text-sm disabled:opacity-50"><RefreshCw size={14} />{loading ? 'Refreshing…' : 'Refresh'}</button></div>
       {error && <p role="alert" className="text-red-300 text-sm mb-4">{error}</p>}
       {overview && <>
@@ -94,9 +96,9 @@ export default function PartnerDashboard() {
         ].map(({ title, value, Icon }) => <div key={title} className="bg-slate-card border border-slate-border rounded-2xl p-4"><Icon size={18} className="text-teal-light mb-2" /><p className="font-serif text-cream text-2xl">{value}</p><p className="text-cream-muted text-xs">{title}</p></div>)}</div>
         <section className="bg-slate-card border border-slate-border rounded-2xl p-4 mb-6">
           <h2 className="flex items-center gap-2 text-cream font-bold mb-3"><Wallet size={18} className="text-gold" />Earnings from verified payments</h2>
-          <div className="grid grid-cols-3 gap-2 mb-3">{(['pending', 'approved', 'paid'] as const).map(status => <div key={status}><p className="text-gold font-bold">{money(totals?.[status] || 0)}</p><p className="text-cream-muted text-xs capitalize">{status}</p></div>)}</div>
+          <div className="grid grid-cols-3 gap-2 mb-3">{(['pending', 'approved', 'paid'] as const).map(status => <div key={status}><p className="text-gold font-bold">{money(totals?.[status] || 0)}</p><p className="text-cream-muted text-xs">{{ pending: 'Awaiting reconciliation', approved: 'Reviewed', paid: 'Receipt recorded' }[status]}</p></div>)}</div>
           <p className="text-cream-muted text-xs">{overview.terms ? `Agreed rate: ${(overview.terms.rate * 100).toFixed(1)}% of eligible customer payments, before gateway fees, during your agreement period ending ${new Date(overview.terms.ends_at).toLocaleDateString()}.` : 'No active commission agreement is configured. Agree your rate and payment terms with AtriumX before starting paid referral work.'}</p>
-          <p className="text-cream-muted text-xs mt-2">Signups and free listings do not earn cash. Upgrade credit is not counted again. Pending amounts require review; “paid” means a payout has been recorded. Automatic PayFast payouts are not enabled.</p>
+          <p className="text-cream-muted text-xs mt-2">Signups and free listings do not earn cash. Upgrade credit is not counted again. These are commission records, not a withdrawable balance. PayFast receipt is recorded after reconciliation; bank withdrawals happen in PayFast.</p>
         </section>
         <h2 className="text-cream font-bold mb-3">Recent activity</h2>
         {overview.activities.length === 0 ? <p className="text-cream-muted text-sm py-6">No listings or submissions yet. Your links are ready to share.</p> : <div className="space-y-2 mb-6">{overview.activities.map(a => <div key={a.id} className="bg-slate-card border border-slate-border rounded-xl p-3"><p className="text-cream text-sm font-bold">{a.title}</p><p className="text-cream-muted text-xs mt-1">{labels[a.kind] || a.kind} · {new Date(a.created_at).toLocaleString()}</p></div>)}</div>}

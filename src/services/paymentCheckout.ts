@@ -1,5 +1,6 @@
 import { attachPartnerReferral } from './partnerReferral'
 import { supabase } from './supabaseClient'
+import { openPayfastOnsite } from './payfastOnsite'
 
 type Quote = { paymentId: string; planLabel: string; listPrice: number; credit: number; minimumTopup: number; amountDue: number; days: number; bonusDays: number; expiresAt: string; intent: string }
 const money = (n: number) => `R${n.toFixed(2)}`
@@ -63,6 +64,10 @@ export async function checkoutPlan(planKey: string, intent: string, listingId: s
   sessionStorage.setItem('atriumx_payment_id', quote.paymentId)
   sessionStorage.setItem('atriumx_payment_intent', quote.intent)
   if (checkout.data?.completed) { window.location.hash = '/payment/success'; return { error: null } }
+  if (checkout.data?.onsite) {
+    try { await openPayfastOnsite(checkout.data.onsite.uuid, checkout.data.onsite.sandbox === true); return { error: null } }
+    catch (error) { return { error: error instanceof Error ? error.message : 'Could not open PayFast. Please try again.' } }
+  }
   if (!checkout.data?.url || !checkout.data?.fields) return { error: 'Could not start payment. Please try again.' }
   const form = document.createElement('form'); form.method = 'POST'; form.action = checkout.data.url; form.style.display = 'none'
   for (const [name, value] of Object.entries(checkout.data.fields as Record<string, string>)) {
