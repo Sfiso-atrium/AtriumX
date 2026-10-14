@@ -4,13 +4,9 @@
 // the person's normal session; returns the field set + signature the
 // browser then POSTs to PayFast.
 //
-// Why this is a server function and not just client-side form building:
-// the signature is an MD5 of the payment fields plus the merchant key and
-// passphrase. Those two are secrets. If the signing happened in the
-// browser they'd be in the JS bundle, and anyone could sign a payment for
-// R1 and get an Unmissable plan. So the browser never learns the amount,
-// the key, or the passphrase -- it sends a plan name, and this function
-// decides what that costs.
+// Prices and the passphrase stay authoritative on the server. Ordinary
+// hosted checkout returns the public form fields; partner split checkout
+// posts directly to PayFast and returns only an opaque payment identifier.
 //
 // Keep JWT verification ON for this function (Dashboard > Edge Functions >
 // payfast-create-payment > Settings). It's called by a signed-in user, so
@@ -185,9 +181,12 @@ Deno.serve(async (req) => {
       intent: payment.intent,
     }
     if (mode === 'quote') return Response.json({ quote }, { headers: CORS })
-    const { data: reserved, error: reservationError } = await supabase.from('payments')
-      .update({ checkout_started_at: new Date().toISOString() }).eq('id', payment.id).eq('status', 'pending').select('id').maybeSingle()
-    if (reservationError || !reserved) return Response.json({ error: 'This checkout is no longer available. Please choose your plan again.' }, { status: 400, headers: CORS })
+    const { data: split, error: reservationError } = await supabase.rpc('reserve_partner_split', {
+      p_payment: payment.id, p_primary_merchant: PAYFAST_MERCHANT_ID,
+      p_environment: PAYFAST_SANDBOX ? 'sandbox' : 'live',
+    })
+    if (reservationError) return Response.json({ error: reservationError.message || 'This checkout is no longer available.' }, { status: 400, headers: CORS })
+    if (split?.gateway_uuid) return Response.json({ onsite: { uuid: split.gateway_uuid, sandbox: PAYFAST_SANDBOX }, quote }, { headers: CORS })
     if (Number(payment.amount) === 0) {
       // No gateway transaction is needed when verified existing value covers it.
       const { error } = await supabase.rpc('activate_verified_plan_payment', {
@@ -226,6 +225,32 @@ Deno.serve(async (req) => {
     }
 
     fields.signature = signPayload(fields)
+
+    if (split) {
+      // PayFast excludes setup from the signature. NEVER return these fields
+      // to the browser: server-to-server creation binds the split to a UUID.
+      // Fixed equal limits make the recipient amount explicit in cents.
+      fields.setup = JSON.stringify({ split_payment: {
+        merchant_id: Number(split.merchant_id), amount: split.amount_cents,
+        min: split.amount_cents, max: split.amount_cents,
+      } })
+      const response = await fetch(PAYFAST_PROCESS_URL.replace('/eng/process', '/onsite/process'), {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: Object.entries(fields).map(([key, value]) => `${key}=${pfEncode(value)}`).join('&'),
+        signal: AbortSignal.timeout(20000),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || typeof result?.uuid !== 'string' || !/^[a-zA-Z0-9-]{6,100}$/.test(result.uuid)) {
+        // Never silently retry without the split. This quote remains reserved
+        // to prevent duplicate or ambiguous gateway requests.
+        return Response.json({ error: 'PayFast could not prepare this referral payment. Please contact AtriumX or retry after this quote expires.' }, { status: 502, headers: CORS })
+      }
+      const { data: saved, error: saveError } = await supabase.from('payment_partner_splits')
+        .update({ gateway_uuid: result.uuid, status: 'submitted' })
+        .eq('payment_id', payment.id).eq('status', 'prepared').is('gateway_uuid', null).select('payment_id').maybeSingle()
+      if (saveError || !saved) return Response.json({ error: 'Could not record the PayFast checkout. Please contact AtriumX before retrying.' }, { status: 503, headers: CORS })
+      return Response.json({ onsite: { uuid: result.uuid, sandbox: PAYFAST_SANDBOX }, quote }, { headers: CORS })
+    }
 
     return Response.json(
       { url: PAYFAST_PROCESS_URL, fields, quote },
