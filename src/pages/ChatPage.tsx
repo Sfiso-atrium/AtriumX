@@ -1,5 +1,6 @@
+import PartnerSupportInbox from '../components/partner/PartnerSupportInbox'
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Tag, ShoppingBag, HandHelping, Building2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { Conversation, Message, Profile, WantedPost, getConversationsForUser } from '../services/dataService'
@@ -28,7 +29,7 @@ function useIsMobile() {
   return isMobile
 }
 
-export default function ChatPage() {
+function MarketplaceChatPage() {
   const navigate = useNavigate()
   const { convId } = useParams<{ convId?: string }>()
   const { currentUser, isLoadingAuth } = useApp()
@@ -268,4 +269,15 @@ return (
       {!hideBottomNav && <BottomNav />}
     </>
   )
+}
+
+export default function ChatPage() {
+ const {currentUser,partner,isLoadingAuth}=useApp()
+ const [params,setParams]=useSearchParams()
+ const navigate=useNavigate()
+ const eligible=!!partner||!!currentUser?.is_admin||currentUser?.account_type==='partner'
+ const wantsSupport=params.get('support')==='1'||(currentUser?.account_type==='partner'&&!params.has('support'))
+ useEffect(()=>{if(!isLoadingAuth&&!currentUser)navigate('/student?next=%2Fchat')},[isLoadingAuth,currentUser,navigate])
+ if(isLoadingAuth||!currentUser)return <p className="p-6 text-cream-muted">Loading messages…</p>
+ return <>{eligible&&<div className="h-28 bg-slate-card border-b border-slate-border px-4 py-3"><div className="flex gap-3 items-center max-w-6xl mx-auto mb-3"><button onClick={()=>navigate(currentUser.is_admin?'/admin?tab=partners':'/partner')} className="text-gold text-sm py-1">← Dashboard</button><p className="text-cream font-bold">Messages</p></div><nav aria-label="Message type" className="flex gap-2 max-w-6xl mx-auto overflow-x-auto"><button className={`shrink-0 rounded-xl px-4 py-2 text-sm ${!wantsSupport?'bg-teal-primary text-white':'text-cream-muted'}`} onClick={()=>setParams({support:'0'})}>Marketplace</button><button className={`shrink-0 rounded-xl px-4 py-2 text-sm ${wantsSupport?'bg-teal-primary text-white':'text-cream-muted'}`} onClick={()=>setParams({support:'1'})}>{currentUser.is_admin?'Partner inbox':'Chat with Admin'}</button></nav></div>}{eligible&&wantsSupport?<PartnerSupportInbox/>:<MarketplaceChatPage/>}</>
 }
