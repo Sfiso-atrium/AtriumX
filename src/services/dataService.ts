@@ -19,7 +19,7 @@ export interface Profile {
   avatar_color: string
 plan: 'ghost' | 'visible' | 'loud' | 'unmissable' | 'noticeboard' | 'featured' | 'campus_partner'
   plan_expires_at: string | null
-  account_type: 'student' | 'business'
+  account_type: 'student' | 'business' | 'partner'
   avg_rating: number
   total_ratings: number
   total_listings: number
@@ -161,12 +161,13 @@ export interface Message {
 }
 
 export interface Notification {
+  partner_id?: string | null
   id: string
   user_id: string
   type: 'listing_approved' | 'listing_rejected' | 'rating_request' | 'message' | 'message_locked' |
         'review' | 'review_locked' | 'business_approved' | 'business_rejected' |
         'deadline_reminder' | 'watchlist_match' | 'referral_listing' |
-        'group_deadline_reminder' | 'group_deadline_update' | 'group_message' | 'accommodation_report_warning'
+        'partner_message' | 'partner_task' | 'partner_progress' | 'group_deadline_reminder' | 'group_deadline_update' | 'group_message' | 'accommodation_report_warning'
   message: string
   listing_id: string | null
   conversation_id: string | null
@@ -1814,12 +1815,14 @@ export async function markConversationResolved(
 }
 
 export async function getUnreadMessageCount(userId: string): Promise<number> {
+  const { data: supportUnread } = await supabase.rpc('partner_support', { p_action: 'unread' })
+  const supportCount = typeof supportUnread === 'number' ? supportUnread : 0
   const { data } = await supabase
     .from('conversations')
     .select('id')
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
 
-  if (!data || data.length === 0) return 0
+  if (!data || data.length === 0) return supportCount
 
   const convIds = data.map(c => c.id)
   const { count } = await supabase
@@ -1829,7 +1832,7 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
     .eq('read', false)
     .neq('sender_id', userId)
 
-  return count || 0
+  return (count || 0) + supportCount
 }
 export async function markMessagesRead(
   convId: string,

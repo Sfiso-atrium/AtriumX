@@ -63,7 +63,7 @@ const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           navigate(`/group/${joinGroupId}`)
           return
         }
-        let defaultDest = '/space'
+        let defaultDest = user.account_type === 'partner' ? '/partner' : '/space'
         if (user.account_type === 'business') {
           defaultDest = '/home'
         }
@@ -89,7 +89,7 @@ if (user) {
           navigate(`/group/${joinGroupId}`)
           return
         }
-        let defaultDest = '/space'
+        let defaultDest = user.account_type === 'partner' ? '/partner' : '/space'
         if (user.is_admin) {
           defaultDest = '/admin'
         } else if (user.account_type === 'business') {

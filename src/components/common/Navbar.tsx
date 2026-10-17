@@ -316,11 +316,12 @@ export default function Navbar() {
           </button>
         </div>
 
+        {!partner && <button onClick={() => go('/partner/join')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:bg-slate-deep mb-2"><Handshake className="w-4 h-4" /> Become a partner</button>}
         {currentUser ? (
           <>
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{contextBusinessProfile?.is_accommodation ? 'Accommodation' : currentUser.account_type === 'business' ? 'Business' : 'My Space'}</p>
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{contextBusinessProfile?.is_accommodation ? 'Accommodation' : currentUser.account_type === 'business' ? 'Business' : currentUser.account_type === 'partner' ? 'Partner' : 'My Space'}</p>
             <nav className="space-y-1">
-              {currentUser.account_type !== 'business' && (
+              {currentUser.account_type === 'student' && (
                 <button onClick={() => go('/space')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname === '/space' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                   <NotebookPen className="w-4 h-4" /> My Space
                 </button>
@@ -334,6 +335,7 @@ export default function Navbar() {
                   <Compass className="w-4 h-4" /> Discover
                 </button>
               )}
+              {partner && <button onClick={() => go('/chat?support=1')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:bg-slate-deep"><MessageCircle className="w-4 h-4" /> Chat with Admin</button>}
               <button onClick={() => go('/chat')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors ${location.pathname.startsWith('/chat') ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
                 <MessageCircle className="w-4 h-4" /> Messages
               </button>
@@ -357,9 +359,9 @@ export default function Navbar() {
                   <button onClick={() => go(`/profile/${currentUser.id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
                     <UserRound className="w-4 h-4" /> Profile
                   </button>
-                  <button onClick={() => go('/notebook')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
+                  {currentUser.account_type === 'student' && <button onClick={() => go('/notebook')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
                     <NotebookPen className="w-4 h-4" /> Notebook
-                  </button>
+                  </button>}
                   {partner && (
                     <button onClick={() => go('/partner')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:text-cream hover:bg-slate-deep transition-colors">
                       <Handshake className="w-4 h-4" /> Partner Dashboard

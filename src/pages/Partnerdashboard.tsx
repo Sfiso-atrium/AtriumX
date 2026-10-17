@@ -1,5 +1,7 @@
+import PartnerTasks from '../components/partner/PartnerTasks'
+import PartnerGuide from '../components/partner/PartnerGuide'
 import { useCallback, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Copy, Check, Users, FileText, Wallet, Handshake, RefreshCw, ChevronDown, Link2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { getPartnerStatus, type Partner } from '../services/dataService'
@@ -38,6 +40,9 @@ const labels: Record<string, string> = { listing: 'Listing published', accommoda
 
 export default function PartnerDashboard() {
   const navigate = useNavigate()
+  const [params,setParams] = useSearchParams()
+  const activeTab=params.get('tab')||'tasks'
+  const [welcome,setWelcome]=useState(params.get('welcome')==='1')
   const { currentUser, isLoadingAuth } = useApp()
   const [partner, setPartner] = useState<Partner | null>(null)
   const [overview, setOverview] = useState<PartnerOverview | null>(null)
@@ -51,14 +56,14 @@ export default function PartnerDashboard() {
   }, [])
   useEffect(() => {
     if (isLoadingAuth) return
-    if (!currentUser) { navigate('/student?next=%2Fpartner'); return }
+    if (!currentUser) { navigate('/partner/join'); return }
     let active = true
     // Session restoration finishes before AppContext's partner lookup. Wait for
     // this lookup explicitly so refreshing /partner never redirects a member.
     setPartner(null)
     getPartnerStatus(currentUser.id).then(found => {
       if (!active) return
-      if (!found) { navigate('/feed'); return }
+      if (!found) { navigate('/partner/join'); return }
       setPartner(found)
       void refresh()
     })
@@ -73,7 +78,12 @@ export default function PartnerDashboard() {
     <main className="max-w-3xl mx-auto px-4 pt-4">
       <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-cream-muted text-sm mb-4"><ArrowLeft size={16} /> Back</button>
       <div className="flex items-center gap-2.5 mb-2"><Handshake size={24} className="text-gold" /><h1 className="font-serif text-2xl text-cream">Your partner portal</h1></div>
-      <p className="text-cream-muted text-sm mb-6">Choose the right form, copy your personal link and share it. Each link carries your referral code.</p>
+      <p className="text-cream-muted text-sm mb-6">Your next steps, conversations and referral activity in one place.</p>
+      {welcome && <div role="status" className="bg-teal-primary/10 border border-teal-light/30 rounded-2xl p-5 mb-5"><h2 className="font-serif text-xl text-cream">Welcome aboard, {currentUser.full_name.split(' ')[0]}.</h2><p className="text-cream-muted text-sm mt-2">Your workspace is ready. Meet Admin, explore the guide and make your first conversation count.</p><button onClick={()=>{setWelcome(false);setParams({tab:activeTab},{replace:true})}} className="text-gold font-bold text-sm mt-3 py-2">Let’s get started</button></div>}
+      <nav aria-label="Partner workspace" className="flex overflow-x-auto gap-2 mb-6 pb-2">{[['tasks','Tasks & contacts'],['guide','Approach guide'],['referrals','Links & earnings']].map(([id,label])=><button key={id} onClick={()=>setParams({tab:id})} className={`shrink-0 px-4 py-3 rounded-xl text-sm font-bold ${activeTab===id?'bg-teal-primary text-white':'bg-slate-card border border-slate-border text-cream-muted'}`}>{label}</button>)}<button onClick={()=>navigate('/chat?support=1')} className="shrink-0 px-4 py-3 rounded-xl text-sm font-bold bg-slate-card border border-slate-border text-cream-muted">Chat with Admin</button></nav>
+      {activeTab==='tasks' && <PartnerTasks/>}
+      {activeTab==='guide' && <PartnerGuide/>}
+      {activeTab==='referrals' && <>
       <details className="group bg-slate-card border border-slate-border rounded-2xl mb-6">
         <summary className="flex items-center gap-3 p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
           <span className="bg-slate-deep border border-slate-border rounded-xl p-2.5 text-gold"><Link2 size={20} aria-hidden="true" /></span>
@@ -103,6 +113,7 @@ export default function PartnerDashboard() {
         <h2 className="text-cream font-bold mb-3">Recent activity</h2>
         {overview.activities.length === 0 ? <p className="text-cream-muted text-sm py-6">No listings or submissions yet. Your links are ready to share.</p> : <div className="space-y-2 mb-6">{overview.activities.map(a => <div key={a.id} className="bg-slate-card border border-slate-border rounded-xl p-3"><p className="text-cream text-sm font-bold">{a.title}</p><p className="text-cream-muted text-xs mt-1">{labels[a.kind] || a.kind} · {new Date(a.created_at).toLocaleString()}</p></div>)}</div>}
         {overview.commissions.length > 0 && <><h2 className="text-cream font-bold mb-3">Recent commissions</h2><div className="space-y-2">{overview.commissions.map(c => <div key={c.id} className="bg-slate-card border border-slate-border rounded-xl p-3 flex justify-between gap-3"><div><p className="text-cream text-sm">{money(c.cash_amount)} customer payment · {(c.rate * 100).toFixed(1)}%</p><p className="text-cream-muted text-xs">{new Date(c.created_at).toLocaleDateString()} · <span className="capitalize">{c.status}</span></p></div><p className="text-gold font-bold text-sm">{money(c.amount)}</p></div>)}</div></>}
+      </>}
       </>}
     </main>
     <BottomNav />

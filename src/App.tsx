@@ -1,3 +1,4 @@
+import PartnerJoin from './pages/PartnerJoin'
 import BusinessReviewDirectory from './pages/BusinessReviewDirectory'
 import BusinessReviewPage from './pages/BusinessReview'
 import VisitMonitor from './components/common/VisitMonitor'
@@ -113,6 +114,7 @@ function StudentOnlyGuard({ children }: { children: ReactNode }) {
 function SpaceHome() {
   const { currentUser, isLoadingAuth } = useApp()
   if (isLoadingAuth) return null
+  if (currentUser?.account_type === 'partner') return <Navigate to="/partner" replace />
   return currentUser?.account_type === 'business' ? <OwnerHome /> : <StudentOnlyGuard><MySpace /></StudentOnlyGuard>
 }
 
@@ -146,6 +148,7 @@ export default function App() {
           <Route path="/businesses/review" element={<StudentOnlyGuard><BusinessReviewDirectory /></StudentOnlyGuard>} />
           <Route path="/business/:businessId/review" element={<BusinessReviewPage />} />
           <Route path="/" element={<Entrance />} />
+          <Route path="/partner/join" element={<PartnerJoin />} />
           <Route path="/student" element={<StudentAuth />} />
           <Route path="/feed" element={<AccommodationGuard><Feed /></AccommodationGuard>} />
           <Route path="/listing/:id" element={<AccommodationGuard><ListingDetail /></AccommodationGuard>} />

@@ -1,3 +1,4 @@
+import PartnerWorkspaceAdmin from '../components/admin/PartnerWorkspaceAdmin'
 import AdminVisitMonitor from '../components/admin/AdminVisitMonitor'
 import PartnerPayfastAdmin from '../components/admin/PartnerPayfastAdmin'
 import { useState, useEffect } from 'react'
@@ -41,8 +42,8 @@ export default function AdminPanel() {
   const navigate = useNavigate()
   const [monitorParams] = useSearchParams()
   const { currentUser, showToast, isLoadingAuth } = useApp()
-  const [tab, setTab] = useState<Tab>(new URLSearchParams(window.location.hash.split('?')[1] || '').get('tab') === 'monitor' ? 'monitor' : 'all')
-  useEffect(() => { if (monitorParams.get('tab') === 'monitor') setTab('monitor') }, [monitorParams])
+  const [tab, setTab] = useState<Tab>(monitorParams.get('tab') === 'partners' ? 'partners' : monitorParams.get('tab') === 'monitor' ? 'monitor' : 'all')
+  useEffect(() => { if (monitorParams.get('tab') === 'monitor') setTab('monitor'); else if (monitorParams.get('tab') === 'partners') setTab('partners') }, [monitorParams])
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [editedListings, setEditedListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -292,7 +293,7 @@ const activeList =
         </section>
 
         {tab === 'monitor' && <AdminVisitMonitor />}
-        {tab === 'partners' && <PartnerPayfastAdmin partners={partners} />}
+        {tab === 'partners' && <><PartnerWorkspaceAdmin partners={partners} /><PartnerPayfastAdmin partners={partners} /></>}
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
         {tab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">

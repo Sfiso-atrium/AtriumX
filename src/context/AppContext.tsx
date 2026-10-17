@@ -74,6 +74,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!currentUser || (!partner && !currentUser.is_admin && currentUser.account_type !== 'partner')) return
+    let active = true
+    const refresh = () => { if (document.visibilityState === 'visible') getUnreadMessageCount(currentUser.id).then(count => { if (active) setUnreadMessageCount(count) }).catch(() => {}) }
+    const timer = setInterval(refresh, 15000)
+    window.addEventListener('focus', refresh)
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', refresh) }
+  }, [currentUser?.id, currentUser?.is_admin, partner?.user_id])
+
   const refreshBusinessProfile = useCallback(async () => {
     if (!currentUser || currentUser.account_type !== 'business') {
       setBusinessProfile(null)

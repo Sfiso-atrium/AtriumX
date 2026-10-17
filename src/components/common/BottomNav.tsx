@@ -94,7 +94,13 @@ export default function BottomNav() {
   let tabs: NavTab[] = []
 
   if (currentUser) {
-    if (currentUser.account_type === 'business') {
+    if (currentUser.account_type === 'partner') {
+      tabs = [
+        { label: 'Dashboard', icon: HomeIcon, path: '/partner', onClick: () => navigate('/partner') },
+        { label: 'Messages', icon: ChatIcon, path: '/chat', onClick: () => navigate('/chat?support=1'), badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+        { label: 'Profile', icon: ProfileIcon, path: `/profile/${currentUser.id}`, onClick: () => navigate(`/profile/${currentUser.id}`) },
+      ]
+    } else if (currentUser.account_type === 'business') {
       if (businessProfile?.is_accommodation) {
         tabs = [
           { label: 'Home', icon: DiscoverIcon, path: '/home', onClick: () => navigate('/home') },

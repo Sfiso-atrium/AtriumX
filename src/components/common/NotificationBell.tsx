@@ -78,7 +78,13 @@ export default function NotificationBell() {
     // rating_request: don't navigate anywhere — open RatingModal right here,
     // which itself asks the buyer whether they actually want to rate before
     // showing the star form.
-    if (notif.type === 'rating_request' && notif.conversation_id) {
+    if (notif.type === 'partner_message') {
+      navigate(`/chat?support=1${notif.partner_id ? `&partner=${notif.partner_id}` : ''}`)
+    } else if (notif.type === 'partner_task') {
+      navigate('/partner?tab=tasks')
+    } else if (notif.type === 'partner_progress') {
+      navigate('/admin?tab=partners')
+    } else if (notif.type === 'rating_request' && notif.conversation_id) {
       const { data } = await supabase
         .from('conversations')
         .select('seller_id, buyer_id')

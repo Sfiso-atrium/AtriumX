@@ -10,7 +10,9 @@ let rejectCopy=false, resolvePartner, redirected='', overviewCalls=0
 const navigate=path=>{redirected=path}
 const context={currentUser:{id:'partner'},isLoadingAuth:false,partner:null}
 const mocks={
- 'react-router-dom':{useNavigate:()=>navigate},
+ '../components/partner/PartnerTasks':{default:()=>null,__esModule:true},
+ '../components/partner/PartnerGuide':{default:()=>null,__esModule:true},
+ 'react-router-dom':{useNavigate:()=>navigate,useSearchParams:()=>[new URLSearchParams('tab=referrals'),()=>{}]},
  'lucide-react':new Proxy({}, {get:(_,k)=>k}),
  '../context/AppContext':{useApp:()=>context},
  '../services/dataService':{getPartnerStatus:()=>new Promise(resolve=>{resolvePartner=resolve})},
@@ -21,7 +23,7 @@ const mocks={
  '../components/common/BottomNav':{default:()=>null,__esModule:true}
 }
 const exp={}
-vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/pages/Partnerdashboard.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{exports:exp,require:n=>mocks[n]||require(n),navigator:{clipboard:{writeText:async()=>{if(rejectCopy)throw Error('denied')}}},document:{visibilityState:'visible'},setInterval,clearInterval,setTimeout,clearTimeout,console,Date})
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/pages/Partnerdashboard.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{exports:exp,require:n=>mocks[n]||require(n),navigator:{clipboard:{writeText:async()=>{if(rejectCopy)throw Error('denied')}}},document:{visibilityState:'visible'},setInterval,clearInterval,setTimeout,clearTimeout,console,Date,URLSearchParams})
 let view
 await act(async()=>{view=TestRenderer.create(React.createElement(exp.default))})
 assert.equal(redirected,'');assert.equal(overviewCalls,0)
