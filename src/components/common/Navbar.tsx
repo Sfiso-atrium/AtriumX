@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   Building2,
+  Bus,
   BellOff,
   ChevronDown,
   Compass,
@@ -317,6 +318,9 @@ export default function Navbar() {
         </div>
 
         {!partner && <button onClick={() => go('/partner/join')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-cream-muted hover:bg-slate-deep mb-2"><Handshake className="w-4 h-4" /> Become a partner</button>}
+        <button onClick={() => go('/travel')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-colors mb-2 ${location.pathname === '/travel' ? 'bg-teal-primary text-white' : 'text-cream-muted hover:text-cream hover:bg-slate-deep'}`}>
+          <Bus className="w-4 h-4" /> Travel · Buses
+        </button>
         {currentUser ? (
           <>
             <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream-muted">{contextBusinessProfile?.is_accommodation ? 'Accommodation' : currentUser.account_type === 'business' ? 'Business' : currentUser.account_type === 'partner' ? 'Partner' : 'My Space'}</p>

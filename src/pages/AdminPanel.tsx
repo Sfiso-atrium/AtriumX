@@ -1,9 +1,10 @@
 import PartnerWorkspaceAdmin from '../components/admin/PartnerWorkspaceAdmin'
+import BusListingsAdmin from '../components/admin/BusListingsAdmin'
 import AdminVisitMonitor from '../components/admin/AdminVisitMonitor'
 import PartnerPayfastAdmin from '../components/admin/PartnerPayfastAdmin'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2, Activity, ListChecks, Lightbulb } from 'lucide-react'
+import { Flag, ShieldOff, PencilLine, Eye, Handshake, MessageSquareText, Search, Trash2, GraduationCap, Store, Building2, Activity, ListChecks, Lightbulb, Bus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import {
   Listing,
@@ -35,15 +36,15 @@ import ChatReportCard from '../components/admin/ChatReportCard'
 import AccommodationReportWarningModal from '../components/admin/AccommodationReportWarningModal'
 import { SOUTH_AFRICAN_UNIVERSITIES } from '../data/universities'
 
-type Tab = 'monitor' | 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions'
+type Tab = 'monitor' | 'accommodationSubmissions' | 'all' | 'edited' | 'reports' | 'chatReports' | 'partners' | 'suggestions' | 'travel'
 type StatusFilter = 'all' | 'active' | 'sold' | 'expired' | 'suspended'
 
 export default function AdminPanel() {
   const navigate = useNavigate()
   const [monitorParams] = useSearchParams()
   const { currentUser, showToast, isLoadingAuth } = useApp()
-  const [tab, setTab] = useState<Tab>(monitorParams.get('tab') === 'partners' ? 'partners' : monitorParams.get('tab') === 'monitor' ? 'monitor' : 'all')
-  useEffect(() => { if (monitorParams.get('tab') === 'monitor') setTab('monitor'); else if (monitorParams.get('tab') === 'partners') setTab('partners') }, [monitorParams])
+  const [tab, setTab] = useState<Tab>(monitorParams.get('tab') === 'travel' ? 'travel' : monitorParams.get('tab') === 'partners' ? 'partners' : monitorParams.get('tab') === 'monitor' ? 'monitor' : 'all')
+  useEffect(() => { if (monitorParams.get('tab') === 'travel') setTab('travel'); else if (monitorParams.get('tab') === 'monitor') setTab('monitor'); else if (monitorParams.get('tab') === 'partners') setTab('partners') }, [monitorParams])
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [editedListings, setEditedListings] = useState<Listing[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -217,7 +218,7 @@ const handleClearReports = async (id: string) => {
 const activeList =
     tab === 'edited' ? editedListings :
     tab === 'reports' ? reportedListings :
-    tab === 'monitor' || tab === 'partners' || tab === 'suggestions' || tab === 'accommodationSubmissions' ? [] :
+    tab === 'travel' || tab === 'monitor' || tab === 'partners' || tab === 'suggestions' || tab === 'accommodationSubmissions' ? [] :
     statusFilter === 'all' ? allListings : allListings.filter(l => l.status === statusFilter)
   return (
     <div className="min-h-screen bg-slate-deep">
@@ -228,6 +229,7 @@ const activeList =
         {(() => {
           const TABS: { id: Tab; label: string; icon: typeof Flag; count?: number }[] = [
             { id: 'monitor', label: 'Visits', icon: Activity },
+            { id: 'travel', label: 'Bus travel', icon: Bus },
             { id: 'accommodationSubmissions', label: 'Submissions', icon: Building2 },
             { id: 'all', label: 'Listings', icon: ListChecks, count: allListings.length },
             { id: 'edited', label: 'Edited', icon: PencilLine, count: editedListings.length },
@@ -293,6 +295,7 @@ const activeList =
         </section>
 
         {tab === 'monitor' && <AdminVisitMonitor />}
+        {tab === 'travel' && <BusListingsAdmin />}
         {tab === 'partners' && <><PartnerWorkspaceAdmin partners={partners} /><PartnerPayfastAdmin partners={partners} /></>}
         {tab === 'accommodationSubmissions' && <AccommodationSubmissionQueue />}
         {tab === 'all' && (
@@ -325,7 +328,7 @@ const activeList =
             </div>
           )
         )}
-{tab !== 'monitor' && tab !== 'accommodationSubmissions' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
+{tab !== 'travel' && tab !== 'monitor' && tab !== 'accommodationSubmissions' && tab !== 'chatReports' && tab !== 'partners' && tab !== 'suggestions' && (activeList.length === 0 && (tab !== 'reports' || accommodationReports.length === 0) ? (
           <div className="text-center py-16">
             <p className="text-cream-muted text-sm">
               {tab === 'edited' ? 'No listings have unreviewed edits.' :
