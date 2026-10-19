@@ -24,7 +24,7 @@ export function readVisit(): Visit {
 export function saveVisit() { if (current) { current.seen = Date.now(); try { sessionStorage.setItem(KEY, JSON.stringify(current)) } catch { /* optional */ } } }
 export function bindVisitFlush(fn: (() => Promise<void>) | null) { flushCurrent = fn }
 export const isListingForm = (path: string) => ['/accommodation/post', '/business/post', '/post'].includes(path)
-export const isTrackedPath = (path: string) => ['/', '/retailer', '/accommodations', '/accommodations/review', '/accommodation/post', '/business/post', '/post', '/feed', '/events'].includes(path) || /^\/(listing|accommodation|accommodations\/residence)\/[0-9a-f-]{36}$/.test(path)
+export const isTrackedPath = (path: string) => ['/', '/retailer', '/accommodations', '/accommodations/review', '/accommodation/post', '/business/post', '/post', '/feed', '/events', '/travel'].includes(path) || /^\/(listing|accommodation|accommodations\/residence)\/[0-9a-f-]{36}$/.test(path)
 export function sendVisit(path: string, started: boolean, left = false, keepalive = false): Promise<void> {
   const v = readVisit()
   const body = { p_id: v.id, p_token: v.token, p_path: path, p_source: v.source, p_campaign: v.campaign,

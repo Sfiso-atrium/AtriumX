@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import TravelEngagementAdmin from './TravelEngagementAdmin'
 import { ExternalLink, PencilLine, Plus } from 'lucide-react'
 import { busError, getBusListings, saveBusListing } from '../../services/busTravel'
 import { formatBusPrice, isBusOutdated, operatingDays, safeBusWebsite, type BusListing, type BusListingInput } from '../../utils/busTravel'
@@ -98,6 +99,7 @@ export default function BusListingsAdmin() {
   return <section className="space-y-4">
     <div className="flex items-center justify-between gap-3 flex-wrap"><h2 className="text-xl font-serif text-cream">Bus travel listings</h2><a href="/#/travel" className="inline-flex items-center gap-1 text-sm font-semibold text-teal-light underline">Public travel page <ExternalLink size={14} /></a></div>
     <p className="text-sm text-cream-muted">Enter information supplied by bus companies. Only the company name and website are required. Add separate listings for different routes, fares or departure dates when supplied. Listings are free and visible without sign-in.</p>
+    <TravelEngagementAdmin />
     {error && <div role="alert" className="rounded-xl border border-red-500/40 p-3 text-sm text-cream">{error}{!formOpen && <button onClick={() => setAttempt(value => value + 1)} className="ml-3 underline text-teal-light">Try again</button>}</div>}
     {status && <p role="status" className="text-sm text-teal-light">{status}</p>}
     {!formOpen && <button disabled={busy} onClick={() => { reset(); setError(''); setStatus(''); setFormOpen(true) }} className="inline-flex items-center gap-2 rounded-xl bg-teal-primary text-white px-4 py-3 text-sm font-bold"><Plus size={16} /> Add bus listing</button>}

@@ -1,5 +1,6 @@
 import PartnerJoin from './pages/PartnerJoin'
 import Travel from './pages/Travel'
+import TravelAlertManage from './pages/TravelAlertManage'
 import BusinessReviewDirectory from './pages/BusinessReviewDirectory'
 import BusinessReviewPage from './pages/BusinessReview'
 import VisitMonitor from './components/common/VisitMonitor'
@@ -147,6 +148,7 @@ export default function App() {
 
         <Routes>
           <Route path="/travel" element={<Travel />} />
+          <Route path="/travel/alerts" element={<TravelAlertManage />} />
           <Route path="/businesses/review" element={<StudentOnlyGuard><BusinessReviewDirectory /></StudentOnlyGuard>} />
           <Route path="/business/:businessId/review" element={<BusinessReviewPage />} />
           <Route path="/" element={<Entrance />} />

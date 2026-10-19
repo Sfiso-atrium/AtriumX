@@ -16,8 +16,10 @@ function load(path, mocks = {}) {
   return exports
 }
 const utils = load('src/utils/busTravel.ts')
+const engagement = { recordTravelEvent: async () => {} }
+const params = new URLSearchParams()
 const icons = new Proxy({}, { get: (_, name) => String(name) })
-const card = load('src/components/travel/BusCard.tsx', { 'lucide-react': icons, '../../utils/busTravel': utils }).default
+const card = load('src/components/travel/BusCard.tsx', { 'lucide-react': icons, '../../utils/busTravel': utils, '../../services/travelEngagement': engagement, './TravelShare': { default: () => null, __esModule: true } }).default
 const place = load('src/components/travel/PlaceSearch.tsx', { 'lucide-react': icons, '../../utils/busTravel': utils }).default
 const base = {
   id: 'a', company_name: 'Company A', website_url: 'https://example.com/a', origin: 'Johannesburg', destination: 'Durban',
@@ -36,14 +38,18 @@ const service = {
   busError: error => error.message,
 }
 const Travel = load('src/pages/Travel.tsx', {
-  'lucide-react': icons, 'react-router-dom': { Link: props => React.createElement('a', props, props.children) },
+  'lucide-react': icons, 'react-router-dom': { Link: props => React.createElement('a', props, props.children), useSearchParams: () => [params, () => {}] },
   '../components/common/Navbar': { default: () => null, __esModule: true },
+  '../utils/travelLinks': load('src/utils/travelLinks.ts', { './busTravel': utils }),
+  '../services/travelEngagement': engagement,
+  '../components/travel/TravelShare': { default: () => null, __esModule: true },
+  '../components/travel/TravelAlerts': { default: () => null, __esModule: true },
   '../components/travel/BusCard': { default: card, __esModule: true },
   '../components/travel/PlaceSearch': { default: place, __esModule: true },
   '../context/AppContext': { useApp: () => context }, '../services/busTravel': service, '../utils/busTravel': utils,
 }).default
 const Admin = load('src/components/admin/BusListingsAdmin.tsx', {
-  'lucide-react': icons, '../../services/busTravel': service, '../../utils/busTravel': utils,
+  'lucide-react': icons, '../../services/busTravel': service, '../../utils/busTravel': utils, './TravelEngagementAdmin': { default: () => null, __esModule: true },
 }).default
 let view, passed = 0
 const json = () => JSON.stringify(view.toJSON())

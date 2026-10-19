@@ -1,23 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftRight, Bus, SlidersHorizontal } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ArrowLeftRight, ArrowRight, Bus, SlidersHorizontal } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/common/Navbar'
 import BusCard from '../components/travel/BusCard'
 import PlaceSearch from '../components/travel/PlaceSearch'
+import TravelShare from '../components/travel/TravelShare'
+import TravelAlerts from '../components/travel/TravelAlerts'
 import { useApp } from '../context/AppContext'
 import { getBusListings } from '../services/busTravel'
+import { recordTravelEvent, type TravelEvent } from '../services/travelEngagement'
+import { readTravelFilters, travelFilterParams } from '../utils/travelLinks'
 import { emptyBusFilters, filterBusListings, normalisePlace, placeOptions, southAfricanToday, type BusFilters, type BusListing, type BusSort } from '../utils/busTravel'
 
 const inputClass = 'mt-1.5 w-full rounded-xl border border-slate-border bg-slate-deep px-3 py-2.5 text-base text-cream focus:outline-none focus:ring-2 focus:ring-teal-light'
 
 export default function Travel() {
-  const { currentUser } = useApp()
+  const { currentUser, isLoadingAuth } = useApp()
+  const [params, setParams] = useSearchParams()
   const [listings, setListings] = useState<BusListing[]>([])
-  const [filters, setFilters] = useState<BusFilters>({ ...emptyBusFilters })
+  const [filters, setFilters] = useState<BusFilters>(() => readTravelFilters(params))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const resultsRef = useRef<HTMLElement>(null)
+  const lastSearch = useRef('')
+  const scrolledBus = useRef('')
+  useEffect(() => { setFilters(readTravelFilters(params)) }, [params])
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError(false)
@@ -32,8 +40,26 @@ export default function Travel() {
   const results = useMemo(() => filterBusListings(listings, filters), [listings, filters])
   const matchedFrom = useMemo(() => filters.from.trim() ? placeOptions(results, 'from', filters.from) : [], [results, filters.from])
   const matchedTo = useMemo(() => filters.to.trim() ? placeOptions(results, 'to', filters.to) : [], [results, filters.to])
+  const track = !isLoadingAuth && !currentUser?.is_admin
+  const sharedBus = params.get('bus')
+  useEffect(() => {
+    if (!sharedBus || loading || error || scrolledBus.current === sharedBus) return
+    const card = document.getElementById(`bus-${sharedBus}`)
+    if (card) { scrolledBus.current = sharedBus; card.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+  }, [sharedBus, loading, error, results.length])
   const set = <K extends keyof BusFilters>(key: K, value: BusFilters[K]) => setFilters(previous => ({ ...previous, [key]: value }))
   const hasFilters = Object.entries(filters).some(([key, value]) => key !== 'sort' && !!value)
+  useEffect(() => {
+    if (!track || loading || error || !hasFilters) return
+    const signature = JSON.stringify(filters)
+    const timer = setTimeout(() => {
+      if (signature === lastSearch.current) return
+      lastSearch.current = signature
+      void recordTravelEvent('route_search', { resultCount: results.length, from: matchedFrom[0], to: matchedTo[0] })
+    }, 900)
+    return () => clearTimeout(timer)
+  }, [filters, track, loading, error, hasFilters, results.length, matchedFrom[0], matchedTo[0]])
+  function feature(kind: TravelEvent) { if (track) void recordTravelEvent(kind) }
   const correction = (label: string, query: string, places: string[]) => query && places.length && !places.some(place => normalisePlace(place) === normalisePlace(query))
     ? <p className="text-sm text-cream-muted">{label} matched: <span className="text-cream font-medium">{places.slice(0, 3).join(' · ')}{places.length > 3 ? ' …' : ''}</span></p> : null
   return <div className="min-h-screen bg-slate-deep">
@@ -46,7 +72,7 @@ export default function Travel() {
         {currentUser?.is_admin && <Link to="/admin?tab=travel" className="inline-block text-sm font-semibold text-teal-light underline mt-3">Manage bus listings</Link>}
       </header>
 
-      <form className="rounded-2xl border border-slate-border bg-slate-card p-4 sm:p-6" onSubmit={event => { event.preventDefault(); resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
+      <form className="rounded-2xl border border-slate-border bg-slate-card p-4 sm:p-6" onSubmit={event => { event.preventDefault(); setParams(travelFilterParams(filters)); resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-3 sm:items-end">
           <PlaceSearch label="From" value={filters.from} options={origins} onChange={value => set('from', value)} />
           <button type="button" onClick={() => setFilters(previous => ({ ...previous, from: previous.to, to: previous.from }))} aria-label="Swap departure and destination" className="rounded-xl border border-slate-border text-teal-light h-12 w-12 flex items-center justify-center justify-self-center"><ArrowLeftRight size={18} /></button>
@@ -79,9 +105,15 @@ export default function Travel() {
         <p className="text-xs text-cream-muted mb-5 mt-2 leading-relaxed">Fares and timetables are company-supplied, not live availability. Confirm the latest price, travel date and seats on the company website. Unlisted prices appear last when sorting by price.</p>
         {error ? <div className="text-center rounded-2xl border border-slate-border p-8"><p role="alert" className="text-cream">We could not load the bus listings. Please try again.</p><button onClick={() => setAttempt(value => value + 1)} className="rounded-xl bg-teal-primary text-white px-5 py-3 mt-4 text-sm font-bold">Try again</button></div>
           : loading ? <div className="grid md:grid-cols-2 gap-4" aria-hidden="true">{[0, 1].map(index => <div key={index} className="h-52 rounded-2xl border border-slate-border bg-slate-card animate-pulse" />)}</div>
-          : results.length ? <div className="grid md:grid-cols-2 gap-4 items-stretch">{results.map(listing => <BusCard key={listing.id} listing={listing} />)}</div>
+          : results.length ? <div className="grid md:grid-cols-2 gap-4 items-stretch">{results.map(listing => <BusCard key={listing.id} listing={listing} track={track} />)}</div>
           : <div className="rounded-2xl border border-slate-border bg-slate-card p-8 sm:p-12 text-center"><Bus size={32} aria-hidden="true" className="text-teal-light mx-auto mb-4" /><h2 className="text-lg font-bold text-cream">{listings.length ? 'No listed routes match these filters' : 'Bus routes are on their way'}</h2><p className="text-sm text-cream-muted mt-2 max-w-md mx-auto">{listings.length ? 'Try another town, a boarding point, or fewer filters. We can only show information companies have supplied.' : 'Routes and fares will appear here as bus companies share their information with AtriumX.'}</p>{hasFilters && <button onClick={() => setFilters({ ...emptyBusFilters })} className="rounded-xl bg-teal-primary text-white px-5 py-3 mt-5 text-sm font-bold">Show all listings</button>}</div>}
       </section>
+      <section aria-label="Share travel options" className="mt-5"><TravelShare filters={filters} track={track} /></section>
+      <section aria-label="More on AtriumX" className="mt-8 grid sm:grid-cols-2 gap-4">
+        <Link to="/feed?tab=marketplace" onClick={() => feature('feature_sell')} className="rounded-2xl border border-slate-border bg-slate-card p-5 hover:border-teal-light transition-colors"><h2 className="font-bold text-cream">Sell items before you leave <ArrowRight size={16} className="inline text-teal-light ml-1" /></h2><p className="text-sm text-cream-muted mt-2">Explore the student marketplace for textbooks, furniture and more.</p></Link>
+        <Link to="/accommodations" onClick={() => feature('feature_accommodation')} className="rounded-2xl border border-slate-border bg-slate-card p-5 hover:border-teal-light transition-colors"><h2 className="font-bold text-cream">Find accommodation for next year <ArrowRight size={16} className="inline text-teal-light ml-1" /></h2><p className="text-sm text-cream-muted mt-2">Browse accommodation for your university when you are ready.</p></Link>
+      </section>
+      <section aria-label="Optional route update emails" className="mt-5"><TravelAlerts from={matchedFrom[0] || filters.from} to={matchedTo[0] || filters.to} date={filters.date} track={track} /></section>
     </main>
   </div>
 }

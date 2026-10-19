@@ -1,7 +1,10 @@
 import { AlertTriangle, ArrowRight, Bus, ExternalLink } from 'lucide-react'
 import { formatBusPrice, formatTravelDate, isBusOutdated, operatingDays, safeBusWebsite, type BusListing } from '../../utils/busTravel'
+import { emptyBusFilters } from '../../utils/busTravel'
+import { recordTravelEvent } from '../../services/travelEngagement'
+import TravelShare from './TravelShare'
 
-export default function BusCard({ listing }: { listing: BusListing }) {
+export default function BusCard({ listing, track = true }: { listing: BusListing; track?: boolean }) {
   const outdated = isBusOutdated(listing)
   const website = safeBusWebsite(listing.website_url)
   const details: [string, string | null][] = [
@@ -18,7 +21,7 @@ export default function BusCard({ listing }: { listing: BusListing }) {
     ['Information valid from', listing.valid_from ? formatTravelDate(listing.valid_from) : null],
     ['Information valid through', listing.valid_until ? formatTravelDate(listing.valid_until) : null],
   ]
-  return <article className="rounded-2xl border border-slate-border bg-slate-card p-5 sm:p-6 flex flex-col min-w-0">
+  return <article id={`bus-${listing.id}`} className="rounded-2xl border border-slate-border bg-slate-card p-5 sm:p-6 flex flex-col min-w-0 scroll-mt-20">
     <div className="flex items-start gap-3">
       <div className="rounded-xl bg-teal-faint p-2.5 text-teal-light shrink-0"><Bus size={22} aria-hidden="true" /></div>
       <div className="min-w-0"><h2 className="font-bold text-cream text-lg break-words">{listing.company_name}</h2>
@@ -36,7 +39,7 @@ export default function BusCard({ listing }: { listing: BusListing }) {
     {listing.price != null && <p className="text-xs text-cream-muted mt-1">{listing.journey_type === 'unknown' ? 'Fare basis: confirm with company.' : 'Company-supplied fare.'} {listing.price_type === 'from' && 'Starting price; your fare may be higher.'}</p>}
     {outdated && <div role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-cream">
       <p className="font-bold flex items-center gap-2"><AlertTriangle size={16} aria-hidden="true" /> Outdated information</p>
-      <p className="mt-1">This information is outdated. {website ? <a href={website} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Visit the company website</a> : 'Contact the company'} for the latest fares and timetable.</p>
+      <p className="mt-1">This information is outdated. {website ? <a href={website} onClick={() => { if (track) void recordTravelEvent('company_click', { listingId: listing.id }) }} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Visit the company website</a> : 'Contact the company'} for the latest fares and timetable.</p>
     </div>}
     <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 text-sm">
       {details.filter(([, value]) => value).map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-cream-muted text-xs">{label}</dt><dd className="text-cream mt-0.5 whitespace-pre-line break-words">{value}</dd></div>)}
@@ -45,7 +48,8 @@ export default function BusCard({ listing }: { listing: BusListing }) {
     {listing.notes && <p className="text-sm text-cream-muted whitespace-pre-line break-words mt-4">{listing.notes}</p>}
     <div className="mt-auto pt-5">
       {listing.information_date && <p className="text-xs text-cream-muted mb-3">Information as of {formatTravelDate(listing.information_date)}</p>}
-      {website && <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-teal-primary text-white px-4 py-3 font-bold text-sm hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-light">Visit bus website <ExternalLink size={16} aria-hidden="true" /></a>}
+      {website && <a href={website} onClick={() => { if (track) void recordTravelEvent('company_click', { listingId: listing.id }) }} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-teal-primary text-white px-4 py-3 font-bold text-sm hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-light">Visit bus website <ExternalLink size={16} aria-hidden="true" /></a>}
+      <TravelShare filters={emptyBusFilters} listing={listing} track={track} />
     </div>
   </article>
 }

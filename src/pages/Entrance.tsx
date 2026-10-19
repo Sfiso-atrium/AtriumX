@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BedDouble,
   Building2,
+  Bus,
   CalendarDays,
   Contrast,
   GraduationCap,
@@ -82,6 +83,7 @@ export default function Entrance() {
           </button>
 
           <nav className="hidden items-center gap-7 lg:flex">
+            <button onClick={() => navigate('/travel')} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#334155] hover:text-[#1565F9]"><Bus size={15} /> Buses</button>
             <button onClick={() => navigate('/feed')} className="text-[13px] font-medium text-[#334155] hover:text-[#1565F9]">Marketplace</button>
             <button onClick={() => navigate('/events')} className="text-[13px] font-medium text-[#334155] hover:text-[#1565F9]">Events</button>
             <button onClick={() => navigate('/accommodations')} className="text-[13px] font-medium text-[#334155] hover:text-[#1565F9]">Accommodation</button>
@@ -121,6 +123,9 @@ export default function Entrance() {
       </header>
 
       <main className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
+        <button onClick={() => navigate('/travel')} className="mt-4 mb-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-border bg-teal-faint px-4 py-3 text-left">
+          <span className="flex items-center gap-3"><Bus size={22} className="text-teal-light shrink-0" /><span><span className="block text-sm font-bold text-cream">Going home for the holidays? Find a bus.</span><span className="block text-xs text-cream-muted mt-0.5">Browse routes and fares free. No account needed.</span></span></span><ArrowRight size={18} className="text-teal-light shrink-0" />
+        </button>
         <section className="relative grid overflow-hidden rounded-b-[36px] bg-white lg:min-h-[520px] lg:grid-cols-[0.88fr_1.12fr]">
           <div className="relative z-10 flex flex-col justify-center px-2 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16 xl:px-14">
             <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">A brighter campus together</p>
